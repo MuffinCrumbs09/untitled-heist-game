@@ -16,6 +16,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
 
     #region Private
     private Controls _controls;
+    [SerializeField] private bool MouseVisible = false;
     #endregion
 
     #region Actions
@@ -37,7 +38,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
         _controls.OnFoot.SetCallbacks(this);
 
         ToggleControls(true);
-        ToggleCursor(false);
+        ToggleCursor(MouseVisible);
     }
     #endregion
 

@@ -1,8 +1,9 @@
 using System;
 using System.ComponentModel.Design;
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerHeadbobController : MonoBehaviour
+public class PlayerHeadbobController : NetworkBehaviour
 {
     #region Public
     [Header("Headbob Settings")]
@@ -14,6 +15,7 @@ public class PlayerHeadbobController : MonoBehaviour
     [SerializeField, Range(0, 30f)]
     private float _frequency = 10.0f; // How oftern it bobs/step amount
     #endregion
+
     #region Private
     private float _amplitude; // Current Intensity
 
@@ -64,4 +66,10 @@ public class PlayerHeadbobController : MonoBehaviour
         return pos;
     }
     #endregion
+
+    // If client doesn't own this, disable me
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner) enabled = false;
+    }
 }

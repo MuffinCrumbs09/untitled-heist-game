@@ -1,7 +1,8 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 
-public abstract class Gun : MonoBehaviour
+public abstract class Gun : NetworkBehaviour
 {
     #region Public
     public GunData GunData;
@@ -95,5 +96,11 @@ public abstract class Gun : MonoBehaviour
 
     public virtual void OnDisable() { }
     #endregion
-    
+
+
+    // If client doesn't own this, disable me
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner) enabled = false;
+    }
 }

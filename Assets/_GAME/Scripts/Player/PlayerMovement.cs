@@ -1,9 +1,10 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
-public class PlayerMovement : MonoBehaviour
+public class PlayerMovement : NetworkBehaviour
 {
     #region Public
     [SerializeField]
@@ -76,4 +77,10 @@ public class PlayerMovement : MonoBehaviour
             canSprint = _stamina >= (MovementStats.maxStamina * 0.75);
     }
     #endregion
+
+    // If client doesn't own this, disable me
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner) enabled = false;
+    }
 }

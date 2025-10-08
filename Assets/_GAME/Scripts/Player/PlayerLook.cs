@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerLook : MonoBehaviour
+public class PlayerLook : NetworkBehaviour
 {
     #region Public
     [Header("Camera Settings")]
@@ -69,4 +70,14 @@ public class PlayerLook : MonoBehaviour
         transform.Rotate(Vector3.up * (mouseX * Time.deltaTime) * xSens);
     }
     #endregion
+
+    // If client doesn't own this, disable me
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner)
+        {
+            Cam.enabled = false;
+            enabled = false;
+        }
+    }
 }
