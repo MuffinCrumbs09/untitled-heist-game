@@ -8,7 +8,6 @@ public abstract class Gun : NetworkBehaviour
     public GunData GunData;
     public Transform GunMuzzle;
     public PlayerLook Look;
-    public Transform CameraTransform;
     public Transform AimTransform;
     #endregion
 
@@ -25,8 +24,7 @@ public abstract class Gun : NetworkBehaviour
     {
         _curAmmo = GunData.MagazineSize;
         Look = transform.root.GetComponent<PlayerLook>();
-        CameraTransform = Look.Cam.transform;
-        AimTransform = Look.AimTransform;
+        AimTransform = Look.Cam.transform;
     }
     #endregion
 

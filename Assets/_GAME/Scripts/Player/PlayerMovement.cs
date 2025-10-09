@@ -2,13 +2,17 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : NetworkBehaviour
 {
+    #region Hidden Public
+    [HideInInspector] public float Stamina { get; private set; }
+    #endregion
+
     #region Public
-    [SerializeField]
-    private PlayerMovementStats MovementStats;
+    public PlayerMovementStats MovementStats;
     #endregion
 
     #region Private
@@ -19,15 +23,12 @@ public class PlayerMovement : NetworkBehaviour
     private const float GRAVITY = -9.8f;
     #endregion
 
-    #region Stamina
-    private float _stamina;
-    #endregion
 
     #region Unity Events
     private void Start()
     {
         _cc = GetComponent<CharacterController>();
-        _stamina = MovementStats.maxStamina;
+        Stamina = MovementStats.maxStamina;
     }
 
     void Update()
@@ -40,6 +41,16 @@ public class PlayerMovement : NetworkBehaviour
     private void FixedUpdate()
     {
         CalculateMovement(InputReader.Instance.MovementValue, InputReader.Instance.IsSprinting);
+    }
+
+    private void OnEnable()
+    {
+        InputReader.Instance.JumpEvent += HandleJump;
+    }
+
+    private void OnDisable()
+    {
+        InputReader.Instance.JumpEvent -= HandleJump;
     }
 
     #endregion
@@ -63,18 +74,26 @@ public class PlayerMovement : NetworkBehaviour
     // Handles stamina gain and loss
     private void HandleStamina()
     {
-        _stamina = Math.Min(_stamina, MovementStats.maxStamina);
+        Stamina = Math.Min(Stamina, MovementStats.maxStamina);
 
         if (InputReader.Instance.IsSprinting && canSprint)
-            _stamina -= MovementStats.staminaDrainSpeed;
+            Stamina -= MovementStats.staminaDrainSpeed;
         else
-            _stamina += 1;
+            Stamina += 1;
 
-        if (canSprint && _stamina <= 0)
+        if (canSprint && Stamina <= 0)
             canSprint = false;
 
         if (!canSprint)
-            canSprint = _stamina >= (MovementStats.maxStamina * 0.75);
+            canSprint = Stamina >= (MovementStats.maxStamina * 0.75);
+    }
+
+    private void HandleJump()
+    {
+        if (NetPlayerManager.Instance.GetCurrentPlayerState(GetComponent<NetworkBehaviour>().OwnerClientId) != PlayerState.MaskOn || !isGrounded)
+            return;
+
+        _playerVelocity.y += MovementStats.jumpHeight;
     }
     #endregion
 

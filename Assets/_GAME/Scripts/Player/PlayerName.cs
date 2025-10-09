@@ -17,7 +17,7 @@ public class PlayerName : MonoBehaviour
         submitBttn.onClick.AddListener(SetName);
 
         if (File.Exists(filePath))
-            relay.BackToMenu();
+            relay.PickCanvas(0);
     }
 
     private void SetName()
@@ -31,6 +31,6 @@ public class PlayerName : MonoBehaviour
             writer.WriteLine(username);
         }
 
-        relay.BackToMenu();
+        relay.PickCanvas(0);
     }
 }

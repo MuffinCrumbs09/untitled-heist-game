@@ -1,13 +1,10 @@
 using System.Collections;
 using System.IO;
-using System.Linq;
 using TMPro;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
-using Unity.Networking.Transport.Relay;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
-using Unity.Services.Lobbies.Models;
 using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
@@ -23,12 +20,18 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private Button QuitLobbyB;
     [SerializeField] private Button QuitGameB;
     [SerializeField] private TMP_Text CodeText;
+    [SerializeField] private Button CodeBttn;
     [SerializeField] private TMP_Text PlayerListTxt;
     [SerializeField] private Button StartGameB;
     [SerializeField] private TMP_InputField JoinInput;
-    [SerializeField] private NetPlayerList PlayerList;
     private string joinCode;
     private string filePath;
+
+    private void OnDisable()
+    {
+        if (NetworkManager.Singleton != null)
+            NetworkManager.Singleton.OnConnectionEvent -= Connected;
+    }
 
     private async void Start()
     {
@@ -39,41 +42,46 @@ public class RelayManager : MonoBehaviour
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
+        NetworkManager.Singleton.OnConnectionEvent += Connected;
+
         CreateLobby.onClick.AddListener(StartRelay);
         //Back.onClick.AddListener(BackToMenu);
         QuitLobbyB.onClick.AddListener(QuitLobby);
         QuitGameB.onClick.AddListener(QuitGame);
         JoinLobby.onClick.AddListener(() => JoinRelay(JoinInput.text));
         StartGameB.onClick.AddListener(StartGame);
+        CodeBttn.onClick.AddListener(CopyCode);
 
         filePath = Application.persistentDataPath + "/PlayerName.txt";
     }
 
     private void Update()
     {
-        if (PlayerListTxt.text == PlayerList.GetAllUsernames())
+        if (PlayerListTxt.text == NetPlayerManager.Instance.GetAllUsernames())
             return;
 
-        PlayerListTxt.text = PlayerList.GetAllUsernames();
+        PlayerListTxt.text = NetPlayerManager.Instance.GetAllUsernames();
     }
 
     #region Functions
-    private void SwapCanvas(int before, int after)
-    {
-        Canvas[before].enabled = false;
-        Canvas[after].enabled = true;
-    }
-
-    public void BackToMenu()
+    // 0 = Main Menu, 1 = In lobby, 2 = Pick username, 3 = Connecting
+    public void PickCanvas(int canvas)
     {
         for (int x = 0; x < Canvas.Length; x++)
         {
-            Debug.Log(x);
-            if (x > 0)
-                Canvas[x].enabled = false;
-            else
-                Canvas[x].enabled = true;
+            Canvas[x].enabled = (x == canvas);
         }
+    }
+
+    private void CopyCode()
+    {
+        GUIUtility.systemCopyBuffer = CodeText.text;
+    }
+
+    private void Connected(NetworkManager manager, ConnectionEventData eventData)
+    {
+        if (eventData.EventType == ConnectionEvent.ClientConnected)
+            PickCanvas(1);
     }
     #endregion
 
@@ -99,7 +107,7 @@ public class RelayManager : MonoBehaviour
         StartCoroutine(WaitandAddUser());
 
         // Switch Canvas
-        SwapCanvas(0, 1);
+        PickCanvas(1);
     }
 
     private async void JoinRelay(string joinCode)
@@ -118,9 +126,8 @@ public class RelayManager : MonoBehaviour
 
         StartCoroutine(WaitandAddUser());
 
-
         // Switch Canvas
-        SwapCanvas(0, 1);
+        PickCanvas(3);
     }
 
     //Loads the game scene
@@ -131,11 +138,15 @@ public class RelayManager : MonoBehaviour
 
     private IEnumerator WaitandAddUser()
     {
-        while (PlayerList == null || !PlayerList.IsSpawned)
+        // Wait unitl the player manager has been spawned
+        while (NetPlayerManager.Instance == null || !NetPlayerManager.Instance.IsSpawned)
             yield return null;
 
         string playerName = File.ReadAllText(filePath);
-        PlayerList.AddUsernameServerRpc(playerName);
+
+        // Add player to the net player manager
+        NetPlayerManager.Instance.AddUsernameServerRpc(playerName);
+        NetPlayerManager.Instance.AddPlayerStateServerRpc(PlayerState.MaskOff);
     }
 
     private void QuitLobby()
@@ -143,16 +154,17 @@ public class RelayManager : MonoBehaviour
         // Quits the lobby
         NetworkManager.Singleton.Shutdown();
 
-        // Delete the network manager
+        // Delete the network dependencies
         Destroy(NetworkManager.Singleton.gameObject);
-        Destroy(PlayerList.gameObject);
+        Destroy(NetPlayerManager.Instance.gameObject);
 
-        // Main Menu (Create a new network manager)
+        // Main Menu (Loading scene creates fresh network dependencies)
         SceneManager.LoadScene(0);
     }
 
     private void QuitGame()
     {
+        // Leave the server then quit the game
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
     }

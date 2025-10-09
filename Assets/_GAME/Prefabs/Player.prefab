@@ -212,7 +212,7 @@ GameObject:
   - component: {fileID: 4315952633510108268}
   m_Layer: 0
   m_Name: Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -390,7 +390,7 @@ MonoBehaviour:
   xSens: 30
   ySens: 30
   Cam: {fileID: 8841721872731843027}
-  AimTransform: {fileID: 0}
+  ArmModel: {fileID: 1696862963720690293}
   _curRecoil: {x: 0, y: 0, z: 0}
 --- !u!114 &2259875964394152259
 MonoBehaviour:
@@ -607,7 +607,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1498820775411394026
 Transform:
   m_ObjectHideFlags: 0
@@ -1691,7 +1691,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4694351796020465359}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d26db415b1d3fd40959cf8108f59de4, type: 3}
   m_Name: 
@@ -1700,7 +1700,6 @@ MonoBehaviour:
   GunData: {fileID: 11400000, guid: d4c98822a0e73da43bfb1352c6d59687, type: 2}
   GunMuzzle: {fileID: 3423132216884244734}
   Look: {fileID: 0}
-  CameraTransform: {fileID: 0}
   AimTransform: {fileID: 0}
 --- !u!1 &4704558909280449317
 GameObject:

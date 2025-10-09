@@ -9,7 +9,7 @@ public class PlayerLook : NetworkBehaviour
     public float xSens = 30f;
     public float ySens = 30f;
     public Camera Cam;
-    public Transform AimTransform;
+    public GameObject ArmModel; // maybe move this when we find a better place for it?
     #endregion
 
     #region Private
@@ -22,6 +22,14 @@ public class PlayerLook : NetworkBehaviour
     #endregion
 
     #region Unity Events
+    private void OnEnable()
+    {
+        InputReader.Instance.MaskEvent += MaskOn;
+    }
+    private void OnDisable()
+    {
+        InputReader.Instance.MaskEvent -= MaskOn;
+    }
     private void LateUpdate()
     {
         CalculateLook(InputReader.Instance.LookValue);
@@ -63,8 +71,6 @@ public class PlayerLook : NetworkBehaviour
 
         // Apply Recoil to camera
         Cam.transform.localRotation = Quaternion.Euler(xRotation + _curRecoil.y, _curRecoil.x, 0);
-        // Aim transforms exists so the player can shoot in all directions, without any problems.
-        AimTransform = Cam.transform;
 
         // X Movement
         transform.Rotate(Vector3.up * (mouseX * Time.deltaTime) * xSens);
@@ -74,10 +80,36 @@ public class PlayerLook : NetworkBehaviour
     // If client doesn't own this, disable me
     public override void OnNetworkSpawn()
     {
+        // Disable the arm trasnform until player changes state
+        ArmModel.SetActive(false);
+
         if (!IsOwner)
         {
+            // Make sure only the local player can use this
             Cam.enabled = false;
+            Destroy(GetComponent<AudioListener>());
             enabled = false;
         }
+        else
+        {
+            // Disable the player model for the local.
+            GetComponent<Renderer>().enabled = false;
+        }
+    }
+
+    // Need to find a better place for this, will be fine for now though.
+    private void MaskOn()
+    {
+        ulong cliendID = NetworkManager.Singleton.LocalClientId;
+
+        if (NetPlayerManager.Instance.GetCurrentPlayerState(cliendID) != PlayerState.MaskOff)
+            return;
+
+        NetPlayerManager.Instance.SetPlayerStateServerRpc(PlayerState.MaskOn);
+
+        ArmModel.SetActive(true);
+        ArmModel.GetComponentInChildren<Gun>().enabled = true;
+
+        Debug.Log(NetPlayerManager.Instance.GetCurrentPlayerState(cliendID));
     }
 }
