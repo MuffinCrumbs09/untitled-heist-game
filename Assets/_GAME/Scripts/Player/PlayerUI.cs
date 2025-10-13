@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
 using Unity.Services.Lobbies.Models;
 using UnityEngine;
@@ -10,11 +11,13 @@ public class PlayerUI : MonoBehaviour
     #region Private Serialized
     [Header("UI")]
     [SerializeField] private Slider StaminaSlider;
+    [SerializeField] private TMP_Text InteractText;
     #endregion
 
     #region Private
     // Components
     private PlayerMovement _playerMovement;
+    private PlayerInteraction _playerInteract;
 
     //  Misc
     private GameObject _player;
@@ -32,6 +35,7 @@ public class PlayerUI : MonoBehaviour
             return;
 
         UpdateStamina();
+        UpdateInteractText();
     }
     #endregion
 
@@ -49,6 +53,7 @@ public class PlayerUI : MonoBehaviour
 
         // Get player Components
         _playerMovement = _player.GetComponent<PlayerMovement>();
+        _playerInteract = _player.GetComponent<PlayerInteraction>();
 
         // Set the max values
         StaminaSlider.maxValue = _playerMovement.MovementStats.maxStamina;
@@ -57,6 +62,16 @@ public class PlayerUI : MonoBehaviour
     {
         float stamina = _playerMovement.Stamina;
         StaminaSlider.value = stamina;
+    }
+
+    private void UpdateInteractText()
+    {
+        string toAdd = _playerInteract.GiveNearbyInteractText();
+
+        if (toAdd == string.Empty)
+            InteractText.text = string.Empty;
+        else
+            InteractText.text = string.Format("Click E to {0}", toAdd);       
     }
     #endregion
 }

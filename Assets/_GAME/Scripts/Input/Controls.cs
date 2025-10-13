@@ -89,6 +89,15 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Interact"",
+                    ""type"": ""Button"",
+                    ""id"": ""188a842e-a6c6-4556-a549-1f198e747c3e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -333,6 +342,17 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""71ead856-c674-486d-adff-8330b800dc46"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Interact"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -376,6 +396,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         m_OnFoot_Reload = m_OnFoot.FindAction("Reload", throwIfNotFound: true);
         m_OnFoot_Mask = m_OnFoot.FindAction("Mask", throwIfNotFound: true);
         m_OnFoot_Jump = m_OnFoot.FindAction("Jump", throwIfNotFound: true);
+        m_OnFoot_Interact = m_OnFoot.FindAction("Interact", throwIfNotFound: true);
     }
 
     ~@Controls()
@@ -449,6 +470,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
     private readonly InputAction m_OnFoot_Reload;
     private readonly InputAction m_OnFoot_Mask;
     private readonly InputAction m_OnFoot_Jump;
+    private readonly InputAction m_OnFoot_Interact;
     public struct OnFootActions
     {
         private @Controls m_Wrapper;
@@ -460,6 +482,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         public InputAction @Reload => m_Wrapper.m_OnFoot_Reload;
         public InputAction @Mask => m_Wrapper.m_OnFoot_Mask;
         public InputAction @Jump => m_Wrapper.m_OnFoot_Jump;
+        public InputAction @Interact => m_Wrapper.m_OnFoot_Interact;
         public InputActionMap Get() { return m_Wrapper.m_OnFoot; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -490,6 +513,9 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
+            @Interact.started += instance.OnInteract;
+            @Interact.performed += instance.OnInteract;
+            @Interact.canceled += instance.OnInteract;
         }
 
         private void UnregisterCallbacks(IOnFootActions instance)
@@ -515,6 +541,9 @@ public partial class @Controls: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
+            @Interact.started -= instance.OnInteract;
+            @Interact.performed -= instance.OnInteract;
+            @Interact.canceled -= instance.OnInteract;
         }
 
         public void RemoveCallbacks(IOnFootActions instance)
@@ -559,5 +588,6 @@ public partial class @Controls: IInputActionCollection2, IDisposable
         void OnReload(InputAction.CallbackContext context);
         void OnMask(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
+        void OnInteract(InputAction.CallbackContext context);
     }
 }

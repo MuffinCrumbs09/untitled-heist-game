@@ -23,6 +23,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public event Action ReloadEvent;
     public event Action MaskEvent;
     public event Action JumpEvent;
+    public event Action InteractEvent;
     #endregion
 
     #region Unity Events
@@ -74,5 +75,6 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public void OnReload(InputAction.CallbackContext context) => ReloadEvent?.Invoke();
     public void OnMask(InputAction.CallbackContext context) => MaskEvent?.Invoke();
     public void OnJump(InputAction.CallbackContext context) => JumpEvent?.Invoke();
+    public void OnInteract(InputAction.CallbackContext context) => InteractEvent?.Invoke();
     #endregion
 }
