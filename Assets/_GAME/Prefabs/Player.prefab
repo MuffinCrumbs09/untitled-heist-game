@@ -348,7 +348,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1347573446
+  GlobalObjectIdHash: 3912298419
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -391,6 +391,7 @@ MonoBehaviour:
   xSens: 30
   ySens: 30
   Cam: {fileID: 8841721872731843027}
+  weaponCam: {fileID: 5873068647271367583}
   _curRecoil: {x: 0, y: 0, z: 0}
 --- !u!114 &2259875964394152259
 MonoBehaviour:

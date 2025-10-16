@@ -2,6 +2,8 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System;
+using Unity.Burst.Intrinsics;
 
 public class PlayerInteraction : NetworkBehaviour
 {
@@ -19,11 +21,14 @@ public class PlayerInteraction : NetworkBehaviour
     {
         InputReader.Instance.MaskEvent += MaskOn;
         InputReader.Instance.InteractEvent += TryInteract;
+        NetPlayerManager.Instance.playerStates.OnListChanged += UpdatePlayerStates;
     }
+
     private void OnDisable()
     {
         InputReader.Instance.MaskEvent -= MaskOn;
         InputReader.Instance.InteractEvent -= TryInteract;
+        NetPlayerManager.Instance.playerStates.OnListChanged -= UpdatePlayerStates;
     }
 
     private void Update()
@@ -65,7 +70,6 @@ public class PlayerInteraction : NetworkBehaviour
         nearbyInteractions[0].Interact();
     }
 
-
     private void MaskOn()
     {
         ulong cliendID = NetworkManager.Singleton.LocalClientId;
@@ -75,10 +79,26 @@ public class PlayerInteraction : NetworkBehaviour
 
         NetPlayerManager.Instance.SetPlayerStateServerRpc(PlayerState.MaskOn);
 
-        ArmModel.SetActive(true);
-        ArmModel.GetComponentInChildren<Gun>().enabled = true;
-
         Debug.Log(NetPlayerManager.Instance.GetCurrentPlayerState(cliendID));
+    }
+
+    private void UpdatePlayerStates(NetworkListEvent<NetPlayerState> changeEvent)
+    {
+        GameObject changedPlayer = null;
+
+        foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
+        {
+            if (player.GetComponent<NetworkBehaviour>().OwnerClientId == changeEvent.Value.clientID)
+            {
+                changedPlayer = player;
+                break;
+            }
+        }
+
+        GameObject armModel = changedPlayer.GetComponent<PlayerInteraction>().ArmModel;
+
+        armModel.SetActive(true);
+        armModel.GetComponentInChildren<Gun>().enabled = true;
     }
 
     public override void OnNetworkSpawn()

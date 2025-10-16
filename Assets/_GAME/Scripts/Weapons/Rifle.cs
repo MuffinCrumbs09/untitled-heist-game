@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Unity.Netcode;
 
 public class Rifle : Gun
 {
@@ -9,6 +10,8 @@ public class Rifle : Gun
     {
         base.Update();
 
+        if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
+
         if (InputReader.Instance.IsFiring)
             TryShoot();
     }
@@ -17,6 +20,7 @@ public class Rifle : Gun
     {
         base.OnEnable();
 
+        if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
         InputReader.Instance.ReloadEvent += TryReload;
     }
 
@@ -24,6 +28,7 @@ public class Rifle : Gun
     {
         base.OnDisable();
 
+        if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
         InputReader.Instance.ReloadEvent -= TryReload;
     }
     #endregion
@@ -48,12 +53,18 @@ public class Rifle : Gun
             Debug.Log("Hit nothing");
         }
 
-        StartCoroutine(BulletFire(targetPos));
+        SpawnBulletTrailClientRpc(GunMuzzle.position, targetPos);
     }
 
-    private IEnumerator BulletFire(Vector3 targetPos)
+    [ClientRpc]
+    private void SpawnBulletTrailClientRpc(Vector3 startPos, Vector3 targetPos)
     {
-        GameObject bulletTrail = Instantiate(GunData.BulletTrailPrefab, GunMuzzle.position, Quaternion.identity);
+        StartCoroutine(BulletFire(startPos, targetPos));
+    }
+
+    private IEnumerator BulletFire(Vector3 startPos, Vector3 targetPos)
+    {
+        GameObject bulletTrail = Instantiate(GunData.BulletTrailPrefab, startPos, Quaternion.identity);
 
         while (bulletTrail != null && Vector3.Distance(bulletTrail.transform.position, targetPos) > 0.1f)
         {

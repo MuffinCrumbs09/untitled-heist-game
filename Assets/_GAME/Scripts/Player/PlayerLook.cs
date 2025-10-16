@@ -9,6 +9,7 @@ public class PlayerLook : NetworkBehaviour
     public float xSens = 30f;
     public float ySens = 30f;
     public Camera Cam;
+    public Camera weaponCam;
     #endregion
 
     #region Private
@@ -75,6 +76,7 @@ public class PlayerLook : NetworkBehaviour
         {
             // Make sure only the local player can use this
             Cam.enabled = false;
+            weaponCam.enabled = false;
             Destroy(GetComponent<AudioListener>());
             enabled = false;
         }
