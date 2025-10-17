@@ -20,8 +20,15 @@ public class Rifle : Gun
     {
         base.OnEnable();
 
-        if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
-        InputReader.Instance.ReloadEvent += TryReload;
+        if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
+        {
+            InputReader.Instance.ReloadEvent += TryReload;
+        }
+        else
+        {
+            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
+            SetAllLayers(ArmModel, 0);
+        }
     }
 
     public override void OnDisable()
@@ -53,7 +60,23 @@ public class Rifle : Gun
             Debug.Log("Hit nothing");
         }
 
-        SpawnBulletTrailClientRpc(GunMuzzle.position, targetPos);
+        SpawnBulletTrailServerRpc(GunMuzzle.position, targetPos);
+    }
+
+    private void SetAllLayers(GameObject obj, int newLayer)
+    {
+        obj.layer = newLayer;
+
+        foreach(Transform child in obj.transform)
+        {
+            SetAllLayers(child.gameObject, newLayer);
+        }
+    }
+
+    [ServerRpc(RequireOwnership = true)]
+    private void SpawnBulletTrailServerRpc(Vector3 startPos, Vector3 targetPos)
+    {
+        SpawnBulletTrailClientRpc(startPos, targetPos);
     }
 
     [ClientRpc]

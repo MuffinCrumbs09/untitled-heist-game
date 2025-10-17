@@ -9,6 +9,7 @@ public abstract class Gun : NetworkBehaviour
     public Transform GunMuzzle;
     public PlayerLook Look;
     public Transform AimTransform;
+    public GameObject ArmModel;
     #endregion
 
     #region Private

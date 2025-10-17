@@ -1716,6 +1716,7 @@ MonoBehaviour:
   GunMuzzle: {fileID: 3423132216884244734}
   Look: {fileID: 0}
   AimTransform: {fileID: 0}
+  ArmModel: {fileID: 1696862963720690293}
 --- !u!1 &4704558909280449317
 GameObject:
   m_ObjectHideFlags: 0
