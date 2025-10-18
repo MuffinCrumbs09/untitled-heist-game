@@ -24,7 +24,7 @@ public class PlayerSpawner : NetworkBehaviour
     private void SceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
         // If Host and in correct scene, Instantiate all players
-        if(IsHost && sceneName == "Test Map")
+        if(IsHost && sceneName == "Prototype Map")
         {
             foreach (ulong id in clientsCompleted)
             {

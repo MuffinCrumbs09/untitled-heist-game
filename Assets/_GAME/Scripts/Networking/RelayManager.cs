@@ -133,7 +133,7 @@ public class RelayManager : MonoBehaviour
     //Loads the game scene
     public void StartGame()
     {
-        NetworkManager.Singleton.SceneManager.LoadScene("Test Map", LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene("Prototype Map", LoadSceneMode.Single);
     }
 
     private IEnumerator WaitandAddUser()
