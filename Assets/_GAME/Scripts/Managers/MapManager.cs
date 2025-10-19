@@ -14,22 +14,14 @@ public class MapManager : NetworkBehaviour
     private Dictionary<string, int> _currentCount = new();
     private List<(string areaName, string roomType)> _activatedRooms = new();
 
+    public NetworkList<NetRoomData> syncedRooms;
 
+    private void Awake()
+    {
+        syncedRooms = new NetworkList<NetRoomData>();
+    }
     public override void OnNetworkSpawn()
     {
-        if (!NetworkManager.IsHost)
-            return;
-
-        AllocateRooms();
-    }
-
-    private void AllocateRooms()
-    {
-        // Get ready
-        M_Rooms rooms = Map.MapRooms;
-        List<M_Areas> availableAreas = new List<M_Areas>(Areas);
-        SetRoomLimits(rooms);
-
         // Disable all rooms
         foreach (M_Areas area in Areas)
         {
@@ -42,6 +34,28 @@ public class MapManager : NetworkBehaviour
                 child.gameObject.SetActive(false);
             }
         }
+
+        if (IsHost)
+        {
+            // Generate rooms
+            AllocateRooms();
+
+            // Send results to clients
+            foreach (var (area, room) in _activatedRooms)
+            {
+                syncedRooms.Add(new NetRoomData(area, room));
+            }
+
+            SyncRoomsClientRpc();
+        }
+    }
+
+    private void AllocateRooms()
+    {
+        // Get ready
+        M_Rooms rooms = Map.MapRooms;
+        List<M_Areas> availableAreas = new List<M_Areas>(Areas);
+        SetRoomLimits(rooms);
 
         // Non-Hall rooms
 
@@ -57,7 +71,7 @@ public class MapManager : NetworkBehaviour
 
             for (int i = 0; i < roomCount; i++)
             {
-                int areaRef = -1; 
+                int areaRef = -1;
                 GameObject room = PickRandomArea(roomType, availableAreas, ref areaRef);
                 if (room == null) continue;
                 if (_currentCount[room.tag] >= _roomLimits[room.tag].max) continue;
@@ -192,10 +206,10 @@ public class MapManager : NetworkBehaviour
                     oldType = _activatedRooms.FirstOrDefault(t => t.roomType == dependency.RequiredRoomType);
 
                 GameObject removeAreaObj = GameObject.Find(oldType.areaName);
-                for(int i = 0; i < removeAreaObj.transform.childCount; i++)
+                for (int i = 0; i < removeAreaObj.transform.childCount; i++)
                 {
                     Transform child = removeAreaObj.transform.GetChild(i);
-                    if(child.CompareTag(dependency.RequiredRoomType) && child.gameObject.activeSelf)
+                    if (child.CompareTag(dependency.RequiredRoomType) && child.gameObject.activeSelf)
                     {
                         child.gameObject.SetActive(false);
                         _currentCount[dependency.RequiredRoomType]--;
@@ -232,6 +246,26 @@ public class MapManager : NetworkBehaviour
         }
     }
 
+    #region Networking
+    [ClientRpc]
+    private void SyncRoomsClientRpc()
+    {
+        foreach (var room in syncedRooms)
+        {
+            GameObject areaObj = GameObject.Find(room.AreaName);
+            for(int i = 0; i < areaObj.transform.childCount; i++)
+            {
+                Transform child = areaObj.transform.GetChild(i);
+                if(child.CompareTag(room.RoomType))
+                {
+                    child.gameObject.SetActive(true);
+                    break;
+                }
+            }
+        }
+    }
+    #endregion
+
     #region Helper
     private void CheckNonHallAreas(List<M_Areas> availableAreas)
     {
@@ -265,6 +299,7 @@ public class MapManager : NetworkBehaviour
                         {
                             child.gameObject.SetActive(true);
                             _currentCount[selectedRoomType]++;
+                            _activatedRooms.Add((area.Area, selectedRoomType));
                             availableAreas.Remove(area);
                             break;
                         }
