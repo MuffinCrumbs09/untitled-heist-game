@@ -4,6 +4,7 @@ using System.Collections;
 using Unity.Services.Matchmaker.Models;
 using System.Diagnostics;
 
+[RequireComponent(typeof(NetworkObject))]
 public class Door : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]

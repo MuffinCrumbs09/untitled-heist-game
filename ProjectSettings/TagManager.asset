@@ -4,7 +4,10 @@
 TagManager:
   serializedVersion: 3
   tags:
+  - Vault
   - Office
+  - Security
+  - Hall
   layers:
   - Default
   - TransparentFX
