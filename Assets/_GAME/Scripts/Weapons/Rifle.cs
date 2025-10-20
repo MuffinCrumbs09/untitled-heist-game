@@ -61,6 +61,7 @@ public class Rifle : Gun
         }
 
         SpawnBulletTrailServerRpc(GunMuzzle.position, targetPos);
+        SoundManager.Instance.PlaySoundServerRpc(SoundType.RIFLE, transform.position);
     }
 
     private void SetAllLayers(GameObject obj, int newLayer)
