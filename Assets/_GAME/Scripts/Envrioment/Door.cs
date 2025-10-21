@@ -3,8 +3,10 @@ using Unity.Netcode;
 using System.Collections;
 using Unity.Services.Matchmaker.Models;
 using System.Diagnostics;
+using UnityEngine.AI;
 
-[RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(NetworkObject)),
+    RequireComponent(typeof(NavMeshObstacle))]
 public class Door : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
@@ -12,15 +14,21 @@ public class Door : NetworkBehaviour, IInteractable
     [SerializeField] private float openSpeed = 2f;
     [SerializeField] private Vector3 doorOpen;
     [SerializeField] private Vector3 doorClosed;
-
-    private NetworkVariable<bool> isOpen = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> isOpen = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     private Quaternion _doorOpen;
     private Quaternion _doorClosed;
+    private NavMeshObstacle _obstacle;
     public void Start()
     {
         _doorOpen = Quaternion.Euler(doorOpen.x, doorOpen.y, doorOpen.z);
         _doorClosed = Quaternion.Euler(doorClosed.x, doorClosed.y, doorClosed.z);
+        _obstacle = GetComponent<NavMeshObstacle>();
+
+        // _obstacle.carveOnlyStationary = false;
+        //  _obstacle.carving = isOpen.Value;
+        _obstacle.enabled = false; // isOpen.Value;
+
         isOpen.OnValueChanged += DoorStateChanged;
     }
 
@@ -64,10 +72,13 @@ public class Door : NetworkBehaviour, IInteractable
     {
         StopAllCoroutines();
         StartCoroutine(ToggleDoor(newValue));
+
+        // _obstacle.carving = isOpen.Value;
+        // _obstacle.enabled = isOpen.Value;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    private void ToggleDoorServerRpc()
+    public void ToggleDoorServerRpc()
     {
         isOpen.Value = !isOpen.Value;
     }

@@ -6,6 +6,8 @@ using System.Linq;
 
 public class MapManager : NetworkBehaviour
 {
+    public static MapManager Instance;
+
     [Header("Map Settings")]
     public M_Settings Map;
     public M_Areas[] Areas;
@@ -18,6 +20,11 @@ public class MapManager : NetworkBehaviour
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+            Destroy(this);
+
+        Instance = this;
+
         syncedRooms = new NetworkList<NetRoomData>();
     }
     public override void OnNetworkSpawn()
