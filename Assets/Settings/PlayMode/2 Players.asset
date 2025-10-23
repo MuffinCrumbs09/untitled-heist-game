@@ -25,10 +25,8 @@ MonoBehaviour:
   m_EditorInstances: []
   m_LocalInstances:
   - Name: Instance
-    <CorrespondingNodeId>k__BackingField: Instance - Run
-    m_Nodes:
-    - Instance - Build
-    - Instance - Run
+    <CorrespondingNodeId>k__BackingField: 
+    m_Nodes: []
     m_BuildProfile: {fileID: 11400000, guid: 6a9432802bb596d4b8c9a87f98208bac, type: 2}
     advancedConfiguration:
       m_StreamLogsToMainEditor: 1

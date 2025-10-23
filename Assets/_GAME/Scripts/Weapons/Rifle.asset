@@ -18,11 +18,17 @@ MonoBehaviour:
     m_Bits: 64
   Range: 30
   FireRate: 6
+  Damage: 50
+  maxAnimRot: 6
+  defaultAnimRot: 10
   MagazineSize: 30
   ReloadTime: 2.5
+  AimPosition: {x: -0.5, y: -0.15, z: -0.25}
+  AimRotation: {x: -10, y: 0, z: 0}
   RecoilAmount: 1
-  MaxRecoil: {x: 2.5, y: 2.5}
-  RecoilSpeed: 4
+  hipMaxRecoil: {x: 2.5, y: 2.5}
+  aimMaxRecoil: {x: 1.5, y: 1.5}
+  RecoilSpeed: 6
   ResetRecoilSpeed: 4
   BulletTrailPrefab: {fileID: 8645289296226527373, guid: 81d3ebfc691409948842bcffd81e9b69, type: 3}
   BulletSpeed: 100

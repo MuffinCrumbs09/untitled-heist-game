@@ -4263,6 +4263,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SquadMember
       objectReference: {fileID: 0}
+    - target: {fileID: 912199711820596936, guid: 4f71f874b2dd59348867db780b277403, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1109224458090874211, guid: 4f71f874b2dd59348867db780b277403, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.1488371
@@ -5250,7 +5254,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 966433995528178787, guid: 80d83a6815670c549a3c4bff8367d4a3, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2141313963629271482, guid: 80d83a6815670c549a3c4bff8367d4a3, type: 3}
       propertyPath: GlobalObjectIdHash

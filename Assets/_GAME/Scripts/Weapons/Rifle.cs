@@ -4,8 +4,14 @@ using Unity.Netcode;
 
 public class Rifle : Gun
 {
-    #region Unity Events
+    #region Variables
+    private float recoilTimer = 0f;
+    private float currentRecoilRotX = 0f;
+    private float recoilVelocity = 0f;
+    #endregion
 
+
+    #region Unity Events
     public override void Update()
     {
         base.Update();
@@ -13,7 +19,46 @@ public class Rifle : Gun
         if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
 
         if (InputReader.Instance.IsFiring)
+        {
             TryShoot();
+
+            if (CanShoot())
+                CalculateGunRecoil();
+            else
+                ResetRecoil();
+        }
+        else
+            ResetRecoil();
+
+        // Apply rotation
+        Vector3 local = transform.localEulerAngles;
+        local.x = currentRecoilRotX;
+        transform.localEulerAngles = local;
+    }
+
+    private void ResetRecoil()
+    {
+        // Reset Recoil
+        recoilTimer = 0f;
+        currentRecoilRotX = Mathf.SmoothDamp(
+            currentRecoilRotX,
+            GunData.defaultAnimRot,
+            ref recoilVelocity,
+            0.1f
+        );
+    }
+
+    private void CalculateGunRecoil()
+    {
+        // Gun Anim
+        recoilTimer += Time.deltaTime * GunData.RecoilSpeed;
+
+        float oscillation = Mathf.Sin(recoilTimer * Mathf.PI * 2f) * 0.5f + 0.5f;
+        float amplitude = GunData.maxAnimRot - GunData.defaultAnimRot;
+
+        float targetRot = (GunData.defaultAnimRot + oscillation * amplitude);
+
+        currentRecoilRotX = Mathf.Lerp(currentRecoilRotX, targetRot, Time.deltaTime * GunData.RecoilSpeed);
     }
 
     public override void OnEnable()
@@ -52,6 +97,11 @@ public class Rifle : Gun
         {
             Debug.Log(GunData.GunName + " hit " + hit.collider.name);
             targetPos = hit.point;
+
+            if (hit.transform.TryGetComponent(out Health hitHealth))
+            {
+                hitHealth.ChangeHealth(-GunData.Damage);
+            }
         }
         else
         {
@@ -62,13 +112,15 @@ public class Rifle : Gun
 
         SpawnBulletTrailServerRpc(GunMuzzle.position, targetPos);
         SoundManager.Instance.PlaySoundServerRpc(SoundType.RIFLE, transform.position);
+
+        recoilTimer = Random.Range(0f, 1f);
     }
 
     private void SetAllLayers(GameObject obj, int newLayer)
     {
         obj.layer = newLayer;
 
-        foreach(Transform child in obj.transform)
+        foreach (Transform child in obj.transform)
         {
             SetAllLayers(child.gameObject, newLayer);
         }

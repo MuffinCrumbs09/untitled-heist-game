@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using TMPro;
 using Unity.Netcode;
@@ -24,9 +25,10 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private TMP_Text PlayerListTxt;
     [SerializeField] private Button StartGameB;
     [SerializeField] private TMP_InputField JoinInput;
+    [SerializeField] private List<GameObject> Players = new();
     private string joinCode;
     private string filePath;
-
+    private float _playerCount;
     private void OnDisable()
     {
         if (NetworkManager.Singleton != null)
@@ -57,10 +59,11 @@ public class RelayManager : MonoBehaviour
 
     private void Update()
     {
-        if (PlayerListTxt.text == NetPlayerManager.Instance.GetAllUsernames())
-            return;
+        if (PlayerListTxt.text != NetPlayerManager.Instance.GetAllUsernames())
+            PlayerListTxt.text = NetPlayerManager.Instance.GetAllUsernames();
 
-        PlayerListTxt.text = NetPlayerManager.Instance.GetAllUsernames();
+        if (_playerCount != Players.Count)
+            ShowPlayers();
     }
 
     #region Functions
@@ -167,5 +170,19 @@ public class RelayManager : MonoBehaviour
         // Leave the server then quit the game
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
+    }
+
+    private void ShowPlayers()
+    {
+        int playerCount = NetPlayerManager.Instance.usernames.Count;
+        _playerCount = 0;
+
+        for (int x = 0; x <= playerCount - 1; x++)
+        {
+            Players[x].SetActive(true);
+            _playerCount++;
+        }
+
+
     }
 }

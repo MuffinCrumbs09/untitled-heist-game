@@ -12,6 +12,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public Vector2 LookValue { get; private set; }
     public bool IsSprinting { get; private set; }
     public bool IsFiring { get; private set; }
+    public bool IsAiming { get; private set; }
     #endregion
 
     #region Private
@@ -76,5 +77,6 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public void OnMask(InputAction.CallbackContext context) => MaskEvent?.Invoke();
     public void OnJump(InputAction.CallbackContext context) => JumpEvent?.Invoke();
     public void OnInteract(InputAction.CallbackContext context) => InteractEvent?.Invoke();
+    public void OnAim(InputAction.CallbackContext context) => IsAiming = context.performed;
     #endregion
 }

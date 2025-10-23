@@ -31,8 +31,19 @@ public class PlayerLook : NetworkBehaviour
     #region Functions
     public void ApplyRecoil(GunData gun)
     {
-        float recoilX = Random.Range(-gun.MaxRecoil.x, gun.MaxRecoil.x) * gun.RecoilAmount;
-        float recoilY = Random.Range(-gun.MaxRecoil.y, gun.MaxRecoil.y) * gun.RecoilAmount;
+        float recoilX = 0;
+        float recoilY = 0;
+
+        if (InputReader.Instance.IsAiming)
+        {
+            recoilX = Random.Range(-gun.aimMaxRecoil.x, gun.aimMaxRecoil.x) * gun.RecoilAmount;
+            recoilY = Random.Range(-gun.aimMaxRecoil.y, gun.aimMaxRecoil.y) * gun.RecoilAmount;
+        }
+        else
+        {
+            recoilX = Random.Range(-gun.hipMaxRecoil.x, gun.hipMaxRecoil.x) * gun.RecoilAmount;
+            recoilY = Random.Range(-gun.hipMaxRecoil.y, gun.hipMaxRecoil.y) * gun.RecoilAmount;
+        }
 
         _targetRecoil += new Vector3(recoilX, recoilY, 0);
         _curRecoil = Vector3.MoveTowards(

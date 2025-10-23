@@ -17,7 +17,6 @@ public abstract class Gun : NetworkBehaviour
     private float _nextTimeToFire = 0f;
 
     private bool _isReloading = false;
-
     #endregion
 
     #region Unity Evets
@@ -38,16 +37,24 @@ public abstract class Gun : NetworkBehaviour
         }
     }
 
-    public void TryShoot()
+    public bool CanShoot()
     {
         if (_isReloading)
-            return;
+            return false;
 
         if (_curAmmo <= 0f)
         {
             Debug.Log(GunData.GunName + " is out of ammo");
-            return;
+            return false;
         }
+
+        return true;
+    }
+
+    public void TryShoot()
+    {
+        if (!CanShoot())
+            return;
 
         if (Time.time >= _nextTimeToFire)
         {
@@ -90,11 +97,26 @@ public abstract class Gun : NetworkBehaviour
     public virtual void Update()
     {
         Look.ResetRecoil(GunData);
+        AimControl();
     }
     public virtual void OnEnable() { }
 
     public virtual void OnDisable() { }
     #endregion
+
+    private void AimControl()
+    {
+        if (InputReader.Instance.IsAiming)
+        {
+            ArmModel.transform.localPosition = GunData.AimPosition;
+            ArmModel.transform.localEulerAngles = GunData.AimRotation;
+        }
+        else
+        {
+            ArmModel.transform.localPosition = Vector3.zero;
+            ArmModel.transform.localEulerAngles = Vector3.zero;
+        }
+    }
 
 
     // If client doesn't own this, disable me
