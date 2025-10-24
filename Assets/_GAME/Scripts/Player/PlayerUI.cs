@@ -12,12 +12,14 @@ public class PlayerUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Slider StaminaSlider;
     [SerializeField] private TMP_Text InteractText;
+    [SerializeField] private TMP_Text AmmoText;
     #endregion
 
     #region Private
     // Components
     private PlayerMovement _playerMovement;
     private PlayerInteraction _playerInteract;
+    private Gun _gun;
 
     //  Misc
     private GameObject _player;
@@ -36,6 +38,7 @@ public class PlayerUI : MonoBehaviour
 
         UpdateStamina();
         UpdateInteractText();
+        UpdateAmmoText();
     }
     #endregion
 
@@ -54,6 +57,7 @@ public class PlayerUI : MonoBehaviour
         // Get player Components
         _playerMovement = _player.GetComponent<PlayerMovement>();
         _playerInteract = _player.GetComponent<PlayerInteraction>();
+        _gun = _playerInteract.ArmModel.transform.GetChild(0).GetChild(0).GetComponent<Gun>();
 
         // Set the max values
         StaminaSlider.maxValue = _playerMovement.MovementStats.maxStamina;
@@ -71,7 +75,16 @@ public class PlayerUI : MonoBehaviour
         if (toAdd == string.Empty)
             InteractText.text = string.Empty;
         else
-            InteractText.text = string.Format("Click E to {0}", toAdd);       
+            InteractText.text = string.Format("Click E to {0}", toAdd);
+    }
+    
+    private void UpdateAmmoText()
+    {
+        float ammo = _gun._curAmmo; float maxAmmo = _gun.GunData.MagazineSize;
+
+        string text = string.Format("{0}/{1}", ammo, maxAmmo);
+
+        AmmoText.text = text;
     }
     #endregion
 }

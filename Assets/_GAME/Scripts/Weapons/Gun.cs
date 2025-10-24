@@ -13,7 +13,7 @@ public abstract class Gun : NetworkBehaviour
     #endregion
 
     #region Private
-    private float _curAmmo = 0f;
+    public float _curAmmo { private set; get; } = 0f;
     private float _nextTimeToFire = 0f;
 
     private bool _isReloading = false;
