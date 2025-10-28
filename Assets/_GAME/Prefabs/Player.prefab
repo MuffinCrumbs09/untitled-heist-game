@@ -211,7 +211,8 @@ GameObject:
   - component: {fileID: 3483640456217057138}
   - component: {fileID: 3548294459555750548}
   - component: {fileID: 4315952633510108268}
-  m_Layer: 0
+  - component: {fileID: 4106231653630490273}
+  m_Layer: 6
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -480,6 +481,20 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966433995528178787}
   m_Enabled: 1
+--- !u!114 &4106231653630490273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 966433995528178787}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3dade83840911f498059bdf265d4915, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 2000
 --- !u!1 &1039443566403418777
 GameObject:
   m_ObjectHideFlags: 0
@@ -840,7 +855,7 @@ Animator:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2925223157472200866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: dcfbbd390c522d7478dbe75879d0df9f, type: 2}
   m_CullingMode: 0
@@ -1672,7 +1687,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1055141398749246701}
-  - component: {fileID: 7496331138398193803}
+  - component: {fileID: 2461974314042043836}
   m_Layer: 7
   m_Name: Rifle
   m_TagString: Untagged
@@ -1699,14 +1714,14 @@ Transform:
   - {fileID: 3423132216884244734}
   m_Father: {fileID: 7373469126830246479}
   m_LocalEulerAnglesHint: {x: 10, y: 0, z: 0}
---- !u!114 &7496331138398193803
+--- !u!114 &2461974314042043836
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4694351796020465359}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d26db415b1d3fd40959cf8108f59de4, type: 3}
   m_Name: 
@@ -1714,8 +1729,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   GunData: {fileID: 11400000, guid: d4c98822a0e73da43bfb1352c6d59687, type: 2}
   GunMuzzle: {fileID: 3423132216884244734}
-  Look: {fileID: 0}
-  AimTransform: {fileID: 0}
+  Look: {fileID: 1354128699772042756}
+  AimTransform: {fileID: 2363239296111387916}
   ArmModel: {fileID: 1696862963720690293}
 --- !u!1 &4704558909280449317
 GameObject:

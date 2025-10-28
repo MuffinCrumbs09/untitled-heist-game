@@ -16,9 +16,9 @@ public class Rifle : Gun
     {
         base.Update();
 
-        if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
+        if (!_isAI && !transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
 
-        if (InputReader.Instance.IsFiring)
+        if (_weaponInput.IsFiring)
         {
             TryShoot();
 
@@ -65,6 +65,8 @@ public class Rifle : Gun
     {
         base.OnEnable();
 
+        if (_isAI) return;
+
         if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
         {
             InputReader.Instance.ReloadEvent += TryReload;
@@ -80,6 +82,8 @@ public class Rifle : Gun
     {
         base.OnDisable();
 
+        if (_isAI) return;
+
         if (!transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer) return;
         InputReader.Instance.ReloadEvent -= TryReload;
     }
@@ -91,7 +95,7 @@ public class Rifle : Gun
     {
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
-        Vector3 rayOrigin = Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
+        Vector3 rayOrigin = _isAI ? AimTransform.position : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
 
         if (Physics.Raycast(rayOrigin, AimTransform.forward.normalized, out hit, GunData.Range, GunData.TargetLayer))
         {
@@ -100,13 +104,13 @@ public class Rifle : Gun
 
             if (hit.transform.TryGetComponent(out Health hitHealth))
             {
-                hitHealth.ChangeHealth(-GunData.Damage);
+                hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
             }
         }
         else
         {
-            targetPos =
-                rayOrigin + (AimTransform.forward.normalized + Look._curRecoil) * GunData.Range;
+            Vector3 recoilOffset = Look != null ? Look._curRecoil : Vector3.zero;
+            targetPos = rayOrigin + (AimTransform.forward.normalized + recoilOffset) * GunData.Range;
             Debug.Log("Hit nothing");
         }
 

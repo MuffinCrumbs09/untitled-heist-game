@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Graphs:
   - rid: 2239482474439377090
-  RootGraph:
-    rid: 2239482474439377090
   m_DebugInfo: {fileID: -5697079373340252947}
+  m_WasCompileWithPlaceholderNode: 0
   references:
     version: 2
     RefIds:
@@ -28,39 +27,25 @@ MonoBehaviour:
         AuthoringAssetID:
           m_Value0: 9513105766197011945
           m_Value1: 18302693757440820120
-        m_DebugInfo: {fileID: 0}
+        m_DebugInfo: {fileID: -5697079373340252947}
         BlackboardReference:
           rid: 2239482474439377091
         BlackboardGroupReferences: []
         Root:
-          rid: 2239482474439377092
+          rid: 2239482613425766477
         m_ActiveNodes: []
         m_NodesToTick: []
         m_NodesToEnd:
           rid: 2239482474439377093
         m_EndedNodes:
           rid: 2239482474439377094
-        m_VersionTimestamp: 638966605430227978
+        m_VersionTimestamp: 638971849069840886
     - rid: 2239482474439377091
       type: {class: BlackboardReference, ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         m_Blackboard:
           rid: 2239482474439377095
         m_Source: {fileID: -5468520330404654123}
-    - rid: 2239482474439377092
-      type: {class: Start, ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        ID:
-          m_Value0: 5474322036154143050
-          m_Value1: 874503166546184156
-        Graph:
-          rid: 2239482474439377090
-        m_Parent:
-          rid: -2
-        m_Child:
-          rid: -2
-        Repeat: 0
-        AllowMultipleRepeatsPerTick: 0
     - rid: 2239482474439377093
       type: {class: 'Stack`1[[Unity.Behavior.Node, Unity.Behavior]]', ns: System.Collections.Generic, asm: mscorlib}
       data: 
@@ -107,6 +92,20 @@ MonoBehaviour:
           m_Value1: 2174931503055341100
         Name: SquadComands
         m_Value: {fileID: 0}
+    - rid: 2239482613425766477
+      type: {class: Start, ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        ID:
+          m_Value0: 5474322036154143050
+          m_Value1: 874503166546184156
+        Graph:
+          rid: 2239482474439377090
+        m_Parent:
+          rid: -2
+        m_Child:
+          rid: -2
+        Repeat: 0
+        AllowMultipleRepeatsPerTick: 0
 --- !u!114 &-5697079373340252947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -261,7 +260,8 @@ MonoBehaviour:
   m_Description: 
   m_Nodes:
   - rid: 2239482454103294394
-  m_VersionTimestamp: 638966605430227978
+  m_VersionTimestamp: 638971849069840886
+  m_SerializedVersion: 1
   m_DebugInfo: {fileID: -5697079373340252947}
   m_RuntimeGraph: {fileID: -6370962629151639903}
   AssetID:
@@ -274,16 +274,22 @@ MonoBehaviour:
   m_NodeModelsInfo:
   - Name: On Start
     Story: 
+    RuntimeTypeString: Unity.Behavior.Start, Unity.Behavior, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
     RuntimeTypeID:
       m_Value0: 3335272451348827663
       m_Value1: 11549843281177505721
     Variables: []
     NamedChildren: []
+    IsPlaceholder: 0
   m_Blackboards: []
   m_MainBlackboardAuthoringAsset: {fileID: -2331447728500303863}
   m_CommandBuffer:
     m_Commands: []
   m_SubgraphsInfo: []
+  m_BlackboardMissingManagedRef: 0
+  m_GraphMissingManagedRef: 0
+  m_HasMissingTypeInManagedRef: 0
   references:
     version: 2
     RefIds:

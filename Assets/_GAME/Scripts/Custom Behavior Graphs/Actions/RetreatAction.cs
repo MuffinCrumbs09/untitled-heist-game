@@ -17,6 +17,9 @@ public partial class RetreatAction : Action
 
     protected override Status OnStart()
     {
+        if (ReferenceEquals(Target.Value, null))
+            return Status.Failure;
+            
         foundRetreatDest = false;
 
         Vector3 retreatDir = (Agent.Value.transform.position - Target.Value.transform.position).normalized;

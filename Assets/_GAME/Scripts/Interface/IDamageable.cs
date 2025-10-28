@@ -1,4 +1,6 @@
+using UnityEngine;
+
 public interface IDamageable
 {   
-    public void ChangeHealth(int toChange);
+    public void ChangeHealth(int toChange, GameObject attacker);
 }

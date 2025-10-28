@@ -12,10 +12,14 @@ public abstract class Gun : NetworkBehaviour
     public GameObject ArmModel;
     #endregion
 
+    #region Protected
+    protected IWeaponInput _weaponInput;
+    protected bool _isAI = false;
+    #endregion
+
     #region Private
     public float _curAmmo { private set; get; } = 0f;
     private float _nextTimeToFire = 0f;
-
     private bool _isReloading = false;
     #endregion
 
@@ -24,7 +28,17 @@ public abstract class Gun : NetworkBehaviour
     {
         _curAmmo = GunData.MagazineSize;
         Look = transform.root.GetComponent<PlayerLook>();
-        AimTransform = Look.Cam.transform;
+
+        if (Look != null)
+        {
+            AimTransform = Look.Cam.transform;
+            _weaponInput = new PlayerWeaponInput();
+        }
+        else
+        {
+            _isAI = true;
+            _weaponInput = transform.root.GetComponent<AIWeaponInput>();
+        }
     }
     #endregion
 
@@ -67,10 +81,12 @@ public abstract class Gun : NetworkBehaviour
     {
         _curAmmo--;
 
-        Debug.Log(_curAmmo);
         Shoot();
 
-        Look.ApplyRecoil(GunData);
+        if (Look != null)
+        {
+            Look.ApplyRecoil(GunData);
+        }
     }
 
     private IEnumerator Reload()
@@ -96,7 +112,9 @@ public abstract class Gun : NetworkBehaviour
 
     public virtual void Update()
     {
-        Look.ResetRecoil(GunData);
+        if (!_isAI)
+            Look.ResetRecoil(GunData);
+
         AimControl();
     }
     public virtual void OnEnable() { }
@@ -106,7 +124,7 @@ public abstract class Gun : NetworkBehaviour
 
     private void AimControl()
     {
-        if (InputReader.Instance.IsAiming)
+        if (_weaponInput.IsAiming)
         {
             ArmModel.transform.localPosition = GunData.AimPosition;
             ArmModel.transform.localEulerAngles = GunData.AimRotation;
@@ -122,6 +140,17 @@ public abstract class Gun : NetworkBehaviour
     // If client doesn't own this, disable me
     public override void OnNetworkSpawn()
     {
-        if (!IsOwner) enabled = false;
+        if (!IsOwner) StartCoroutine(DisableAfterSpawn());
+    }
+
+    private IEnumerator DisableAfterSpawn()
+    {
+        // Wait until the local player exists
+        while (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
+        {
+            yield return null;
+        }
+
+        enabled = false;
     }
 }

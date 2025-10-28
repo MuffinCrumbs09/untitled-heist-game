@@ -2,6 +2,7 @@ using System;
 using Unity.Mathematics;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class Health : NetworkBehaviour, IDamageable
 {
@@ -17,6 +18,9 @@ public class Health : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
+    [Header("Events")]
+    public UnityEvent<GameObject> OnDamaged;
+
     private void ApplyHealthChange(int amount)
     {
         if (isDead.Value) return;
@@ -29,13 +33,19 @@ public class Health : NetworkBehaviour, IDamageable
             HandleDeath();
         }
 
+
         Debug.Log(health.Value);
     }
-    public void ChangeHealth(int toChange)
+    public void ChangeHealth(int toChange, GameObject attacker)
     {
+        if (isDead.Value) return;
+
         if (IsServer)
         {
             ApplyHealthChange(toChange);
+
+            if (TryGetComponent(out AIHitHandler hit))
+                hit.RegisterHit(attacker);
         }
         else
         {

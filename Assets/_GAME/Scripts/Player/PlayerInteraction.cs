@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System;
 using Unity.Burst.Intrinsics;
+using System.Collections;
 
 public class PlayerInteraction : NetworkBehaviour
 {
@@ -19,20 +20,25 @@ public class PlayerInteraction : NetworkBehaviour
     #region Unity Events
     private void OnEnable()
     {
-        InputReader.Instance.MaskEvent += MaskOn;
-        InputReader.Instance.InteractEvent += TryInteract;
         NetPlayerManager.Instance.playerStates.OnListChanged += UpdatePlayerStates;
     }
 
     private void OnDisable()
     {
-        InputReader.Instance.MaskEvent -= MaskOn;
-        InputReader.Instance.InteractEvent -= TryInteract;
         NetPlayerManager.Instance.playerStates.OnListChanged -= UpdatePlayerStates;
+
+        if (IsOwner)
+        {
+            InputReader.Instance.MaskEvent -= MaskOn;
+            InputReader.Instance.InteractEvent -= TryInteract;
+        }
     }
 
     private void Update()
     {
+        if (!IsOwner)
+            return;
+
         checkTime += Time.deltaTime;
 
         if (checkTime > 0.2f)
@@ -95,20 +101,39 @@ public class PlayerInteraction : NetworkBehaviour
             }
         }
 
-        GameObject armModel = changedPlayer.GetComponent<PlayerInteraction>().ArmModel;
-
-        armModel.SetActive(true);
-        armModel.GetComponentInChildren<Gun>().enabled = true;
+        PlayerInteraction armModel = changedPlayer.GetComponent<PlayerInteraction>();
+        armModel.SetArmModelVisibility(true);
     }
 
     public override void OnNetworkSpawn()
     {
-        // Disable the arm trasnform until player changes state
-        ArmModel.SetActive(false);
+        if (IsOwner)
+        {
+            InputReader.Instance.MaskEvent += MaskOn;
+            InputReader.Instance.InteractEvent += TryInteract;
+        }
 
-        // Disable script for anyone who isnt local
-        if (!IsOwner)
-            enabled = false;
+        SetArmModelVisibility(false);
+    }
+
+    private void SetArmModelVisibility(bool isVisible)
+    {
+        if (isVisible)
+        {
+            Animator anim = ArmModel.GetComponentInChildren<Animator>();
+            anim.enabled = true;
+        }
+        Renderer[] renderers = ArmModel.GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.enabled = isVisible;
+        }
+
+        Gun gun = ArmModel.GetComponentInChildren<Gun>();
+        if (gun != null)
+        {
+            gun.enabled = isVisible;
+        }
     }
 
     // Draw gizmos for debug
