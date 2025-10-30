@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "untitled-heist-game.sln"
+    "dotnet.defaultSolution": "untitled-heist-game.slnx"
 }

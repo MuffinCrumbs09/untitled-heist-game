@@ -1,16 +1,22 @@
 using System.Collections;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public enum SoundType
 {
-    RIFLE
+    RIFLE,
+
+    HACK_COMPLETE,
+    // Multiple Sounds
+    KEYBOARD_CLICK,
 }
 
 [RequireComponent(typeof(AudioSource))]
 public class SoundManager : NetworkBehaviour
 {
     [SerializeField] private SoundList soundList;
+    [SerializeField] private SoundList keyboardClickSounds;
     [SerializeField] private float maxHearingDist;
     [SerializeField] private AnimationCurve volumeCurve = AnimationCurve.EaseInOut(0, 1, 1, 0);
 
@@ -49,6 +55,12 @@ public class SoundManager : NetworkBehaviour
         PlaySoundClientRpc(sound, origin);
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void PlayKeyboardSoundServerRpc(Vector3 origin)
+    {
+        PlaySoundClientRpc(SoundType.KEYBOARD_CLICK, origin);
+    }
+
     [ClientRpc]
     public void PlaySoundClientRpc(SoundType sound, Vector3 origin)
     {
@@ -60,6 +72,21 @@ public class SoundManager : NetworkBehaviour
         float t = Mathf.Clamp01(distance / maxHearingDist);
         float volume = volumeCurve.Evaluate(t);
 
-        _a.PlayOneShot(soundList.soundList[(int)sound], volume);
+
+        switch (sound)
+        {
+            case SoundType.KEYBOARD_CLICK:
+                {
+                    int randomIndex = Random.Range(0, keyboardClickSounds.soundList.Length);
+                    _a.PlayOneShot(keyboardClickSounds.soundList[randomIndex], volume);
+                    break;
+                }
+            default:
+                {
+                    _a.PlayOneShot(soundList.soundList[(int)sound], volume);
+                    break;
+                }
+        }
+
     }
 }

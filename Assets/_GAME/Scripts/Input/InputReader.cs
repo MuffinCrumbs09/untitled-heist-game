@@ -1,11 +1,19 @@
 using System;
 using Unity.VisualScripting;
+using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-public class InputReader : MonoBehaviour, Controls.IOnFootActions
+public enum ControlType
 {
+    Foot,
+    UI
+}
+
+public class InputReader : MonoBehaviour, Controls.IOnFootActions, Controls.IUIActions
+{
+
     #region Public
     public static InputReader Instance;
     public Vector2 MovementValue { get; private set; }
@@ -25,6 +33,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public event Action MaskEvent;
     public event Action JumpEvent;
     public event Action InteractEvent;
+    public event Action HackingEvent;
     #endregion
 
     #region Unity Events
@@ -40,20 +49,33 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     {
         _controls = new Controls();
         _controls.OnFoot.SetCallbacks(this);
+        _controls.UI.SetCallbacks(this);
 
-        ToggleControls(true);
+        ToggleControls(ControlType.Foot);
         ToggleCursor(MouseVisible);
     }
     #endregion
 
     #region Functions
     // Toggle Controls
-    public void ToggleControls(bool toggle)
+    public void ToggleControls(ControlType type)
     {
-        if (toggle)
-            _controls.OnFoot.Enable();
-        else
-            _controls.OnFoot.Disable();
+        _controls.OnFoot.Disable();
+        _controls.UI.Disable();
+
+        switch (type)
+        {
+            case ControlType.Foot:
+                {
+                    _controls.OnFoot.Enable();
+                    break;
+                }
+            case ControlType.UI:
+                {
+                    _controls.UI.Enable();
+                    break;
+                }
+        }
     }
 
     // Toggle Cursor
@@ -69,6 +91,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     #endregion
 
     #region Input
+    // OnFoot
     public void OnMovement(InputAction.CallbackContext context) => MovementValue = context.ReadValue<Vector2>();
     public void OnLook(InputAction.CallbackContext context) => LookValue = context.ReadValue<Vector2>();
     public void OnSprint(InputAction.CallbackContext context) => IsSprinting = context.performed;
@@ -78,5 +101,12 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions
     public void OnJump(InputAction.CallbackContext context) => JumpEvent?.Invoke();
     public void OnInteract(InputAction.CallbackContext context) => InteractEvent?.Invoke();
     public void OnAim(InputAction.CallbackContext context) => IsAiming = context.performed;
+
+    // UI
+    public void OnHacking(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+            HackingEvent?.Invoke();
+    }
     #endregion
 }
