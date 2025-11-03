@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b93d9f2fcca855408534f4fef1978ea, type: 3}
+  m_Name: Rifle_AI
+  m_EditorClassIdentifier: 
+  GunName: Assault Rifle
+  TargetLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  Range: 50
+  FireRate: 6
+  Damage: 20
+  maxAnimRot: 6
+  defaultAnimRot: 10
+  MagazineSize: 30
+  ReloadTime: 3
+  AimPosition: {x: -0.5, y: -0.15, z: -0.25}
+  AimRotation: {x: -10, y: 0, z: 0}
+  RecoilAmount: 1
+  hipMaxRecoil: {x: 2.5, y: 2.5}
+  aimMaxRecoil: {x: 1.5, y: 1.5}
+  RecoilSpeed: 6
+  ResetRecoilSpeed: 4
+  BulletTrailPrefab: {fileID: 8645289296226527373, guid: 81d3ebfc691409948842bcffd81e9b69, type: 3}
+  BulletSpeed: 100

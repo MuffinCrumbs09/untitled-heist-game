@@ -16,7 +16,7 @@ MonoBehaviour:
   TargetLayer:
     serializedVersion: 2
     m_Bits: 64
-  Range: 30
+  Range: 50
   FireRate: 6
   Damage: 50
   maxAnimRot: 6

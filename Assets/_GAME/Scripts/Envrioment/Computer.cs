@@ -1,10 +1,21 @@
 using UnityEngine;
 
+[SerializeField]
+public enum ComputerType
+{
+    TIMER,
+    CODE
+}
+
 public class Computer : MonoBehaviour, IInteractable
 {
     [Header("Settings")]
-    public MinigameTask associatedTask;
     public HackingMinigame minigame;
+    public ComputerType type;
+
+    // Task
+    public MinigameTask associatedTask;
+    [HideInInspector] public DoorTimer timer;
 
     public void Interact()
     {
@@ -26,11 +37,26 @@ public class Computer : MonoBehaviour, IInteractable
         if (associatedTask != null)
         {
             associatedTask.CompleteTask();
-            Debug.Log($"Completed task: {associatedTask.taskName}");
+
+            switch (type)
+            {
+                case ComputerType.TIMER:
+                    {
+                        timer.StartTimer();
+                        break;
+                    }
+                case ComputerType.CODE:
+                    {
+                        // Subtitle
+                        Debug.Log("Code is blah blah blah");
+                        break;
+                    }
+            }
         }
         else
         {
-            Debug.Log("Hacked decoy computer - no task completed");
+            // subtitle
+            Debug.Log("One of many possible things contractor will \"find\"");
         }
 
         Destroy(this);

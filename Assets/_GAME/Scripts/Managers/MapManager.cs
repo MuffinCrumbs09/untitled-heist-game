@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 public class MapManager : NetworkBehaviour
 {
@@ -274,7 +275,18 @@ public class MapManager : NetworkBehaviour
                         FindComputersByRoom(room, ref computers);
 
                     int random = Random.Range(0, computers.Count);
-                    computers[random].associatedTask = minigameTask;
+                    Computer selected = computers[random];
+
+                    selected.associatedTask = minigameTask;
+                    if (selected.type == ComputerType.TIMER)
+                    {
+                        DoorTimer timer;
+                        List<Transform> vaultRooms = FindRoomsByTag("Vault");
+
+                        timer = FindTimerByRoom(vaultRooms[0]);
+                        selected.timer = timer;
+                    }
+
                     Debug.Log(computers[random].transform.parent.parent.name);
                 }
             }
@@ -438,6 +450,19 @@ public class MapManager : NetworkBehaviour
 
             FindComputersByRoom(child, ref computers);
         }
+    }
+
+    private DoorTimer FindTimerByRoom(Transform room)
+    {
+        foreach (Transform child in room)
+        {
+            if (child.TryGetComponent(out DoorTimer timer))
+            {
+                return timer;
+            }
+        }
+
+        return null;
     }
 
     #endregion
