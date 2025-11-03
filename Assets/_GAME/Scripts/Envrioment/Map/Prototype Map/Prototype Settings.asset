@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: Prototype Settings
   m_EditorClassIdentifier: 
   MapRooms: {fileID: 11400000, guid: d54fb4ec28543924f8ff5ad581d01113, type: 2}
+  MapLocations:
+  - {fileID: 11400000, guid: 00b136319f7a4c34ea5e31fbdb8c97b3, type: 2}
   MapName: 
   MapDesc: 
   Contractor: 

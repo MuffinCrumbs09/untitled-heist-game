@@ -8,10 +8,10 @@ public class TimerTask : Task
 
     public override void UpdateTask()
     {
-        if (isCompletled) return;
+        if (isCompleted) return;
 
         timer += Time.deltaTime;
         if (timer >= timerDuration)
-            isCompletled = true;
+            isCompleted = true;
     }
 }

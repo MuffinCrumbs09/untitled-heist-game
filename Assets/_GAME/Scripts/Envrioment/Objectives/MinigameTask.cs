@@ -2,15 +2,13 @@ using UnityEngine;
 
 public class MinigameTask : Task
 {
+    public string RoomType;
     public void CompleteTask()
     {
-        if (!isCompletled)
+        if (!isCompleted)
         {
-            isCompletled = true;
+            isCompleted = true;
         }
     }
-    public override void UpdateTask()
-    {
-
-    }
+    public override void UpdateTask() { }
 }

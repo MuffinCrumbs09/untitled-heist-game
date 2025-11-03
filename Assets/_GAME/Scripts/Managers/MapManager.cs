@@ -11,6 +11,7 @@ public class MapManager : NetworkBehaviour
     [Header("Map Settings")]
     public M_Settings Map;
     public M_Areas[] Areas;
+    public ObjectiveSystem ObjectiveSystem;
 
     private Dictionary<string, (int min, int max)> _roomLimits = new();
     private Dictionary<string, int> _currentCount = new();
@@ -52,6 +53,9 @@ public class MapManager : NetworkBehaviour
             {
                 syncedRooms.Add(new NetRoomData(area, room));
             }
+
+            AssignObjectiveTransforms();
+            AssignCorrectComputer();
 
             SyncRoomsClientRpc();
         }
@@ -253,6 +257,73 @@ public class MapManager : NetworkBehaviour
         }
     }
 
+    private void AssignCorrectComputer()
+    {
+        foreach (var objective in ObjectiveSystem.ObjectiveList)
+        {
+            if (objective.tasks == null) continue;
+
+            foreach (var task in objective.tasks)
+            {
+                if (task is MinigameTask minigameTask)
+                {
+                    List<Computer> computers = new();
+                    List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
+
+                    foreach (Transform room in foundRooms)
+                        FindComputersByRoom(room, ref computers);
+
+                    int random = Random.Range(0, computers.Count);
+                    computers[random].associatedTask = minigameTask;
+                    Debug.Log(computers[random].transform.parent.parent.name);
+                }
+            }
+        }
+    }
+
+    public void AssignObjectiveTransforms()
+    {
+        foreach (var objective in ObjectiveSystem.ObjectiveList)
+        {
+            if (objective.tasks == null) continue;
+
+            foreach (var task in objective.tasks)
+            {
+                if (task is LocationTask locationTask)
+                {
+                    if (locationTask.possibleAreas == null || locationTask.possibleAreas.Count == 0)
+                    {
+                        string roomtag = ExtractRoomTagFromTaskName(locationTask.taskName);
+
+                        if (!string.IsNullOrEmpty(roomtag))
+                        {
+                            List<Transform> foundRooms = FindRoomsByTag(roomtag);
+
+                            foreach (Transform room in foundRooms)
+                            {
+                                foreach (M_Locations location in Map.MapLocations)
+                                {
+                                    if (location.RoomName != roomtag)
+                                        continue;
+
+                                    for (int i = 0; i < location.LocationNames.Count; i++)
+                                    {
+                                        if (room.name == location.LocationNames[i].RoomObjectName)
+                                        {
+                                            GameObject toSet = GameObject.Find(location.LocationNames[i].LocationObjectName);
+                                            locationTask.possibleAreas.Add(toSet.transform);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #region Networking
     [ClientRpc]
     private void SyncRoomsClientRpc()
@@ -260,10 +331,10 @@ public class MapManager : NetworkBehaviour
         foreach (var room in syncedRooms)
         {
             GameObject areaObj = GameObject.Find(room.AreaName);
-            for(int i = 0; i < areaObj.transform.childCount; i++)
+            for (int i = 0; i < areaObj.transform.childCount; i++)
             {
                 Transform child = areaObj.transform.GetChild(i);
-                if(child.CompareTag(room.RoomType))
+                if (child.CompareTag(room.RoomType))
                 {
                     child.gameObject.SetActive(true);
                     break;
@@ -315,5 +386,59 @@ public class MapManager : NetworkBehaviour
             }
         }
     }
+
+    private string ExtractRoomTagFromTaskName(string taskName)
+    {
+        string lowerTaskName = taskName.ToLower();
+
+        foreach (var roomData in _activatedRooms)
+        {
+            if (lowerTaskName.Contains(roomData.roomType.ToLower()))
+            {
+                return roomData.roomType;
+            }
+        }
+        return null;
+    }
+
+    private List<Transform> FindRoomsByTag(string roomTag)
+    {
+        List<Transform> foundRooms = new List<Transform>();
+
+        foreach (var roomData in _activatedRooms)
+        {
+            if (roomData.roomType.Equals(roomTag, System.StringComparison.OrdinalIgnoreCase))
+            {
+                GameObject areaObj = GameObject.Find(roomData.areaName);
+                if (areaObj != null)
+                {
+                    for (int i = 0; i < areaObj.transform.childCount; i++)
+                    {
+                        Transform child = areaObj.transform.GetChild(i);
+                        if (child.CompareTag(roomTag) && child.gameObject.activeSelf)
+                        {
+                            foundRooms.Add(child);
+                        }
+                    }
+                }
+            }
+        }
+
+        return foundRooms;
+    }
+
+    private void FindComputersByRoom(Transform room, ref List<Computer> computers)
+    {
+        foreach (Transform child in room)
+        {
+            if (child.TryGetComponent(out Computer computer))
+            {
+                computers.Add(computer);
+            }
+
+            FindComputersByRoom(child, ref computers);
+        }
+    }
+
     #endregion
 }
