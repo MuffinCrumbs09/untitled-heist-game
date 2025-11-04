@@ -12,6 +12,7 @@ public class MapManager : NetworkBehaviour
     [Header("Map Settings")]
     public M_Settings Map;
     public M_Areas[] Areas;
+    public M_RandomDialouge MapRandomDialouge;
     public ObjectiveSystem ObjectiveSystem;
 
     private Dictionary<string, (int min, int max)> _roomLimits = new();

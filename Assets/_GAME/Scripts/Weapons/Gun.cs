@@ -93,6 +93,9 @@ public abstract class Gun : NetworkBehaviour
     {
         _isReloading = true;
 
+        if (!_isAI)
+            SubtitleManager.Instance.ShowPlayerSubtitle("Reloading!");
+
         //Play Anim
         Debug.Log(GunData.GunName + " is reloading");
 

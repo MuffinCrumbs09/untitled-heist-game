@@ -96,8 +96,9 @@ public class Rifle : Gun
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
         Vector3 rayOrigin = _isAI ? AimTransform.position : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
+        Vector3 shootDirection = _isAI ? AimTransform.forward : Look.Cam.transform.forward;
 
-        if (Physics.Raycast(rayOrigin, AimTransform.forward.normalized, out hit, GunData.Range, GunData.TargetLayer))
+        if (Physics.Raycast(rayOrigin, shootDirection, out hit, GunData.Range, GunData.TargetLayer))
         {
             Debug.Log(GunData.GunName + " hit " + hit.collider.name);
             targetPos = hit.point;
@@ -109,8 +110,7 @@ public class Rifle : Gun
         }
         else
         {
-            Vector3 recoilOffset = Look != null ? Look._curRecoil : Vector3.zero;
-            targetPos = rayOrigin + (AimTransform.forward.normalized + recoilOffset) * GunData.Range;
+            targetPos = rayOrigin + shootDirection * GunData.Range;
             Debug.Log("Hit nothing");
         }
 

@@ -4,7 +4,7 @@ using Unity.Netcode;
 
 public struct NetString : INetworkSerializable, System.IEquatable<NetString>
 {
-    ForceNetworkSerializeByMemcpy<FixedString128Bytes> st;
+    ForceNetworkSerializeByMemcpy<FixedString512Bytes> st;
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         if (serializer.IsReader)
@@ -25,11 +25,8 @@ public struct NetString : INetworkSerializable, System.IEquatable<NetString>
         return false;
     }
 
-    public override string ToString()
-    {
-        return st.Value.ToString();
-    }
+    public override string ToString() => st.Value.ToString();
 
     public static implicit operator string(NetString s) => s.ToString();
-    public static implicit operator NetString(string s) => new NetString() { st = new FixedString128Bytes(s) };
+    public static implicit operator NetString(string s) => new() { st = new FixedString512Bytes(s) };
 }

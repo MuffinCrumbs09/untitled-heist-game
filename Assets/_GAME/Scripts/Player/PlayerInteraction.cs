@@ -11,7 +11,7 @@ public class PlayerInteraction : NetworkBehaviour
     float interactRange = 2f;
     float checkTime;
 
-    List<IInteractable> nearbyInteractions = new List<IInteractable>();
+    IInteractable interacion;
 
     #region Serialized Private
     public GameObject ArmModel;
@@ -39,41 +39,36 @@ public class PlayerInteraction : NetworkBehaviour
         if (!IsOwner)
             return;
 
-        checkTime += Time.deltaTime;
+        Ray ray = new Ray(Camera.main.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f)), transform.forward);
 
-        if (checkTime > 0.2f)
+        if (Physics.Raycast(ray, out RaycastHit hit, interactRange))
         {
-            checkTime = 0;
-            FindNearbyInteractions();
+            if (hit.transform.TryGetComponent(out IInteractable interact))
+                interacion = interact;
+            else if (hit.transform.parent.TryGetComponent(out IInteractable parentInteract))
+                interacion = parentInteract;
+            else
+                interacion = null;
         }
+        else
+            interacion = null;
     }
     #endregion
 
     public string GiveNearbyInteractText()
     {
-        if (nearbyInteractions.Count == 0)
+        if (interacion == null)
             return string.Empty;
 
-        return nearbyInteractions[0].InteractText();
-    }
-
-    private void FindNearbyInteractions()
-    {
-        nearbyInteractions.Clear();
-        Collider[] nearbyCol = Physics.OverlapSphere(transform.position, interactRange);
-        foreach (Collider col in nearbyCol)
-        {
-            if (col.TryGetComponent<IInteractable>(out IInteractable interactable))
-                nearbyInteractions.Add(interactable);
-        }
+        return interacion.InteractText();
     }
 
     private void TryInteract()
     {
-        if (nearbyInteractions.Count == 0)
+        if (interacion == null)
             return;
 
-        nearbyInteractions[0].Interact();
+        interacion.Interact();
     }
 
     private void MaskOn()

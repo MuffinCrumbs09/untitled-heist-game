@@ -21,6 +21,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions, Controls.IUIA
     public bool IsSprinting { get; private set; }
     public bool IsFiring { get; private set; }
     public bool IsAiming { get; private set; }
+    public bool IsTabbing { get; private set; }
     #endregion
 
     #region Private
@@ -101,6 +102,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions, Controls.IUIA
     public void OnJump(InputAction.CallbackContext context) => JumpEvent?.Invoke();
     public void OnInteract(InputAction.CallbackContext context) => InteractEvent?.Invoke();
     public void OnAim(InputAction.CallbackContext context) => IsAiming = context.performed;
+    public void OnTab(InputAction.CallbackContext context) => IsTabbing = context.performed;
 
     // UI
     public void OnHacking(InputAction.CallbackContext context)

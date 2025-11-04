@@ -6,7 +6,7 @@ public class ObjectiveSystem : MonoBehaviour
     public static ObjectiveSystem Instance;
     public List<Objective> ObjectiveList = new();
 
-    private int curObj = 0;
+    [HideInInspector] public int CurrentObjectiveIndex { get; private set; } = 0;
 
     private void Awake()
     {
@@ -18,19 +18,19 @@ public class ObjectiveSystem : MonoBehaviour
 
     private void Update()
     {
-        if (curObj == ObjectiveList.Count) return;
+        if (CurrentObjectiveIndex == ObjectiveList.Count) return;
 
-        ObjectiveList[curObj].UpdateObjective();
+        ObjectiveList[CurrentObjectiveIndex].UpdateObjective();
 
-        if (ObjectiveList[curObj].IsCompleted())
+        if (ObjectiveList[CurrentObjectiveIndex].IsCompleted())
         {
-            Debug.Log("Completed Objective " + curObj);
-            curObj++;
+            Debug.Log("Completed Objective " + CurrentObjectiveIndex);
+            CurrentObjectiveIndex++;
         }
     }
     
     public Objective GetCurObjective()
     {
-        return ObjectiveList[curObj];
+        return ObjectiveList[CurrentObjectiveIndex];
     }
 }

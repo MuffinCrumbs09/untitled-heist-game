@@ -47,8 +47,7 @@ public class Computer : MonoBehaviour, IInteractable
                     }
                 case ComputerType.CODE:
                     {
-                        // Subtitle
-                        Debug.Log("Code is blah blah blah");
+                        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Code is blah blah blah");
                         break;
                     }
             }
@@ -56,7 +55,8 @@ public class Computer : MonoBehaviour, IInteractable
         else
         {
             // subtitle
-            Debug.Log("One of many possible things contractor will \"find\"");
+            int index = Random.Range(0, MapManager.Instance.MapRandomDialouge.ComputerDialouge.Count);
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", MapManager.Instance.MapRandomDialouge.ComputerDialouge[index], 5);
         }
 
         Destroy(this);
