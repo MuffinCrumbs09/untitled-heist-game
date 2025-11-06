@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 using TMPro;
 
@@ -12,20 +13,13 @@ public class ObjectiveUI : MonoBehaviour
     private Objective linkedObjective;
     private List<TaskUI> taskUIList = new();
 
-    // Set up the UI element with data from the Objective
     public void Setup(Objective objective)
     {
         linkedObjective = objective;
         objectiveNameText.text = objective.objectiveName;
 
-        // Clear previous tasks
-        foreach (Transform child in taskContainer.transform)
-        {
-            Destroy(child.gameObject);
-        }
-        taskUIList.Clear();
+        ClearTasks();
 
-        // Create UI for each task
         foreach (Task task in objective.tasks)
         {
             GameObject taskUIObj = Instantiate(taskUIPrefab, taskContainer.transform);
@@ -37,39 +31,87 @@ public class ObjectiveUI : MonoBehaviour
             }
         }
 
-        // Start collapsed
         taskContainer.SetActive(false);
         UpdateVisuals(false, false);
     }
 
-    // Update the visual state based on system state
     public void UpdateVisuals(bool isCurrent, bool isComplete)
     {
-        // Set completion style
         if (isComplete)
         {
             objectiveNameText.color = Color.green;
             objectiveNameText.fontStyle = FontStyles.Strikethrough;
+
+            ClearTasks();
+            if (taskContainer != null)
+            {
+                taskContainer.SetActive(false);
+            }
         }
         else
         {
-            objectiveNameText.color = isCurrent ? Color.white : new Color(0.8f, 0.8f, 0.8f); // Dim if not current
+            objectiveNameText.color = isCurrent ? Color.white : new Color(0.8f, 0.8f, 0.8f);
             objectiveNameText.fontStyle = FontStyles.Normal;
-        }
 
-        // Show/hide task list
-        taskContainer.SetActive(isCurrent);
-
-        // If this is the current objective, update its tasks
-        if (isCurrent)
-        {
-            for (int i = 0; i < taskUIList.Count; i++)
+            if (taskContainer != null)
             {
-                if (linkedObjective.tasks.Count > i)
+                taskContainer.SetActive(isCurrent);
+            }
+
+            if (isCurrent)
+            {
+                for (int i = 0; i < taskUIList.Count; i++)
                 {
-                    taskUIList[i].UpdateVisuals(linkedObjective.tasks[i].isCompleted);
+                    if (linkedObjective != null && linkedObjective.tasks.Count > i)
+                    {
+                        taskUIList[i].UpdateVisuals(linkedObjective.tasks[i].isCompleted);
+                    }
                 }
             }
+
+            RefreshLayout();
+        }
+    }
+
+    private void ClearTasks()
+    {
+        if (taskContainer == null) return;
+
+        foreach (TaskUI taskUI in taskUIList)
+        {
+            if (taskUI != null)
+            {
+                Destroy(taskUI.gameObject);
+            }
+        }
+        taskUIList.Clear();
+
+        List<Transform> childrenToDestroy = new();
+        foreach (Transform child in taskContainer.transform)
+        {
+            childrenToDestroy.Add(child);
+        }
+
+        foreach (Transform child in childrenToDestroy)
+        {
+            if (child != null)
+            {
+                Destroy(child.gameObject);
+            }
+        }
+    }
+
+    private void RefreshLayout()
+    {
+        if (taskContainer != null)
+        {
+            LayoutRebuilder.MarkLayoutForRebuild(taskContainer.GetComponent<RectTransform>());
+        }
+
+        RectTransform objectiveRect = GetComponent<RectTransform>();
+        if (objectiveRect != null)
+        {
+            LayoutRebuilder.MarkLayoutForRebuild(objectiveRect);
         }
     }
 }

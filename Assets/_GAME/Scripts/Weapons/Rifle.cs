@@ -67,15 +67,7 @@ public class Rifle : Gun
 
         if (_isAI) return;
 
-        if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
-        {
-            InputReader.Instance.ReloadEvent += TryReload;
-        }
-        else
-        {
-            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
-            SetAllLayers(ArmModel, 0);
-        }
+        StartCoroutine(WaitForLocalPlayer());
     }
 
     public override void OnDisable()
@@ -155,4 +147,23 @@ public class Rifle : Gun
         Destroy(bulletTrail);
     }
     #endregion
+
+    private IEnumerator WaitForLocalPlayer()
+    {
+        // Wait until the local player exists
+        while (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
+        {
+            yield return null;
+        }
+
+        if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
+        {
+            InputReader.Instance.ReloadEvent += TryReload;
+        }
+        else
+        {
+            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
+            SetAllLayers(ArmModel, 0);
+        }
+    }
 }

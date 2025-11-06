@@ -35,6 +35,7 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions, Controls.IUIA
     public event Action JumpEvent;
     public event Action InteractEvent;
     public event Action HackingEvent;
+    public event Action ExitEvent;
     #endregion
 
     #region Unity Events
@@ -99,16 +100,29 @@ public class InputReader : MonoBehaviour, Controls.IOnFootActions, Controls.IUIA
     public void OnFire(InputAction.CallbackContext context) => IsFiring = context.performed;
     public void OnReload(InputAction.CallbackContext context) => ReloadEvent?.Invoke();
     public void OnMask(InputAction.CallbackContext context) => MaskEvent?.Invoke();
-    public void OnJump(InputAction.CallbackContext context) => JumpEvent?.Invoke();
-    public void OnInteract(InputAction.CallbackContext context) => InteractEvent?.Invoke();
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            JumpEvent?.Invoke();
+    }
+    public void OnInteract(InputAction.CallbackContext context)
+    {
+        if(context.performed)
+            InteractEvent?.Invoke();
+    }
     public void OnAim(InputAction.CallbackContext context) => IsAiming = context.performed;
     public void OnTab(InputAction.CallbackContext context) => IsTabbing = context.performed;
 
     // UI
     public void OnHacking(InputAction.CallbackContext context)
     {
-        if(context.performed)
+        if (context.performed)
             HackingEvent?.Invoke();
+    }
+    public void OnExit(InputAction.CallbackContext context)
+    {
+        if (context.performed)
+            ExitEvent?.Invoke();
     }
     #endregion
 }

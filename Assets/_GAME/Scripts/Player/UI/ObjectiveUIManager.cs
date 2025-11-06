@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,6 +9,7 @@ public class ObjectiveUIManager : MonoBehaviour
     [Header("References")]
     public GameObject objectiveUIPrefab;
     public Transform objectiveContainer;
+    public TMP_Text mainObjectiveText;
 
     private ObjectiveSystem objectiveSystem;
     private List<ObjectiveUI> objectiveUIList = new();
@@ -33,6 +35,8 @@ public class ObjectiveUIManager : MonoBehaviour
 
             objectiveUIList[i].UpdateVisuals(isCurrent, isComplete);
         }
+
+        mainObjectiveText.text = ObjectiveSystem.Instance.GetCurObjective().objectiveName;
     }
 
     private void InitializeObjectiveList()

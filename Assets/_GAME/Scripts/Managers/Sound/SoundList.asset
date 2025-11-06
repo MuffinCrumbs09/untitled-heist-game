@@ -15,3 +15,5 @@ MonoBehaviour:
   soundList:
   - {fileID: 8300000, guid: 6a73ad3651da69e459473d4dd0ba58a9, type: 3}
   - {fileID: 8300000, guid: 1a6d87b95c81ed243b6cc5fa6f405eac, type: 3}
+  - {fileID: 8300000, guid: d2f1542aaa2e2fd449930a873ff8a40c, type: 3}
+  - {fileID: 8300000, guid: 5216d7cbb09262f4bad7b434bf3a2381, type: 3}

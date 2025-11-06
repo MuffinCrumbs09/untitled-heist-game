@@ -14,6 +14,7 @@ public class HackingMinigame : MonoBehaviour
     public RectTransform greenZone;
     public RectTransform yellowZoneLeft;
     public RectTransform yellowZoneRight;
+    public Slider slider;
     //Width
     private float greenZoneWidth;
     private float yellowZoneWidth;
@@ -34,12 +35,14 @@ public class HackingMinigame : MonoBehaviour
 
         RandomiseZones();
         InputReader.Instance.HackingEvent += OnHackingButtonPressed;
+        InputReader.Instance.ExitEvent += ExitHack;
         InputReader.Instance.ToggleControls(ControlType.UI);
     }
 
     private void OnDisable()
     {
         InputReader.Instance.HackingEvent -= OnHackingButtonPressed;
+        InputReader.Instance.ExitEvent -= ExitHack;
         InputReader.Instance.ToggleControls(ControlType.Foot);
         curScore = 0;
     }
@@ -58,6 +61,7 @@ public class HackingMinigame : MonoBehaviour
 
     private void Update()
     {
+        slider.value = curScore;
         MoveArrow();
 
         // Check if hacking is complete
@@ -115,6 +119,11 @@ public class HackingMinigame : MonoBehaviour
         {
             curScore += 1;
         }
+        // Else remove a score
+        else
+        {
+            curScore = Mathf.Max(curScore - 1, 0);
+        }
 
         SoundManager.Instance.PlayKeyboardSoundServerRpc(currentComputer.transform.position);
         RandomiseZones();
@@ -138,6 +147,12 @@ public class HackingMinigame : MonoBehaviour
             currentComputer.OnHackComplete();
 
         SoundManager.Instance.PlaySoundServerRpc(SoundType.HACK_COMPLETE, currentComputer.transform.position);
+        InputReader.Instance.ToggleControls(ControlType.Foot);
+        gameObject.SetActive(false);
+    }
+
+    private void ExitHack()
+    {
         InputReader.Instance.ToggleControls(ControlType.Foot);
         gameObject.SetActive(false);
     }

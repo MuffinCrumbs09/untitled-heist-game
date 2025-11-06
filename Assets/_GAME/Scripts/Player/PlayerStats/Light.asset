@@ -17,5 +17,5 @@ MonoBehaviour:
   crouchSpeed: 0
   staminaDrainSpeed: 0.25
   maxStamina: 110
-  jumpHeight: 4
+  jumpHeight: 6
   carryAmount: 2

@@ -8,6 +8,8 @@ public enum SoundType
     RIFLE,
 
     HACK_COMPLETE,
+    DOOR_OPEN,
+    DOOR_CLOSED,
     // Multiple Sounds
     KEYBOARD_CLICK,
 }

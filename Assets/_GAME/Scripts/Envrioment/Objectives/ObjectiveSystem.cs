@@ -31,6 +31,6 @@ public class ObjectiveSystem : MonoBehaviour
     
     public Objective GetCurObjective()
     {
-        return ObjectiveList[CurrentObjectiveIndex];
+        return CurrentObjectiveIndex == ObjectiveList.Count ? ObjectiveList[CurrentObjectiveIndex - 1] : ObjectiveList[CurrentObjectiveIndex];
     }
 }

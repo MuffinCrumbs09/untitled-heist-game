@@ -1,17 +1,13 @@
 using UnityEngine;
 using Unity.Netcode;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using System;
-using Unity.Burst.Intrinsics;
-using System.Collections;
 
 public class PlayerInteraction : NetworkBehaviour
 {
-    float interactRange = 2f;
-    float checkTime;
+    [SerializeField] private float interactRange = 2f;
+    private float checkTime;
 
     IInteractable interacion;
+    IInteractable previousInteraction;
 
     #region Serialized Private
     public GameObject ArmModel;
@@ -32,6 +28,8 @@ public class PlayerInteraction : NetworkBehaviour
             InputReader.Instance.MaskEvent -= MaskOn;
             InputReader.Instance.InteractEvent -= TryInteract;
         }
+
+        HandleLootExit();
     }
 
     private void Update()
@@ -39,21 +37,61 @@ public class PlayerInteraction : NetworkBehaviour
         if (!IsOwner)
             return;
 
-        Ray ray = new Ray(Camera.main.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f)), transform.forward);
+        UpdateInteractions();
+        HandleLootInteractionState();
+    }
 
-        if (Physics.Raycast(ray, out RaycastHit hit, interactRange))
+    private void UpdateInteractions()
+    {
+        Ray ray = new(Camera.main.transform.position, Camera.main.transform.forward);
+        RaycastHit[] hits = Physics.RaycastAll(ray, interactRange);
+
+        foreach (RaycastHit hit in hits)
         {
+            if (hit.transform.IsChildOf(transform) || hit.transform == transform)
+                continue;
+
             if (hit.transform.TryGetComponent(out IInteractable interact))
+            {
                 interacion = interact;
-            else if (hit.transform.parent.TryGetComponent(out IInteractable parentInteract))
+                return;
+            }
+            else if (hit.transform.parent != null && hit.transform.parent.TryGetComponent(out IInteractable parentInteract))
+            {
                 interacion = parentInteract;
-            else
-                interacion = null;
+                return;
+            }
         }
-        else
-            interacion = null;
+
+        interacion = null;
     }
     #endregion
+    private void HandleLootInteractionState()
+    {
+        if (interacion != previousInteraction)
+        {
+            HandleLootExit();
+            HandleLootEnter();
+
+            previousInteraction = interacion;
+        }
+    }
+
+    private void HandleLootEnter()
+    {
+        if (interacion is Loot loot)
+        {
+            loot.OnPlayerEnter();
+        }
+    }
+
+    private void HandleLootExit()
+    {
+        if (previousInteraction is Loot loot)
+        {
+            loot.OnPlayerExit();
+        }
+    }
 
     public string GiveNearbyInteractText()
     {
