@@ -17,11 +17,18 @@ public partial class StrafeAction : Action
 
     private Vector3 strafeDirection;
 
+    private float prevSpeed, prevStop;
+
     protected override Status OnStart()
     {
         if (Target == null)
             return Status.Failure;
-        
+
+        prevSpeed = Agent.Value.speed;
+        prevStop = Agent.Value.stoppingDistance;
+        Agent.Value.speed = StrafeSpeed.Value;
+        Agent.Value.stoppingDistance = 0.1f;
+
         CalculateNewStrafeDirection();
         return Status.Running;
     }
@@ -40,6 +47,8 @@ public partial class StrafeAction : Action
 
     protected override void OnEnd()
     {
+        Agent.Value.speed = prevSpeed;
+        Agent.Value.stoppingDistance = prevStop;
         Agent.Value.ResetPath();
     }
 
@@ -47,17 +56,24 @@ public partial class StrafeAction : Action
     private void CalculateNewStrafeDirection()
     {
         // Calculate direction to target
-        Vector3 directionToTarget = (Target.Value.transform.position - Agent.Value.transform.position).normalized;
+        Vector3 directionToTarget = Target.Value.transform.position - Agent.Value.transform.position;
+        directionToTarget.y = 0;
+        directionToTarget.Normalize();
+
         Vector3 perpendicularDirection = Vector3.Cross(directionToTarget, Vector3.up).normalized;
 
         // Randomly choose left or right
         strafeDirection = UnityEngine.Random.value > 0.5f ? perpendicularDirection : -perpendicularDirection;
 
         // Calculate new strafe position
-        Vector3 strafePosition = Agent.Value.transform.position + strafeDirection * StrafeDistance.Value;
+        Vector3 strafeTargetPosition = Target.Value.transform.position + strafeDirection * StrafeDistance.Value;
+        if (NavMesh.SamplePosition(strafeTargetPosition, out NavMeshHit hit, StrafeDistance.Value * 2, NavMesh.AllAreas))
+        {
+            strafeTargetPosition = hit.position;
+        }
 
         // Set new destination
-        Agent.Value.SetDestination(strafePosition);
+        Agent.Value.SetDestination(strafeTargetPosition);
     }
 }
 

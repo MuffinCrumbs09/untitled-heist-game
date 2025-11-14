@@ -6,8 +6,8 @@ using UnityEngine.Events;
 
 public class Health : NetworkBehaviour, IDamageable
 {
-    [Header("Settings")]
-    [SerializeField] private float maxHealth;
+    [Header("Settings - Health")]
+    public float maxHealth;
     private NetworkVariable<float> health = new(
         writePerm: NetworkVariableWritePermission.Server
     );
@@ -18,8 +18,7 @@ public class Health : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
-    [Header("Events")]
-    public UnityEvent<GameObject> OnDamaged;
+    [HideInInspector] public UnityEvent<GameObject> OnDamaged;
 
     private void ApplyHealthChange(int amount)
     {
@@ -40,6 +39,17 @@ public class Health : NetworkBehaviour, IDamageable
     {
         if (isDead.Value) return;
 
+        if (this is PlayerHealthController player)
+        {
+            player.ResetTime();
+            
+            if (player.HasShield)
+            {
+                player.ChangeShieldServerRpc(toChange);
+                return;
+            }
+        }
+
         if (IsServer)
         {
             ApplyHealthChange(toChange);
@@ -51,11 +61,6 @@ public class Health : NetworkBehaviour, IDamageable
         {
             ChangeHealthServerRpc(toChange);
         }
-    }
-
-    private void ValueChange(bool previous, bool current)
-    {
-        Destroy(gameObject);
     }
 
     public float GetHealth()
@@ -89,7 +94,7 @@ public class Health : NetworkBehaviour, IDamageable
 
     public override void OnNetworkDespawn()
     {
-        isDead.OnValueChanged -= ValueChange;
+        isDead.OnValueChanged -= OnDeathStateChanged;
     }
 
     private void OnDeathStateChanged(bool previous, bool current)
@@ -104,7 +109,7 @@ public class Health : NetworkBehaviour, IDamageable
         {
             if (TryGetComponent(out NetworkObject netObj))
             {
-                NetworkObject.Despawn();
+                netObj.Despawn();
             }
             else
             {

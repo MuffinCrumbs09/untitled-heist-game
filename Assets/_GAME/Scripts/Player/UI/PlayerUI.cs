@@ -9,10 +9,14 @@ using UnityEngine.UI;
 public class PlayerUI : MonoBehaviour
 {
     #region Private Serialized
-    [Header("UI")]
+    [Header("UI - Sliders")]
+    [SerializeField] private Slider ShieldSlider;
+    [SerializeField] private Slider HealthSlider;
     [SerializeField] private Slider StaminaSlider;
+    [Header("UI - Text")]
     [SerializeField] private TMP_Text InteractText;
     [SerializeField] private TMP_Text AmmoText;
+    [Header("UI - Misc")]
     [SerializeField] private TabMenuSlider tabMenu;
     #endregion
 
@@ -20,6 +24,7 @@ public class PlayerUI : MonoBehaviour
     // Components
     private PlayerMovement _playerMovement;
     private PlayerInteraction _playerInteract;
+    private PlayerHealthController _playerHealth;
     private Gun _gun;
 
     //  Misc
@@ -37,7 +42,7 @@ public class PlayerUI : MonoBehaviour
         if (NetworkManager.Singleton.LocalClient.PlayerObject == null)
             return;
 
-        UpdateStamina();
+        UpdateSliders();
         UpdateInteractText();
         UpdateAmmoText();
         tabMenu.SetPanelsVisible(InputReader.Instance.IsTabbing);
@@ -59,15 +64,23 @@ public class PlayerUI : MonoBehaviour
         // Get player Components
         _playerMovement = _player.GetComponent<PlayerMovement>();
         _playerInteract = _player.GetComponent<PlayerInteraction>();
+        _playerHealth = _player.GetComponent<PlayerHealthController>();
         _gun = _playerInteract.ArmModel.transform.GetChild(0).GetChild(0).GetComponent<Gun>();
 
         // Set the max values
         StaminaSlider.maxValue = _playerMovement.MovementStats.maxStamina;
+        HealthSlider.maxValue = _playerHealth.maxHealth;
+        ShieldSlider.maxValue = _playerHealth.MaxShield;
     }
-    private void UpdateStamina()
+    private void UpdateSliders()
     {
         float stamina = _playerMovement.Stamina;
+        float health = _playerHealth.GetHealth();
+        float shield = _playerHealth.GetShield();
+        
         StaminaSlider.value = stamina;
+        HealthSlider.value = health;
+        ShieldSlider.value = shield;
     }
 
     private void UpdateInteractText()

@@ -211,7 +211,7 @@ GameObject:
   - component: {fileID: 3483640456217057138}
   - component: {fileID: 3548294459555750548}
   - component: {fileID: 4315952633510108268}
-  - component: {fileID: 4106231653630490273}
+  - component: {fileID: 6135210286685811122}
   m_Layer: 10
   m_Name: Player
   m_TagString: Player
@@ -352,7 +352,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 1390386508
+  GlobalObjectIdHash: 3912298419
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -485,7 +485,7 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 966433995528178787}
   m_Enabled: 1
---- !u!114 &4106231653630490273
+--- !u!114 &6135210286685811122
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -494,14 +494,17 @@ MonoBehaviour:
   m_GameObject: {fileID: 966433995528178787}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3dade83840911f498059bdf265d4915, type: 3}
+  m_Script: {fileID: 11500000, guid: 868b2ddb76640bf448e39d67f0e0a7df, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthController
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 2000
+  maxHealth: 100
   OnDamaged:
     m_PersistentCalls:
       m_Calls: []
+  MaxShield: 1500
+  ShieldRegenTime: 5
+  ShieldRegenAmount: 15
 --- !u!1 &1039443566403418777
 GameObject:
   m_ObjectHideFlags: 0

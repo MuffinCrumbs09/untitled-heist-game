@@ -76,7 +76,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         Stamina = Math.Min(Stamina, MovementStats.maxStamina);
 
-        if (InputReader.Instance.IsSprinting && canSprint)
+        if (InputReader.Instance.IsSprinting && InputReader.Instance.MovementValue != Vector2.zero && canSprint)
             Stamina -= MovementStats.staminaDrainSpeed;
         else
             Stamina += 1;

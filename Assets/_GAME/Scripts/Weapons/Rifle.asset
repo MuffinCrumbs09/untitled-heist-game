@@ -17,7 +17,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   Range: 50
-  FireRate: 6
+  FireRate: 10
   Damage: 50
   maxAnimRot: 6
   defaultAnimRot: 10
