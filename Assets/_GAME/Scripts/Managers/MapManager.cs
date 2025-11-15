@@ -3,7 +3,6 @@ using UnityEngine;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 public class MapManager : NetworkBehaviour
 {
@@ -55,12 +54,25 @@ public class MapManager : NetworkBehaviour
             {
                 syncedRooms.Add(new NetRoomData(area, room));
             }
-
-            AssignObjectiveTransforms();
-            AssignCorrectComputer();
-
-            SyncRoomsClientRpc();
         }
+    }
+
+    private void Start()
+    {
+        if (!IsServer) return;
+
+        int max = 0;
+        foreach (Loot loot in GameObject.FindObjectsByType<Loot>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+        {
+            max += loot.LootValue;
+            Debug.Log(max);
+        }
+        NetStore.Instance.SetMaxPayoutServerRpc(max);
+
+        SyncRoomsClientRpc();
+
+        AssignObjectiveTransforms();
+        AssignCorrectComputer();
     }
 
     private void AllocateRooms()
@@ -269,26 +281,94 @@ public class MapManager : NetworkBehaviour
             {
                 if (task is MinigameTask minigameTask)
                 {
+                    // Gather all matching computers for this minigame
                     List<Computer> computers = new();
                     List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
 
                     foreach (Transform room in foundRooms)
                         FindComputersByRoom(room, ref computers);
 
+                    if (computers.Count == 0) continue;
+
                     int random = Random.Range(0, computers.Count);
                     Computer selected = computers[random];
 
+                    // Assign locally on host
                     selected.associatedTask = minigameTask;
+
+                    string timerPath = string.Empty;
                     if (selected.type == ComputerType.TIMER)
                     {
-                        DoorTimer timer;
                         List<Transform> vaultRooms = FindRoomsByTag("Vault");
-
-                        timer = FindTimerByRoom(vaultRooms[0]);
-                        selected.timer = timer;
+                        if (vaultRooms.Count > 0)
+                        {
+                            DoorTimer timer = FindTimerByRoom(vaultRooms[0]);
+                            if (timer != null)
+                            {
+                                selected.timer = timer;
+                                timerPath = GetGameObjectPath(timer.gameObject);
+                            }
+                        }
                     }
 
-                    Debug.Log(computers[random].transform.parent.parent.name);
+                    // Prepare data to sync to clients
+                    string computerPath = GetGameObjectPath(selected.transform.gameObject);
+                    string taskName = minigameTask.taskName;
+
+                    // Send RPC to clients to apply the same assignment (use NetString for network serialization)
+                    AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName }, new NetString[] { timerPath });
+                    Debug.Log($"Assigned computer '{computerPath}' -> task '{taskName}'");
+                }
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames, NetString[] timerPaths)
+    {
+        // Clients will apply assignments received from host
+        for (int i = 0; i < computerPaths.Length; i++)
+        {
+            string compPath = computerPaths[i];
+            string taskName = taskNames[i];
+            string timerPath = timerPaths[i];
+
+            GameObject compObj = GameObject.Find(compPath);
+            if (compObj == null)
+                continue;
+
+            if (!compObj.TryGetComponent(out Computer computer))
+                continue;
+
+            // Find matching MinigameTask by name in ObjectiveSystem
+            if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
+                ObjectiveSystem = ObjectiveSystem.Instance;
+
+            if (ObjectiveSystem != null)
+            {
+                foreach (var obj in ObjectiveSystem.ObjectiveList)
+                {
+                    if (obj.tasks == null) continue;
+
+                    foreach (var t in obj.tasks)
+                    {
+                        if (t is MinigameTask mt && mt.taskName == taskName)
+                        {
+                            computer.associatedTask = mt;
+                            break;
+                        }
+                    }
+                    if (computer.associatedTask != null) break;
+                }
+            }
+
+            // Assign timer if provided
+            if (!string.IsNullOrEmpty(timerPath))
+            {
+                GameObject timerObj = GameObject.Find(timerPath);
+                if (timerObj != null && timerObj.TryGetComponent(out DoorTimer dt))
+                {
+                    computer.timer = dt;
                 }
             }
         }
@@ -296,6 +376,9 @@ public class MapManager : NetworkBehaviour
 
     public void AssignObjectiveTransforms()
     {
+        // Gather all location data to sync to clients
+        List<(string taskName, string locationPath)> locationAssignments = new();
+
         foreach (var objective in ObjectiveSystem.ObjectiveList)
         {
             if (objective.tasks == null) continue;
@@ -325,11 +408,57 @@ public class MapManager : NetworkBehaviour
                                         {
                                             GameObject toSet = GameObject.Find(location.LocationNames[i].LocationObjectName);
                                             locationTask.possibleAreas.Add(toSet.transform);
+                                            string locationPath = GetGameObjectPath(toSet);
+                                            locationAssignments.Add((locationTask.taskName, locationPath));
                                             break;
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sync to clients
+        if (locationAssignments.Count > 0)
+        {
+            NetString[] taskNames = locationAssignments.Select(x => (NetString)x.taskName).ToArray();
+            NetString[] locationPaths = locationAssignments.Select(x => (NetString)x.locationPath).ToArray();
+            AssignObjectiveTransformsClientRpc(taskNames, locationPaths);
+        }
+    }
+
+    [ClientRpc]
+    private void AssignObjectiveTransformsClientRpc(NetString[] taskNames, NetString[] locationPaths)
+    {
+        // Clients will apply objective location assignments received from host
+        for (int i = 0; i < taskNames.Length; i++)
+        {
+            string taskName = taskNames[i];
+            string locationPath = locationPaths[i];
+
+            GameObject locationObj = GameObject.Find(locationPath);
+            if (locationObj == null)
+                continue;
+
+            // Find matching LocationTask by name in ObjectiveSystem
+            if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
+                ObjectiveSystem = ObjectiveSystem.Instance;
+
+            if (ObjectiveSystem != null)
+            {
+                foreach (var obj in ObjectiveSystem.ObjectiveList)
+                {
+                    if (obj.tasks == null) continue;
+
+                    foreach (var t in obj.tasks)
+                    {
+                        if (t is LocationTask lt && lt.taskName == taskName)
+                        {
+                            lt.possibleAreas.Add(locationObj.transform);
+                            break;
                         }
                     }
                 }
@@ -341,6 +470,8 @@ public class MapManager : NetworkBehaviour
     [ClientRpc]
     private void SyncRoomsClientRpc()
     {
+        if (IsHost) return;
+
         foreach (var room in syncedRooms)
         {
             GameObject areaObj = GameObject.Find(room.AreaName);
@@ -464,6 +595,19 @@ public class MapManager : NetworkBehaviour
         }
 
         return null;
+    }
+
+    private string GetGameObjectPath(GameObject obj)
+    {
+        if (obj == null) return string.Empty;
+        string path = obj.name;
+        Transform current = obj.transform.parent;
+        while (current != null)
+        {
+            path = current.name + "/" + path;
+            current = current.parent;
+        }
+        return path;
     }
 
     #endregion

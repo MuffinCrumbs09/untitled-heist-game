@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Netcode;
 
 [SerializeField]
 public enum ComputerType
@@ -7,7 +8,7 @@ public enum ComputerType
     CODE
 }
 
-public class Computer : MonoBehaviour, IInteractable
+public class Computer : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
     public HackingMinigame minigame;
@@ -20,7 +21,7 @@ public class Computer : MonoBehaviour, IInteractable
     public bool CanInteract()
     {
         if (associatedTask == null) return enabled;
- 
+
         foreach (var task in ObjectiveSystem.Instance.GetCurObjective().tasks)
         {
             if (task is MinigameTask minitask)
@@ -52,6 +53,29 @@ public class Computer : MonoBehaviour, IInteractable
 
     public void OnHackComplete()
     {
+        if (associatedTask == null)
+        {
+            int index = Random.Range(0, MapManager.Instance.MapRandomDialouge.ComputerDialouge.Count);
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", MapManager.Instance.MapRandomDialouge.ComputerDialouge[index], 5);
+        }
+        else
+        {
+            if (type == ComputerType.CODE)
+                SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Code is blah blah blah");
+            OnHackCompleteServerRpc();
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void OnHackCompleteServerRpc()
+    {
+        // Server receives the RPC and broadcasts to all clients
+        OnHackCompleteClientRpc();
+    }
+
+    [ClientRpc]
+    private void OnHackCompleteClientRpc()
+    {
         if (associatedTask != null)
         {
             associatedTask.CompleteTask();
@@ -63,18 +87,7 @@ public class Computer : MonoBehaviour, IInteractable
                         timer.StartTimer();
                         break;
                     }
-                case ComputerType.CODE:
-                    {
-                        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Code is blah blah blah");
-                        break;
-                    }
             }
-        }
-        else
-        {
-            // subtitle
-            int index = Random.Range(0, MapManager.Instance.MapRandomDialouge.ComputerDialouge.Count);
-            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", MapManager.Instance.MapRandomDialouge.ComputerDialouge[index], 5);
         }
 
         Destroy(this);

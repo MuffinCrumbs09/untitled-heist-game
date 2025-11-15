@@ -24,8 +24,7 @@ public partial class SetNewTargetAction : Action
         if (Playerlist.Value == null || Playerlist.Value.Count == 0) return Status.Running;
 
         int randomIndex = UnityEngine.Random.Range(0, Playerlist.Value.Count);
-        Debug.Log(randomIndex);
-        Target.Value = Playerlist.Value[0];
+        Target.Value = Playerlist.Value[randomIndex];
 
         return Target.Value != null ? Status.Success : Status.Running;
     }

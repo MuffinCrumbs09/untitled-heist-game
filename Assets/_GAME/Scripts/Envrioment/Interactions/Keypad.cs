@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class Keypad : MonoBehaviour, IInteractable
+public class Keypad : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
     public int objectiveIndex;
@@ -27,10 +28,21 @@ public class Keypad : MonoBehaviour, IInteractable
     public void Interact()
     {
         if (!CanInteract()) return;
+        InteractServerRpc();
+    }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void InteractServerRpc()
+    {
+        InteractClientRpc();
+    }
+
+    [ClientRpc]
+    public void InteractClientRpc()
+    {
         Objective current = ObjectiveSystem.Instance.GetCurObjective();
 
-        foreach(var task in current.tasks)
+        foreach (var task in current.tasks)
         {
             if (task.isCompleted) continue;
 

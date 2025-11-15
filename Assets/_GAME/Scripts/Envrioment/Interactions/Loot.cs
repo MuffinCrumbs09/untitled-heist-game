@@ -1,9 +1,11 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 
-public class Loot : MonoBehaviour, IInteractable
+public class Loot : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
+    public int LootValue = 10000;
     [SerializeField] private int clickAmount = 1;
 
     [Header("UI")]
@@ -50,8 +52,16 @@ public class Loot : MonoBehaviour, IInteractable
 
     private void PickupLoot()
     {
-        gameObject.SetActive(false);
         progressUI.Hide();
+        PickupLootServerRpc();
+        
+        NetworkObject.Despawn();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void PickupLootServerRpc()
+    {
+        NetStore.Instance.ChangePayoutServerRpc(LootValue);
     }
 
     public void OnPlayerEnter()

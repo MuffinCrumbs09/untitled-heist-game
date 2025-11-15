@@ -420,6 +420,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7138506964808199655}
+  - component: {fileID: 7705179123712255788}
   - component: {fileID: 6493019447557306258}
   m_Layer: 0
   m_Name: moneystack
@@ -453,6 +454,31 @@ Transform:
   - {fileID: 3686136551382232663}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &7705179123712255788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3766920847894205395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2545472387
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 8
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &6493019447557306258
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -465,6 +491,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 64d853b0ba26f2c40b926cdb8fa4a754, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Loot
+  ShowTopMostFoldoutHeaderGroup: 1
+  LootValue: 15000
   clickAmount: 3
   progressUI: {fileID: 3847779835676166009}
 --- !u!1 &4129494729534368163

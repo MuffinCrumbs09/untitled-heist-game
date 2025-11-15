@@ -64,6 +64,8 @@ public class InteractionProgressUI : MonoBehaviour
 
     public void Hide()
     {
+        if(canvas == null) return;
+        
         canvas.enabled = false;
         targetProgress = 0f;
         currentProgress = 0f;

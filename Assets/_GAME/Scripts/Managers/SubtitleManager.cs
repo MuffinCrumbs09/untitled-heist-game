@@ -33,8 +33,6 @@ public class SubtitleManager : NetworkBehaviour
 
     public void ShowPlayerSubtitle(string message, float duration = -1f)
     {
-        if (!IsOwner) return;
-
         duration = duration < 0 ? DefaultDisplayDuration : duration;
         string username = GetLocalUsername();
 
@@ -43,8 +41,6 @@ public class SubtitleManager : NetworkBehaviour
 
     public void ShowNPCSubtitle(string npcName, string message, float duration = -1f)
     {
-        if (!IsServer) return;
-
         duration = duration < 0 ? DefaultDisplayDuration : duration;
 
         ShowSubtitleServerRpc(npcName, message, true, duration);

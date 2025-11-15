@@ -17,7 +17,7 @@ public class PlayerUI : MonoBehaviour
     [SerializeField] private TMP_Text InteractText;
     [SerializeField] private TMP_Text AmmoText;
     [Header("UI - Misc")]
-    [SerializeField] private TabMenuSlider tabMenu;
+    [SerializeField] private TabMenuController tabMenu;
     #endregion
 
     #region Private
