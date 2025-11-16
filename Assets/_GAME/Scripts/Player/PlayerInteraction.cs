@@ -29,7 +29,7 @@ public class PlayerInteraction : NetworkBehaviour
             InputReader.Instance.InteractEvent -= TryInteract;
         }
 
-        HandleLootExit();
+        HandleUIExit();
     }
 
     private void Update()
@@ -70,27 +70,27 @@ public class PlayerInteraction : NetworkBehaviour
     {
         if (interacion != previousInteraction)
         {
-            HandleLootExit();
-            HandleLootEnter();
+            HandleUIExit();
+            HandleUIEnter();
 
             previousInteraction = interacion;
         }
     }
 
-    private void HandleLootEnter()
+    private void HandleUIEnter()
     {
         if (interacion is Loot loot)
-        {
             loot.OnPlayerEnter();
-        }
+        else if (interacion is Drill drill)
+            drill.OnPlayerEnter();
     }
 
-    private void HandleLootExit()
+    private void HandleUIExit()
     {
         if (previousInteraction is Loot loot)
-        {
             loot.OnPlayerExit();
-        }
+        else if (interacion is Drill drill)
+            drill.OnPlayerExit();
     }
 
     public string GiveNearbyInteractText()

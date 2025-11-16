@@ -57,6 +57,7 @@ public class Computer : NetworkBehaviour, IInteractable
         {
             int index = Random.Range(0, MapManager.Instance.MapRandomDialouge.ComputerDialouge.Count);
             SubtitleManager.Instance.ShowNPCSubtitle("Contractor", MapManager.Instance.MapRandomDialouge.ComputerDialouge[index], 5);
+            OnHackCompleteServerRpc();
         }
         else
         {
