@@ -1,5 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
+using System;
+using System.Collections;
 
 public class PlayerHealthController : Health
 {
@@ -11,18 +13,28 @@ public class PlayerHealthController : Health
     private float time;
 
     public bool HasShield { private set; get; } = true;
+    public bool IsDead => isDead.Value;
     private NetworkVariable<float> shield = new(
         writePerm: NetworkVariableWritePermission.Server
     );
 
     private void Start()
     {
+        if (!IsServer) return;
+
         shield.Value = MaxShield;
+        isDead.OnValueChanged += DeadStateChanged;
+    }
+
+    private void DeadStateChanged(bool previousValue, bool newValue)
+    {
+        if(newValue)
+            StartCoroutine(WaitForAlive());
     }
 
     private void Update()
     {
-        if (!IsOwner) return;
+        if (!IsOwner) { GetComponent<Renderer>().enabled = !IsDead; return; }
 
         if (shield.Value < MaxShield)
             RegenerateShield();
@@ -32,7 +44,7 @@ public class PlayerHealthController : Health
     {
         time = 0;
     }
-    
+
     public float GetShield()
     {
         return shield.Value;
@@ -40,13 +52,13 @@ public class PlayerHealthController : Health
 
     private void RegenerateShield()
     {
+        time += Time.deltaTime;
+
         if (time >= ShieldRegenTime)
         {
             ChangeShieldServerRpc(ShieldRegenAmount);
             time = 0;
         }
-
-        time++;
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -58,5 +70,28 @@ public class PlayerHealthController : Health
     {
         shield.Value = Mathf.Clamp(shield.Value + amount, 0, MaxShield);
         HasShield = shield.Value > 0;
+    }
+
+    private void HandlePlayerDeath()
+    {
+        if (IsServer && !IsDead)
+        {
+            isDead.Value = true;
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void HandlePlayerDeathServerRpc()
+    {
+        HandlePlayerDeath();
+    }
+
+
+
+    private IEnumerator WaitForAlive()
+    {
+        yield return new WaitForSeconds(20);
+        ApplyHealthChange((int)maxHealth);
+        isDead.Value = false;
     }
 }

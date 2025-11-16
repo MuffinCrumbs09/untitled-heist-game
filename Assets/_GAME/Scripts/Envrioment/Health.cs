@@ -12,7 +12,7 @@ public class Health : NetworkBehaviour, IDamageable
         writePerm: NetworkVariableWritePermission.Server
     );
 
-    private NetworkVariable<bool> isDead = new(
+    protected NetworkVariable<bool> isDead = new(
         false,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
@@ -20,10 +20,8 @@ public class Health : NetworkBehaviour, IDamageable
 
     [HideInInspector] public UnityEvent<GameObject> OnDamaged;
 
-    private void ApplyHealthChange(int amount)
+    protected void ApplyHealthChange(int amount)
     {
-        if (isDead.Value) return;
-
         health.Value = Mathf.Clamp(health.Value + amount, 0, maxHealth);
 
         if (health.Value <= 0)
@@ -105,21 +103,10 @@ public class Health : NetworkBehaviour, IDamageable
 
     private void HandleDeath()
     {
-        if (IsServer)
-        {
-            if (TryGetComponent(out NetworkObject netObj))
-            {
-                netObj.Despawn();
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
-        }
-        else
-        {
-            Destroy(gameObject, 2f);
-        }
+        if(this is PlayerHealthController player)
+            player.HandlePlayerDeathServerRpc();
+        else if (IsServer)
+            NetworkObject.Despawn();
     }
     #endregion
 }

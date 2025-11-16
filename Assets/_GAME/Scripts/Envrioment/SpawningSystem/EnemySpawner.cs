@@ -61,8 +61,6 @@ public class EnemySpawner : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkSpawn();
-
         if (IsServer)
         {
             StartWavesServerRpc();

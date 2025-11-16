@@ -54,14 +54,13 @@ public class Loot : NetworkBehaviour, IInteractable
     {
         progressUI.Hide();
         PickupLootServerRpc();
-        
-        NetworkObject.Despawn();
     }
 
     [ServerRpc(RequireOwnership = false)]
     private void PickupLootServerRpc()
     {
         NetStore.Instance.ChangePayoutServerRpc(LootValue);
+        NetworkObject.Despawn();
     }
 
     public void OnPlayerEnter()
