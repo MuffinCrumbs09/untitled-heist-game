@@ -1,9 +1,11 @@
 using Unity.Netcode;
 using UnityEngine;
 
+[RequireComponent(typeof(NetworkObject))]
 public class Keypad : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
+    public string text;
     public int objectiveIndex;
     public int[] taskDependencyIndex;
 
@@ -53,6 +55,6 @@ public class Keypad : NetworkBehaviour, IInteractable
 
     public string InteractText()
     {
-        return CanInteract() ? "Click [E] to enter code" : string.Empty;
+        return CanInteract() ? text : string.Empty;
     }
 }

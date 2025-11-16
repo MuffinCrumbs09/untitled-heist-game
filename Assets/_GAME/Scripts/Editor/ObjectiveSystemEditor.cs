@@ -151,21 +151,36 @@ public class ObjectiveSystemEditor : Editor
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginHorizontal();
 
-            if (GUILayout.Button("Add Minigame Task"))
+            EditorGUILayout.PrefixLabel("Add Task");
+            
+            string[] taskOptions = new string[] 
+            { 
+                "Select Task Type",
+                "Minigame Task", 
+                "Timer Task", 
+                "Location Task", 
+                "Loot Task", 
+                "Custom Task" 
+            };
+
+            int selectedIndex = EditorGUILayout.Popup(0, taskOptions);
+            
+            if (selectedIndex > 0)
             {
-                AddTask(tasksProperty, typeof(MinigameTask), objectiveIndex);
-            }
-            if (GUILayout.Button("Add Timer Task"))
-            {
-                AddTask(tasksProperty, typeof(TimerTask), objectiveIndex);
-            }
-            if (GUILayout.Button("Add Location Task"))
-            {
-                AddTask(tasksProperty, typeof(LocationTask), objectiveIndex);
-            }
-            if (GUILayout.Button("Add Custom Task"))
-            {
-                AddTask(tasksProperty, typeof(CustomTask), objectiveIndex);
+                System.Type taskType = selectedIndex switch
+                {
+                    1 => typeof(MinigameTask),
+                    2 => typeof(TimerTask),
+                    3 => typeof(LocationTask),
+                    4 => typeof(LootTask),
+                    5 => typeof(CustomTask),
+                    _ => null
+                };
+
+                if (taskType != null)
+                {
+                    AddTask(tasksProperty, taskType, objectiveIndex);
+                }
             }
 
             EditorGUILayout.EndHorizontal();
@@ -285,6 +300,14 @@ public class ObjectiveSystemEditor : Editor
                 newTaskElement.managedReferenceValue = new LocationTask
                 {
                     taskName = "New Location Task",
+                    isCompleted = false
+                };
+                break;
+
+            case var type when type == typeof(LootTask):
+                newTaskElement.managedReferenceValue = new LootTask
+                {
+                    taskName = "New Loot Task",
                     isCompleted = false
                 };
                 break;
