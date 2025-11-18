@@ -6,25 +6,22 @@ using UnityEngine.Events;
 
 public class Health : NetworkBehaviour, IDamageable
 {
-    [Header("Settings")]
-    [SerializeField] private float maxHealth;
+    [Header("Settings - Health")]
+    public float maxHealth;
     private NetworkVariable<float> health = new(
         writePerm: NetworkVariableWritePermission.Server
     );
 
-    private NetworkVariable<bool> isDead = new(
+    protected NetworkVariable<bool> isDead = new(
         false,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server
     );
 
-    [Header("Events")]
-    public UnityEvent<GameObject> OnDamaged;
+    [HideInInspector] public UnityEvent<GameObject> OnDamaged;
 
-    private void ApplyHealthChange(int amount)
+    protected void ApplyHealthChange(int amount)
     {
-        if (isDead.Value) return;
-
         health.Value = Mathf.Clamp(health.Value + amount, 0, maxHealth);
 
         if (health.Value <= 0)
@@ -40,6 +37,17 @@ public class Health : NetworkBehaviour, IDamageable
     {
         if (isDead.Value) return;
 
+        if (this is PlayerHealthController player)
+        {
+            player.ResetTime();
+            
+            if (player.HasShield)
+            {
+                player.ChangeShieldServerRpc(toChange);
+                return;
+            }
+        }
+
         if (IsServer)
         {
             ApplyHealthChange(toChange);
@@ -51,11 +59,6 @@ public class Health : NetworkBehaviour, IDamageable
         {
             ChangeHealthServerRpc(toChange);
         }
-    }
-
-    private void ValueChange(bool previous, bool current)
-    {
-        Destroy(gameObject);
     }
 
     public float GetHealth()
@@ -89,7 +92,7 @@ public class Health : NetworkBehaviour, IDamageable
 
     public override void OnNetworkDespawn()
     {
-        isDead.OnValueChanged -= ValueChange;
+        isDead.OnValueChanged -= OnDeathStateChanged;
     }
 
     private void OnDeathStateChanged(bool previous, bool current)
@@ -100,21 +103,10 @@ public class Health : NetworkBehaviour, IDamageable
 
     private void HandleDeath()
     {
-        if (IsServer)
-        {
-            if (TryGetComponent(out NetworkObject netObj))
-            {
-                NetworkObject.Despawn();
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
-        }
-        else
-        {
-            Destroy(gameObject, 2f);
-        }
+        if(this is PlayerHealthController player)
+            player.HandlePlayerDeathServerRpc();
+        else if (IsServer)
+            NetworkObject.Despawn();
     }
     #endregion
 }

@@ -1,0 +1,13 @@
+{
+    "asset": "7a0fea2a1dcf5ff4e9adde2d7b083597",
+    "fileName": "019a35d7-3cab-71e2-9873-f5f8daa6a681.wav",
+    "prompt": "damage grunt",
+    "negativePrompt": "",
+    "model": "ee31b223-3fe1-4ae6-bf54-d8a80bb4b0e1",
+    "modelName": "Text to Sound",
+    "customSeed": -1,
+    "w3CTraceId": "db5ec2cb10532352e95ec8b5d38f5e73",
+    "duration": 2.5,
+    "autoTrim": true,
+    "hasReference": false
+}

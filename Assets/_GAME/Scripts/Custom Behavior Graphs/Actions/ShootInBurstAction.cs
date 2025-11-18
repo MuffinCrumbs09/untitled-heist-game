@@ -50,7 +50,8 @@ public partial class ShootInBurstAction : Action
 
     protected override Status OnUpdate()
     {
-
+        if(Target.Value ==null) return Status.Failure;
+        
         if (!_gun.CanShoot())
         {
             _weaponInput.SetFiring(false);

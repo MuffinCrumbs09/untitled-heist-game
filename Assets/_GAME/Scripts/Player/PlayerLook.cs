@@ -67,16 +67,17 @@ public class PlayerLook : NetworkBehaviour
     {
         float mouseX = input.x;
         float mouseY = input.y;
+        float multiplier = InputReader.Instance.CurrentInputDevice == InputDeviceType.Gamepad ? 10 : 1;
 
         // Y Movement
-        xRotation -= (mouseY * Time.deltaTime) * ySens;
+        xRotation -= (mouseY * Time.deltaTime) * ySens * multiplier;
         xRotation = Mathf.Clamp(xRotation, -80f, 80f);
 
         // Apply Recoil to camera
         Cam.transform.localRotation = Quaternion.Euler(xRotation + _curRecoil.y, _curRecoil.x, 0);
 
         // X Movement
-        transform.Rotate(Vector3.up * (mouseX * Time.deltaTime) * xSens);
+        transform.Rotate(Vector3.up * (mouseX * Time.deltaTime) * xSens * multiplier);
     }
     #endregion
 

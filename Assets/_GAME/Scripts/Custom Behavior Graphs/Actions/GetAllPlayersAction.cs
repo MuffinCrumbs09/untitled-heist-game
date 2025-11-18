@@ -15,7 +15,7 @@ public partial class GetAllPlayersAction : Action
     protected override Status OnStart()
     {
         PlayerList.Value = GameObject.FindGameObjectsWithTag("Player").ToList();
-        return Status.Success;
+        return PlayerList.Value != null && PlayerList.Value.Count > 0 ? Status.Success : Status.Failure;
     }
 
     protected override Status OnUpdate()

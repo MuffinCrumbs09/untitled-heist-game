@@ -26,6 +26,8 @@ public partial class LookAtTargetAction : Action
 
     protected override Status OnUpdate()
     {
+        if(Target.Value == null) return Status.Failure;
+        
         target = Target.Value.transform.position - Agent.Value.transform.position;
 
         Vector3 newDir = Vector3.RotateTowards(Agent.Value.transform.forward, target, Agent.Value.speed, 0.0f);

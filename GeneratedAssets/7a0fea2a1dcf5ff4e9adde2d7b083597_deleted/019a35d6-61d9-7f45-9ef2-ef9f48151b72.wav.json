@@ -1,0 +1,13 @@
+{
+    "asset": "7a0fea2a1dcf5ff4e9adde2d7b083597",
+    "fileName": "019a35d6-61d9-7f45-9ef2-ef9f48151b72.wav",
+    "prompt": "hit by gunfire, damage grunt",
+    "negativePrompt": "",
+    "model": "ee31b223-3fe1-4ae6-bf54-d8a80bb4b0e1",
+    "modelName": "Text to Sound",
+    "customSeed": -1,
+    "w3CTraceId": "793cb38ca8bd7ae548d82aabcbd25e20",
+    "duration": 2.5,
+    "autoTrim": true,
+    "hasReference": false
+}

@@ -61,26 +61,18 @@ public class Rifle : Gun
         currentRecoilRotX = Mathf.Lerp(currentRecoilRotX, targetRot, Time.deltaTime * GunData.RecoilSpeed);
     }
 
-    public override void OnEnable()
+    public override void OnNetworkSpawn()
     {
-        base.OnEnable();
+        base.OnNetworkDespawn();
 
         if (_isAI) return;
 
-        if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
-        {
-            InputReader.Instance.ReloadEvent += TryReload;
-        }
-        else
-        {
-            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
-            SetAllLayers(ArmModel, 0);
-        }
+        StartCoroutine(WaitForLocalPlayer());
     }
 
-    public override void OnDisable()
+    public override void OnNetworkDespawn()
     {
-        base.OnDisable();
+        base.OnNetworkDespawn();
 
         if (_isAI) return;
 
@@ -96,8 +88,9 @@ public class Rifle : Gun
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
         Vector3 rayOrigin = _isAI ? AimTransform.position : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
+        Vector3 shootDirection = _isAI ? AimTransform.forward : Look.Cam.transform.forward;
 
-        if (Physics.Raycast(rayOrigin, AimTransform.forward.normalized, out hit, GunData.Range, GunData.TargetLayer))
+        if (Physics.Raycast(rayOrigin, shootDirection, out hit, GunData.Range, GunData.TargetLayer))
         {
             Debug.Log(GunData.GunName + " hit " + hit.collider.name);
             targetPos = hit.point;
@@ -109,8 +102,7 @@ public class Rifle : Gun
         }
         else
         {
-            Vector3 recoilOffset = Look != null ? Look._curRecoil : Vector3.zero;
-            targetPos = rayOrigin + (AimTransform.forward.normalized + recoilOffset) * GunData.Range;
+            targetPos = rayOrigin + shootDirection * GunData.Range;
             Debug.Log("Hit nothing");
         }
 
@@ -155,4 +147,23 @@ public class Rifle : Gun
         Destroy(bulletTrail);
     }
     #endregion
+
+    private IEnumerator WaitForLocalPlayer()
+    {
+        // Wait until the local player exists
+        while (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
+        {
+            yield return null;
+        }
+
+        if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
+        {
+            InputReader.Instance.ReloadEvent += TryReload;
+        }
+        else
+        {
+            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
+            SetAllLayers(ArmModel, 0);
+        }
+    }
 }

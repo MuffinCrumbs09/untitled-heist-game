@@ -18,6 +18,7 @@ public class PlayerMovement : NetworkBehaviour
     #region Private
     private CharacterController _cc;
     private bool canSprint;
+    private bool canMove;
     private bool isGrounded;
     private Vector3 _playerVelocity;
     private const float GRAVITY = -9.8f;
@@ -31,8 +32,11 @@ public class PlayerMovement : NetworkBehaviour
         Stamina = MovementStats.maxStamina;
     }
 
-    void Update()
+    private void Update()
     {
+        canMove = !GetComponent<PlayerHealthController>().IsDead;
+        if (!canMove) return;
+
         HandleStamina();
 
         isGrounded = _cc.isGrounded;
@@ -40,6 +44,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void FixedUpdate()
     {
+        if (!canMove) return;
         CalculateMovement(InputReader.Instance.MovementValue, InputReader.Instance.IsSprinting);
     }
 
@@ -74,6 +79,8 @@ public class PlayerMovement : NetworkBehaviour
     // Handles stamina gain and loss
     private void HandleStamina()
     {
+        if(InputReader.Instance.MovementValue == Vector2.zero) return;
+        
         Stamina = Math.Min(Stamina, MovementStats.maxStamina);
 
         if (InputReader.Instance.IsSprinting && canSprint)

@@ -11,6 +11,8 @@ public class MapManager : NetworkBehaviour
     [Header("Map Settings")]
     public M_Settings Map;
     public M_Areas[] Areas;
+    public M_RandomDialouge MapRandomDialouge;
+    public ObjectiveSystem ObjectiveSystem;
 
     private Dictionary<string, (int min, int max)> _roomLimits = new();
     private Dictionary<string, int> _currentCount = new();
@@ -52,9 +54,25 @@ public class MapManager : NetworkBehaviour
             {
                 syncedRooms.Add(new NetRoomData(area, room));
             }
-
-            SyncRoomsClientRpc();
         }
+    }
+
+    private void Start()
+    {
+        if (!IsServer) return;
+
+        int max = 0;
+        foreach (Loot loot in GameObject.FindObjectsByType<Loot>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+        {
+            max += loot.LootValue;
+            Debug.Log(max);
+        }
+        NetStore.Instance.SetMaxPayoutServerRpc(max);
+
+        SyncRoomsClientRpc();
+
+        AssignObjectiveTransforms();
+        AssignCorrectComputer();
     }
 
     private void AllocateRooms()
@@ -253,17 +271,214 @@ public class MapManager : NetworkBehaviour
         }
     }
 
+    private void AssignCorrectComputer()
+    {
+        foreach (var objective in ObjectiveSystem.ObjectiveList)
+        {
+            if (objective.tasks == null) continue;
+
+            foreach (var task in objective.tasks)
+            {
+                if (task is MinigameTask minigameTask)
+                {
+                    // Gather all matching computers for this minigame
+                    List<Computer> computers = new();
+                    List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
+
+                    foreach (Transform room in foundRooms)
+                        FindComputersByRoom(room, ref computers);
+
+                    if (computers.Count == 0) continue;
+
+                    int random = Random.Range(0, computers.Count);
+                    Computer selected = computers[random];
+
+                    // Assign locally on host
+                    selected.associatedTask = minigameTask;
+
+                    string timerPath = string.Empty;
+                    if (selected.type == ComputerType.TIMER)
+                    {
+                        List<Transform> vaultRooms = FindRoomsByTag("Vault");
+                        if (vaultRooms.Count > 0)
+                        {
+                            DoorTimer timer = FindTimerByRoom(vaultRooms[0]);
+                            if (timer != null)
+                            {
+                                selected.timer = timer;
+                                timerPath = GetGameObjectPath(timer.gameObject);
+                            }
+                        }
+                    }
+
+                    // Prepare data to sync to clients
+                    string computerPath = GetGameObjectPath(selected.transform.gameObject);
+                    string taskName = minigameTask.taskName;
+
+                    // Send RPC to clients to apply the same assignment (use NetString for network serialization)
+                    AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName }, new NetString[] { timerPath });
+                    Debug.Log($"Assigned computer '{computerPath}' -> task '{taskName}'");
+                }
+            }
+        }
+    }
+
+    [ClientRpc]
+    private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames, NetString[] timerPaths)
+    {
+        // Clients will apply assignments received from host
+        for (int i = 0; i < computerPaths.Length; i++)
+        {
+            string compPath = computerPaths[i];
+            string taskName = taskNames[i];
+            string timerPath = timerPaths[i];
+
+            GameObject compObj = GameObject.Find(compPath);
+            if (compObj == null)
+                continue;
+
+            if (!compObj.TryGetComponent(out Computer computer))
+                continue;
+
+            // Find matching MinigameTask by name in ObjectiveSystem
+            if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
+                ObjectiveSystem = ObjectiveSystem.Instance;
+
+            if (ObjectiveSystem != null)
+            {
+                foreach (var obj in ObjectiveSystem.ObjectiveList)
+                {
+                    if (obj.tasks == null) continue;
+
+                    foreach (var t in obj.tasks)
+                    {
+                        if (t is MinigameTask mt && mt.taskName == taskName)
+                        {
+                            computer.associatedTask = mt;
+                            break;
+                        }
+                    }
+                    if (computer.associatedTask != null) break;
+                }
+            }
+
+            // Assign timer if provided
+            if (!string.IsNullOrEmpty(timerPath))
+            {
+                GameObject timerObj = GameObject.Find(timerPath);
+                if (timerObj != null && timerObj.TryGetComponent(out DoorTimer dt))
+                {
+                    computer.timer = dt;
+                }
+            }
+        }
+    }
+
+    public void AssignObjectiveTransforms()
+    {
+        // Gather all location data to sync to clients
+        List<(string taskName, string locationPath)> locationAssignments = new();
+
+        foreach (var objective in ObjectiveSystem.ObjectiveList)
+        {
+            if (objective.tasks == null) continue;
+
+            foreach (var task in objective.tasks)
+            {
+                if (task is LocationTask locationTask)
+                {
+                    if (locationTask.possibleAreas == null || locationTask.possibleAreas.Count == 0)
+                    {
+                        string roomtag = ExtractRoomTagFromTaskName(locationTask.taskName);
+
+                        if (!string.IsNullOrEmpty(roomtag))
+                        {
+                            List<Transform> foundRooms = FindRoomsByTag(roomtag);
+
+                            foreach (Transform room in foundRooms)
+                            {
+                                foreach (M_Locations location in Map.MapLocations)
+                                {
+                                    if (location.RoomName != roomtag)
+                                        continue;
+
+                                    for (int i = 0; i < location.LocationNames.Count; i++)
+                                    {
+                                        if (room.name == location.LocationNames[i].RoomObjectName)
+                                        {
+                                            GameObject toSet = GameObject.Find(location.LocationNames[i].LocationObjectName);
+                                            locationTask.possibleAreas.Add(toSet.transform);
+                                            string locationPath = GetGameObjectPath(toSet);
+                                            locationAssignments.Add((locationTask.taskName, locationPath));
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sync to clients
+        if (locationAssignments.Count > 0)
+        {
+            NetString[] taskNames = locationAssignments.Select(x => (NetString)x.taskName).ToArray();
+            NetString[] locationPaths = locationAssignments.Select(x => (NetString)x.locationPath).ToArray();
+            AssignObjectiveTransformsClientRpc(taskNames, locationPaths);
+        }
+    }
+
+    [ClientRpc]
+    private void AssignObjectiveTransformsClientRpc(NetString[] taskNames, NetString[] locationPaths)
+    {
+        // Clients will apply objective location assignments received from host
+        for (int i = 0; i < taskNames.Length; i++)
+        {
+            string taskName = taskNames[i];
+            string locationPath = locationPaths[i];
+
+            GameObject locationObj = GameObject.Find(locationPath);
+            if (locationObj == null)
+                continue;
+
+            // Find matching LocationTask by name in ObjectiveSystem
+            if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
+                ObjectiveSystem = ObjectiveSystem.Instance;
+
+            if (ObjectiveSystem != null)
+            {
+                foreach (var obj in ObjectiveSystem.ObjectiveList)
+                {
+                    if (obj.tasks == null) continue;
+
+                    foreach (var t in obj.tasks)
+                    {
+                        if (t is LocationTask lt && lt.taskName == taskName)
+                        {
+                            lt.possibleAreas.Add(locationObj.transform);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #region Networking
     [ClientRpc]
     private void SyncRoomsClientRpc()
     {
+        if (IsHost) return;
+
         foreach (var room in syncedRooms)
         {
             GameObject areaObj = GameObject.Find(room.AreaName);
-            for(int i = 0; i < areaObj.transform.childCount; i++)
+            for (int i = 0; i < areaObj.transform.childCount; i++)
             {
                 Transform child = areaObj.transform.GetChild(i);
-                if(child.CompareTag(room.RoomType))
+                if (child.CompareTag(room.RoomType))
                 {
                     child.gameObject.SetActive(true);
                     break;
@@ -315,5 +530,85 @@ public class MapManager : NetworkBehaviour
             }
         }
     }
+
+    private string ExtractRoomTagFromTaskName(string taskName)
+    {
+        string lowerTaskName = taskName.ToLower();
+
+        foreach (var roomData in _activatedRooms)
+        {
+            if (lowerTaskName.Contains(roomData.roomType.ToLower()))
+            {
+                return roomData.roomType;
+            }
+        }
+        return null;
+    }
+
+    private List<Transform> FindRoomsByTag(string roomTag)
+    {
+        List<Transform> foundRooms = new List<Transform>();
+
+        foreach (var roomData in _activatedRooms)
+        {
+            if (roomData.roomType.Equals(roomTag, System.StringComparison.OrdinalIgnoreCase))
+            {
+                GameObject areaObj = GameObject.Find(roomData.areaName);
+                if (areaObj != null)
+                {
+                    for (int i = 0; i < areaObj.transform.childCount; i++)
+                    {
+                        Transform child = areaObj.transform.GetChild(i);
+                        if (child.CompareTag(roomTag) && child.gameObject.activeSelf)
+                        {
+                            foundRooms.Add(child);
+                        }
+                    }
+                }
+            }
+        }
+
+        return foundRooms;
+    }
+
+    private void FindComputersByRoom(Transform room, ref List<Computer> computers)
+    {
+        foreach (Transform child in room)
+        {
+            if (child.TryGetComponent(out Computer computer))
+            {
+                computers.Add(computer);
+            }
+
+            FindComputersByRoom(child, ref computers);
+        }
+    }
+
+    private DoorTimer FindTimerByRoom(Transform room)
+    {
+        foreach (Transform child in room)
+        {
+            if (child.TryGetComponent(out DoorTimer timer))
+            {
+                return timer;
+            }
+        }
+
+        return null;
+    }
+
+    private string GetGameObjectPath(GameObject obj)
+    {
+        if (obj == null) return string.Empty;
+        string path = obj.name;
+        Transform current = obj.transform.parent;
+        while (current != null)
+        {
+            path = current.name + "/" + path;
+            current = current.parent;
+        }
+        return path;
+    }
+
     #endregion
 }

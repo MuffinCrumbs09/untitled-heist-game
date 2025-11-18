@@ -1,0 +1,13 @@
+{
+    "asset": "ce63199aad7d09b44a6bb1e3c63648c4",
+    "fileName": "019a3669-d69b-7d28-bf73-00f71a8f0797.wav",
+    "prompt": "keyboard, click, type, tap",
+    "negativePrompt": "",
+    "model": "ee31b223-3fe1-4ae6-bf54-d8a80bb4b0e1",
+    "modelName": "Text to Sound",
+    "customSeed": -1,
+    "w3CTraceId": "f73bf5485ac5393bd6c1c77c9150eda8",
+    "duration": 1.0,
+    "autoTrim": true,
+    "hasReference": false
+}
