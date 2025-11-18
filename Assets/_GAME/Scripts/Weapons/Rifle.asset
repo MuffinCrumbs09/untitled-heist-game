@@ -18,7 +18,7 @@ MonoBehaviour:
     m_Bits: 64
   Range: 50
   FireRate: 10
-  Damage: 50
+  Damage: 75
   maxAnimRot: 6
   defaultAnimRot: 10
   MagazineSize: 30

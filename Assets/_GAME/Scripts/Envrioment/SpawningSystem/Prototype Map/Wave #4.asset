@@ -19,6 +19,6 @@ MonoBehaviour:
   - {fileID: 2037900499666908735, guid: 2bee2f4ae674f35469ecf6bfd0d31d0c, type: 3}
   baseEnemiesPerSpawn: 4
   additionalEnemiesPerPlayerPerSpawn: 3
-  spawnInterval: 10
+  spawnInterval: 15
   maxSimultaneousEnemies: 40
   maxEnemiesPerSpawn: 15

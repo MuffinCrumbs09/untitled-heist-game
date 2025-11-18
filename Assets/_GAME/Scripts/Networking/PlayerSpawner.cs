@@ -10,6 +10,8 @@ public class PlayerSpawner : NetworkBehaviour
     // Player reference
     [SerializeField] private GameObject player;
 
+    private bool _playersSpawned;
+
     private void Start()
     {
         DontDestroyOnLoad(this.gameObject);
@@ -24,12 +26,16 @@ public class PlayerSpawner : NetworkBehaviour
     private void SceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
         // If Host and in correct scene, Instantiate all players
-        if(IsHost && sceneName == "Prototype Map")
+        if(IsHost && sceneName == "Prototype Map" && !_playersSpawned)
         {
-            foreach (ulong id in clientsCompleted)
+            if (NetworkManager.Singleton.ConnectedClients.Count >= NetPlayerManager.Instance.usernames.Count)
             {
-                GameObject _player = Instantiate(player);
-                _player.GetComponent<NetworkObject>().SpawnAsPlayerObject(id, true);
+                _playersSpawned = true;
+                foreach (ulong id in clientsCompleted)
+                {
+                    GameObject _player = Instantiate(player);
+                    _player.GetComponent<NetworkObject>().SpawnAsPlayerObject(id, true);
+                }
             }
         }
     }

@@ -99,6 +99,8 @@ public class EnemySpawner : NetworkBehaviour
             if (!config.isEndlessWave)
             {
                 Debug.Log($"Wave {config.waveNumber} completed. Next wave in {delayBetweenWaves} seconds.");
+
+                SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"They are re-arming. Get ready {delayBetweenWaves} seconds.", 6.5f);
                 
                 if (clearEnemiesOnWaveEnd)
                 {
@@ -109,6 +111,7 @@ public class EnemySpawner : NetworkBehaviour
             }
             else
             {
+                SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "This is it, they won't stop until your dead!", 6.5f);
                 Debug.Log("Endless wave started - no more waves will begin.");
                 yield break;
             }

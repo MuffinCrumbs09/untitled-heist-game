@@ -97,6 +97,8 @@ public class ObjectiveSystemEditor : Editor
     {
         var objectiveProperty = objectiveListProperty.GetArrayElementAtIndex(objectiveIndex);
         var objectiveNameProperty = objectiveProperty.FindPropertyRelative("objectiveName");
+        var speakerNameProperty = objectiveProperty.FindPropertyRelative("speakerName");
+        var speechProperty = objectiveProperty.FindPropertyRelative("speech");
         var tasksProperty = objectiveProperty.FindPropertyRelative("tasks");
 
         EditorGUILayout.BeginVertical(GUI.skin.box);
@@ -121,6 +123,8 @@ public class ObjectiveSystemEditor : Editor
             EditorGUI.indentLevel++;
 
             EditorGUILayout.PropertyField(objectiveNameProperty, new GUIContent("Objective Name"));
+            EditorGUILayout.PropertyField(speakerNameProperty, new GUIContent("Speaker's Name"));
+            EditorGUILayout.PropertyField(speechProperty, new GUIContent("Speech"));
             EditorGUILayout.Space(5);
 
             EditorGUILayout.LabelField("Tasks:", EditorStyles.boldLabel);
@@ -152,19 +156,19 @@ public class ObjectiveSystemEditor : Editor
             EditorGUILayout.BeginHorizontal();
 
             EditorGUILayout.PrefixLabel("Add Task");
-            
-            string[] taskOptions = new string[] 
-            { 
+
+            string[] taskOptions = new string[]
+            {
                 "Select Task Type",
-                "Minigame Task", 
-                "Timer Task", 
-                "Location Task", 
-                "Loot Task", 
-                "Custom Task" 
+                "Minigame Task",
+                "Timer Task",
+                "Location Task",
+                "Loot Task",
+                "Custom Task"
             };
 
             int selectedIndex = EditorGUILayout.Popup(0, taskOptions);
-            
+
             if (selectedIndex > 0)
             {
                 System.Type taskType = selectedIndex switch

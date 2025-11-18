@@ -90,7 +90,7 @@ public class PlayerHealthController : Health
 
     private IEnumerator WaitForAlive()
     {
-        yield return new WaitForSeconds(20);
+        yield return new WaitForSeconds(7.5f);
         ApplyHealthChange((int)maxHealth);
         isDead.Value = false;
     }

@@ -18,7 +18,7 @@ MonoBehaviour:
   enemyPrefabs:
   - {fileID: 2037900499666908735, guid: 2bee2f4ae674f35469ecf6bfd0d31d0c, type: 3}
   baseEnemiesPerSpawn: 3
-  additionalEnemiesPerPlayerPerSpawn: 2
-  spawnInterval: 5
+  additionalEnemiesPerPlayerPerSpawn: 1
+  spawnInterval: 15
   maxSimultaneousEnemies: 25
   maxEnemiesPerSpawn: 12

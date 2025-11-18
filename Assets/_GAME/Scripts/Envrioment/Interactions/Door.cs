@@ -22,6 +22,10 @@ public class Door : NetworkBehaviour, IInteractable
     public void Start()
     {
         _doorOpen = Quaternion.Euler(doorOpen.x, doorOpen.y, doorOpen.z);
+
+        if(doorClosed == Vector3.zero)
+            doorClosed = transform.localEulerAngles;
+
         _doorClosed = Quaternion.Euler(doorClosed.x, doorClosed.y, doorClosed.z);
         _obstacle = GetComponent<NavMeshObstacle>();
 

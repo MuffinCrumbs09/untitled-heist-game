@@ -28,11 +28,14 @@ public class ObjectiveSystem : MonoBehaviour
     {
         if (CurrentObjectiveIndex == ObjectiveList.Count)
         {
-            stats.TotalMoneyStole += NetStore.Instance.Payout.Value; 
+            stats.TotalMoneyStole += NetStore.Instance.Payout.Value;
             SaveManager.Instance.SaveGame(stats);
 
-            UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+            Destroy(NetworkManager.Singleton.gameObject);
+            Destroy(NetPlayerManager.Instance.gameObject);
+
             NetworkManager.Singleton.Shutdown();
+            UnityEngine.SceneManagement.SceneManager.LoadScene(0);
         }
 
         ObjectiveList[CurrentObjectiveIndex].UpdateObjective();

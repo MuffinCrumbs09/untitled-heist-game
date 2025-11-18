@@ -61,18 +61,18 @@ public class Rifle : Gun
         currentRecoilRotX = Mathf.Lerp(currentRecoilRotX, targetRot, Time.deltaTime * GunData.RecoilSpeed);
     }
 
-    public override void OnEnable()
+    public override void OnNetworkSpawn()
     {
-        base.OnEnable();
+        base.OnNetworkDespawn();
 
         if (_isAI) return;
 
         StartCoroutine(WaitForLocalPlayer());
     }
 
-    public override void OnDisable()
+    public override void OnNetworkDespawn()
     {
-        base.OnDisable();
+        base.OnNetworkDespawn();
 
         if (_isAI) return;
 
