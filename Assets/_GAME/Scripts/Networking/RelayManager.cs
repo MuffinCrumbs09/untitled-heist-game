@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -14,21 +15,31 @@ using UnityEngine.UI;
 
 public class RelayManager : MonoBehaviour
 {
+    [Header("UI")]
     [SerializeField] private Canvas[] Canvas;
+    [Space(20), Header("UI - Buttons")]
     [SerializeField] private Button CreateLobby;
     [SerializeField] private Button JoinLobby;
     [SerializeField] private Button Back;
     [SerializeField] private Button QuitLobbyB;
     [SerializeField] private Button QuitGameB;
-    [SerializeField] private TMP_Text CodeText;
     [SerializeField] private Button CodeBttn;
-    [SerializeField] private TMP_Text PlayerListTxt;
     [SerializeField] private Button StartGameB;
+    [SerializeField] private Button OptionsB;
+    [Space(20), Header("UI - TMP")]
+    [SerializeField] private TMP_Text CodeText;
+    [SerializeField] private TMP_Text PlayerListTxt;
     [SerializeField] private TMP_InputField JoinInput;
+
+    [Space(20), Header("Misc")]
     [SerializeField] private List<GameObject> Players = new();
+    [SerializeField] private Animator _eraseAnim;
+    [SerializeField] private Animator _cameraAnim;
+
     private string joinCode;
     private string filePath;
     private float _playerCount;
+
     private void OnDisable()
     {
         if (NetworkManager.Singleton != null)
@@ -47,12 +58,13 @@ public class RelayManager : MonoBehaviour
         NetworkManager.Singleton.OnConnectionEvent += Connected;
 
         CreateLobby.onClick.AddListener(StartRelay);
-        //Back.onClick.AddListener(BackToMenu);
+        Back.onClick.AddListener(() => PickCanvas(0));
         QuitLobbyB.onClick.AddListener(QuitLobby);
         QuitGameB.onClick.AddListener(QuitGame);
         JoinLobby.onClick.AddListener(() => JoinRelay(JoinInput.text));
         StartGameB.onClick.AddListener(StartGame);
         CodeBttn.onClick.AddListener(CopyCode);
+        OptionsB.onClick.AddListener(() => PickCanvas(4));
 
         filePath = Application.persistentDataPath + "/PlayerName.txt";
     }
@@ -67,9 +79,25 @@ public class RelayManager : MonoBehaviour
     }
 
     #region Functions
-    // 0 = Main Menu, 1 = In lobby, 2 = Pick username, 3 = Connecting
+    // 0 = Main Menu, 1 = In lobby, 2 = Pick username, 3 = Connecting, 4 = Options
     public void PickCanvas(int canvas)
     {
+        _eraseAnim.SetTrigger("Erase");
+
+        StartCoroutine(PickCanvasRoutine(canvas));
+    }
+
+    private IEnumerator PickCanvasRoutine(int canvas)
+    {
+        yield return new WaitForSeconds(.5f);
+
+        for (int x = 0; x < Canvas.Length; x++)
+        {
+            Canvas[x].enabled = false;
+        }
+
+        yield return new WaitForSeconds(1f);
+
         for (int x = 0; x < Canvas.Length; x++)
         {
             Canvas[x].enabled = (x == canvas);
