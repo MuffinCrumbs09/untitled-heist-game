@@ -26,6 +26,8 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private Button CodeBttn;
     [SerializeField] private Button StartGameB;
     [SerializeField] private Button OptionsB;
+    [SerializeField] private Button StatsB;
+    [SerializeField] private Button StatsBackB;
     [Space(20), Header("UI - TMP")]
     [SerializeField] private TMP_Text CodeText;
     [SerializeField] private TMP_Text PlayerListTxt;
@@ -65,6 +67,8 @@ public class RelayManager : MonoBehaviour
         StartGameB.onClick.AddListener(StartGame);
         CodeBttn.onClick.AddListener(CopyCode);
         OptionsB.onClick.AddListener(() => PickCanvas(4));
+        StatsB.onClick.AddListener(ToggleCam);
+        StatsBackB.onClick.AddListener(ToggleCam);
 
         filePath = Application.persistentDataPath + "/PlayerName.txt";
     }
@@ -113,6 +117,11 @@ public class RelayManager : MonoBehaviour
     {
         if (eventData.EventType == ConnectionEvent.ClientConnected)
             PickCanvas(1);
+    }
+
+    private void ToggleCam()
+    {
+        _cameraAnim.SetTrigger("Toggle");
     }
     #endregion
 

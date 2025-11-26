@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Behavior;
+using Unity.Netcode;
 
 public class AIHitHandler : MonoBehaviour
 {
@@ -26,5 +27,11 @@ public class AIHitHandler : MonoBehaviour
 
         agent.BlackboardReference.SetVariableValue<GameObject>(k_targetValue, shooter);
         agent.BlackboardReference.SetVariableValue<MemberState>(k_memberState, MemberState.Attacking);
+    }
+
+    public void RegisterDeath(GameObject killer)
+    {
+        if(killer.GetComponent<NetworkObject>().IsLocalPlayer)
+            NetStore.Instance.TotalKills++;
     }
 }

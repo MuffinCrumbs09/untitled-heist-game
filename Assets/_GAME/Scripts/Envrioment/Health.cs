@@ -18,6 +18,8 @@ public class Health : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
+    GameObject _attacker;
+
     [HideInInspector] public UnityEvent<GameObject> OnDamaged;
 
     protected void ApplyHealthChange(int amount)
@@ -30,17 +32,19 @@ public class Health : NetworkBehaviour, IDamageable
             HandleDeath();
         }
 
-
+        _attacker = null;
         Debug.Log(health.Value);
     }
     public void ChangeHealth(int toChange, GameObject attacker)
     {
         if (isDead.Value) return;
 
+        _attacker = attacker;
+
         if (this is PlayerHealthController player)
         {
             player.ResetTime();
-            
+
             if (player.HasShield)
             {
                 player.ChangeShieldServerRpc(toChange);
@@ -51,9 +55,6 @@ public class Health : NetworkBehaviour, IDamageable
         if (IsServer)
         {
             ApplyHealthChange(toChange);
-
-            if (TryGetComponent(out AIHitHandler hit))
-                hit.RegisterHit(attacker);
         }
         else
         {
@@ -103,7 +104,10 @@ public class Health : NetworkBehaviour, IDamageable
 
     private void HandleDeath()
     {
-        if(this is PlayerHealthController player)
+        if (TryGetComponent(out AIHitHandler hit) && _attacker != null)
+            hit.RegisterDeath(_attacker);
+
+        if (this is PlayerHealthController player)
             player.HandlePlayerDeathServerRpc();
         else if (IsServer)
             NetworkObject.Despawn();

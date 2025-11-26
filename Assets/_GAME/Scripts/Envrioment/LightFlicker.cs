@@ -28,7 +28,7 @@ public class LightFlicker : MonoBehaviour
     {
         _isDoing = true;
 
-        yield return new WaitForSeconds(Random.RandomRange(MinMaxTime.x, MinMaxTime.y));
+        yield return new WaitForSeconds(Random.Range(MinMaxTime.x, MinMaxTime.y));
 
         _light.enabled = toggle;
         IsOn = toggle;

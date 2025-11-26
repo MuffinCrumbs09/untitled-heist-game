@@ -9,6 +9,8 @@ public class NetStore : NetworkBehaviour
     public NetworkVariable<int> MaxPayout = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> Payout = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    public int TotalKills;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
