@@ -56,7 +56,7 @@ public class Loot : NetworkBehaviour, IInteractable
         PickupLootServerRpc();
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void PickupLootServerRpc()
     {
         NetStore.Instance.ChangePayoutServerRpc(LootValue);

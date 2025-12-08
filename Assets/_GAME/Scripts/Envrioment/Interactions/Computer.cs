@@ -67,7 +67,7 @@ public class Computer : NetworkBehaviour, IInteractable
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void OnHackCompleteServerRpc()
     {
         // Server receives the RPC and broadcasts to all clients

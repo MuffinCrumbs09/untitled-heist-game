@@ -96,7 +96,7 @@ public class DoorTimer : NetworkBehaviour
         door.transform.rotation = endRot;
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void ToggleDoorServerRpc()
     {
         isOpen.Value = true;

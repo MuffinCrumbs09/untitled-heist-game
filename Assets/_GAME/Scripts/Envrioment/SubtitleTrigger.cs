@@ -24,7 +24,7 @@ public class SubtitleTrigger : NetworkBehaviour
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void TriggerSubtitleServerRpc()
     {
         if (IsTriggered) return;

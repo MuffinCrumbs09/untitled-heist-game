@@ -122,7 +122,7 @@ public class Rifle : Gun
         }
     }
 
-    [ServerRpc(RequireOwnership = true)]
+    [Rpc(SendTo.Server)]
     private void SpawnBulletTrailServerRpc(Vector3 startPos, Vector3 targetPos)
     {
         SpawnBulletTrailClientRpc(startPos, targetPos);

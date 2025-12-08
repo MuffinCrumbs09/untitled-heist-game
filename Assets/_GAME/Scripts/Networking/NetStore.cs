@@ -19,13 +19,13 @@ public class NetStore : NetworkBehaviour
         Instance = this;
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server)]
     public void ChangePayoutServerRpc(int toChange)
     {
         Payout.Value += toChange;
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server)]
     public void SetMaxPayoutServerRpc(int max)
     {
         MaxPayout.Value = max;

@@ -15,6 +15,7 @@ using UnityEngine.UI;
 
 public class RelayManager : MonoBehaviour
 {
+    #region Variables
     [Header("UI")]
     [SerializeField] private Canvas[] Canvas;
     [Space(20), Header("UI - Buttons")]
@@ -41,11 +42,13 @@ public class RelayManager : MonoBehaviour
     private string joinCode;
     private string filePath;
     private float _playerCount;
+    #endregion
 
+    #region Unity Functions
     private void OnDisable()
     {
         if (NetworkManager.Singleton != null)
-            NetworkManager.Singleton.OnConnectionEvent -= Connected;
+            NetworkManager.Singleton.OnConnectionEvent -= ConnectionEvent;
     }
 
     private async void Start()
@@ -57,16 +60,17 @@ public class RelayManager : MonoBehaviour
         if (!AuthenticationService.Instance.IsSignedIn)
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
-        NetworkManager.Singleton.OnConnectionEvent += Connected;
+        NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
 
+        // Button Assignment
         CreateLobby.onClick.AddListener(StartRelay);
-        Back.onClick.AddListener(() => PickCanvas(0));
+        Back.onClick.AddListener(() => CanvasManager.Instance.PickCanvas(CurrentCanvas.MainMenu));
         QuitLobbyB.onClick.AddListener(QuitLobby);
         QuitGameB.onClick.AddListener(QuitGame);
         JoinLobby.onClick.AddListener(() => JoinRelay(JoinInput.text));
         StartGameB.onClick.AddListener(StartGame);
         CodeBttn.onClick.AddListener(CopyCode);
-        OptionsB.onClick.AddListener(() => PickCanvas(4));
+        OptionsB.onClick.AddListener(() => CanvasManager.Instance.PickCanvas(CurrentCanvas.Options));
         StatsB.onClick.AddListener(ToggleCam);
         StatsBackB.onClick.AddListener(ToggleCam);
 
@@ -81,93 +85,29 @@ public class RelayManager : MonoBehaviour
         if (_playerCount != Players.Count)
             ShowPlayers();
     }
+    #endregion
 
     #region Functions
-    // 0 = Main Menu, 1 = In lobby, 2 = Pick username, 3 = Connecting, 4 = Options
-    public void PickCanvas(int canvas)
-    {
-        _eraseAnim.SetTrigger("Erase");
-
-        StartCoroutine(PickCanvasRoutine(canvas));
-    }
-
-    private IEnumerator PickCanvasRoutine(int canvas)
-    {
-        yield return new WaitForSeconds(.5f);
-
-        for (int x = 0; x < Canvas.Length; x++)
-        {
-            Canvas[x].enabled = false;
-        }
-
-        yield return new WaitForSeconds(1f);
-
-        for (int x = 0; x < Canvas.Length; x++)
-        {
-            Canvas[x].enabled = (x == canvas);
-        }
-    }
-
     private void CopyCode()
     {
         GUIUtility.systemCopyBuffer = CodeText.text;
-    }
-
-    private void Connected(NetworkManager manager, ConnectionEventData eventData)
-    {
-        if (eventData.EventType == ConnectionEvent.ClientConnected)
-            PickCanvas(1);
     }
 
     private void ToggleCam()
     {
         _cameraAnim.SetTrigger("Toggle");
     }
-    #endregion
 
-    private async void StartRelay()
+    private void ShowPlayers()
     {
-        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // 3 peers, 1 host
+        int playerCount = NetPlayerManager.Instance.usernames.Count;
+        _playerCount = 0;
 
-        joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId); // get the join code
-
-        // Show join code on screen
-        CodeText.text = joinCode;
-
-        // Create and set relay server data
-        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
-
-        // Start server as host
-        NetworkManager.Singleton.StartHost();
-
-        // Activate the start button, since this is the host
-        StartGameB.gameObject.SetActive(true);
-
-        StartCoroutine(WaitandAddUser());
-
-        // Switch Canvas
-        PickCanvas(1);
-    }
-
-    private async void JoinRelay(string joinCode)
-    {
-        // Grab the lobby allocation from join code and set relay 
-        var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
-        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
-
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
-
-        //  Join lobby as client
-        NetworkManager.Singleton.StartClient();
-
-        // Show join code on screen
-        CodeText.text = joinCode;
-
-        StartCoroutine(WaitandAddUser());
-
-        // Switch Canvas
-        PickCanvas(3);
+        for (int x = 0; x <= playerCount - 1; x++)
+        {
+            Players[x].SetActive(true);
+            _playerCount++;
+        }
     }
 
     //Loads the game scene
@@ -175,20 +115,6 @@ public class RelayManager : MonoBehaviour
     {
         NetworkManager.Singleton.SceneManager.LoadScene("Prototype Map", LoadSceneMode.Single);
     }
-
-    private IEnumerator WaitandAddUser()
-    {
-        // Wait unitl the player manager has been spawned
-        while (NetPlayerManager.Instance == null || !NetPlayerManager.Instance.IsSpawned)
-            yield return null;
-
-        string playerName = File.ReadAllText(filePath);
-
-        // Add player to the net player manager
-        NetPlayerManager.Instance.AddUsernameServerRpc(playerName);
-        NetPlayerManager.Instance.AddPlayerStateServerRpc(PlayerState.MaskOff);
-    }
-
     private void QuitLobby()
     {
         // Quits the lobby
@@ -208,18 +134,78 @@ public class RelayManager : MonoBehaviour
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
     }
+    #endregion
 
-    private void ShowPlayers()
+    #region Relay
+    private async void StartRelay()
     {
-        int playerCount = NetPlayerManager.Instance.usernames.Count;
-        _playerCount = 0;
+        Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // 3 peers, 1 host
 
-        for (int x = 0; x <= playerCount - 1; x++)
-        {
-            Players[x].SetActive(true);
-            _playerCount++;
-        }
+        joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId); // get the join code
 
+        // Create and set relay server data
+        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
 
+        // Start server as host
+        NetworkManager.Singleton.StartHost();
+
+        // Activate the start button, since this is the host
+        StartGameB.gameObject.SetActive(true);
+
+        // Switch Canvas
+        CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
     }
+
+    private async void JoinRelay(string joinCode)
+    {
+        // Grab the lobby allocation from join code and set relay 
+        var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
+        var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");
+
+        NetworkManager.Singleton.GetComponent<UnityTransport>().SetRelayServerData(relayServerData);
+
+        //  Join lobby as client
+        NetworkManager.Singleton.StartClient();
+
+        // Show join code on screen
+        this.joinCode = joinCode;
+
+
+        // Switch Canvas
+        CanvasManager.Instance.PickCanvas(CurrentCanvas.Connecting);
+    }
+    #endregion
+
+    #region Events
+    private void ConnectionEvent(NetworkManager manager, ConnectionEventData data)
+    {
+        // Client Connected
+        if (data.EventType == Unity.Netcode.ConnectionEvent.ClientConnected)
+        {
+            if (data.ClientId != manager.LocalClientId) return;
+
+            CodeText.text = joinCode; // Display join code
+            string playerName = File.ReadAllText(filePath);
+
+            // Add player to the net player manager
+            NetPlayerManager.Instance.AddUsernameServerRpc(playerName);
+            NetPlayerManager.Instance.AddPlayerStateServerRpc(PlayerState.MaskOff);
+            CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
+        }
+        // Client Disconnected
+        else if (data.EventType == Unity.Netcode.ConnectionEvent.ClientDisconnected)
+        {
+            if (manager.IsClient && !manager.IsHost)
+            {
+                Debug.Log("Client detected disconnect - quitting lobby");
+                QuitLobby();
+                return;
+            }
+
+            if (manager.IsServer && manager.IsListening)
+                NetPlayerManager.Instance.RemoveUsernameServerRpc(data.ClientId);
+        }
+    }
+    #endregion
 }

@@ -34,7 +34,7 @@ public class ObjectiveSpawnUnlocker : NetworkBehaviour
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server)]
     public void ManualUnlockServerRpc()
     {
         if (!hasUnlocked)

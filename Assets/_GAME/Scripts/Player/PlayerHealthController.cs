@@ -61,7 +61,7 @@ public class PlayerHealthController : Health
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void ChangeShieldServerRpc(int toChange)
     {
         ApplyShieldChange(toChange);
@@ -80,7 +80,7 @@ public class PlayerHealthController : Health
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void HandlePlayerDeathServerRpc()
     {
         HandlePlayerDeath();

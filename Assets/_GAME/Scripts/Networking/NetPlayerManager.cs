@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,6 +10,9 @@ public class NetPlayerManager : NetworkBehaviour
     public NetworkList<NetString> usernames;
     public NetworkList<NetPlayerState> playerStates;
 
+    // Server-Only Storage
+    private Dictionary<ulong, string> _clientIdToName;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -18,13 +22,14 @@ public class NetPlayerManager : NetworkBehaviour
 
         usernames = new NetworkList<NetString>();
         playerStates = new NetworkList<NetPlayerState>();
+        _clientIdToName = new Dictionary<ulong, string>();
     }
 
     #region PlayerState
-    [ServerRpc(RequireOwnership = false)]
-    public void SetPlayerStateServerRpc(PlayerState newState, ServerRpcParams rpcParams = default)
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void SetPlayerStateServerRpc(PlayerState newState, RpcParams rpc = default)
     {
-        ulong id = rpcParams.Receive.SenderClientId;
+        ulong id = rpc.Receive.SenderClientId;
         for (int i = 0; i < playerStates.Count; i++)
         {
             if (playerStates[i].clientID == id)
@@ -37,10 +42,10 @@ public class NetPlayerManager : NetworkBehaviour
     }
 
 
-    [ServerRpc(RequireOwnership = false)]
-    public void AddPlayerStateServerRpc(PlayerState newState, ServerRpcParams rpcParams = default)
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void AddPlayerStateServerRpc(PlayerState newState, RpcParams rpc = default)
     {
-        ulong senderId = rpcParams.Receive.SenderClientId;
+        ulong senderId = rpc.Receive.SenderClientId;
 
         // Check if this player has a state set up
         bool exists = false;
@@ -82,11 +87,33 @@ public class NetPlayerManager : NetworkBehaviour
     #endregion
 
     #region Usernames
-    [ServerRpc(RequireOwnership = false)]
-    public void AddUsernameServerRpc(string username)
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void AddUsernameServerRpc(string username, RpcParams rpc = default)
     {
+        _clientIdToName[rpc.Receive.SenderClientId] = username;
         usernames.Add(username);
+
         Debug.Log($"Added username '{username}' to shared list");
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    public void RemoveUsernameServerRpc(ulong clientId)
+    {
+        if (_clientIdToName.TryGetValue(clientId, out string disconnectedName))
+        {
+            for (int i = 0; i < usernames.Count; i++)
+                if (usernames[i] == disconnectedName)
+                {
+                    usernames.RemoveAt(i);
+                    _clientIdToName.Remove(clientId);
+
+                    Debug.Log($"Removed disconnected player: {disconnectedName}");
+                }
+        }
+        else
+        {
+            Debug.LogWarning($"Attempted to remove ClientId {clientId} but key not found in dictionary.");
+        }
     }
 
     public string GetAllUsernames()

@@ -51,13 +51,13 @@ public class SoundManager : NetworkBehaviour
         _localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject.gameObject;
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void PlaySoundServerRpc(SoundType sound, Vector3 origin)
     {
         PlaySoundClientRpc(sound, origin);
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void PlayKeyboardSoundServerRpc(Vector3 origin)
     {
         PlaySoundClientRpc(SoundType.KEYBOARD_CLICK, origin);

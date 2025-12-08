@@ -67,7 +67,7 @@ public class EnemySpawner : NetworkBehaviour
         }
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server)]
     public void StartWavesServerRpc()
     {
         if (IsServer && waveCoroutine == null)
@@ -231,7 +231,7 @@ public class EnemySpawner : NetworkBehaviour
         Debug.Log($"[Client] Wave {waveNumber} has started!");
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server)]
     public void ForceNextWaveServerRpc()
     {
         if (IsServer && waveCoroutine != null)

@@ -33,7 +33,7 @@ public class Keypad : NetworkBehaviour, IInteractable
         InteractServerRpc();
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void InteractServerRpc()
     {
         InteractClientRpc();

@@ -68,13 +68,13 @@ public class Health : NetworkBehaviour, IDamageable
     }
 
     #region Networking
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ChangeHealthServerRpc(int amount)
     {
         ApplyHealthChange(amount);
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void DeadServerRpc()
     {
         isDead.Value = true;

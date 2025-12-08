@@ -11,17 +11,15 @@ public class PlayerName : MonoBehaviour
     [Header("Settings - Misc")]
     [SerializeField] private bool isStartup = false;
 
-    private RelayManager relay;
     private string filePath;
 
     private void Start()
     {
-        relay = GetComponent<RelayManager>();
         filePath = Application.persistentDataPath + "/PlayerName.txt";
         submitBttn.onClick.AddListener(SetName);
 
         if (isStartup && File.Exists(filePath))
-            relay.PickCanvas(0);
+            CanvasManager.Instance.PickCanvas(CurrentCanvas.MainMenu);
     }
 
     private void SetName()
@@ -36,7 +34,7 @@ public class PlayerName : MonoBehaviour
         }
 
         if (isStartup)
-            relay.PickCanvas(0);
+            CanvasManager.Instance.PickCanvas(CurrentCanvas.MainMenu);
         else
             txtInput.text = "Success!";
     }

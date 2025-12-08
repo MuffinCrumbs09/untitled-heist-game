@@ -131,7 +131,7 @@ public class Drill : NetworkBehaviour, IInteractable
             ToggleDrillServerRpc(true);
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ToggleDrillServerRpc(bool toggle)
     {
         _IsDrilling.Value = toggle;

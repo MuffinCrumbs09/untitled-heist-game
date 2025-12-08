@@ -46,10 +46,10 @@ public class SubtitleManager : NetworkBehaviour
         ShowSubtitleServerRpc(npcName, message, true, duration);
     }
 
-    [ServerRpc(RequireOwnership = false)]
-    private void ShowSubtitleServerRpc(string speaker, string message, bool isGlobal, float duration, ServerRpcParams rpcParams = default)
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void ShowSubtitleServerRpc(string speaker, string message, bool isGlobal, float duration, RpcParams rpc = default)
     {
-        ulong senderClientId = rpcParams.Receive.SenderClientId;
+        ulong senderClientId = rpc.Receive.SenderClientId;
 
         SubtitleData data = new SubtitleData
         {

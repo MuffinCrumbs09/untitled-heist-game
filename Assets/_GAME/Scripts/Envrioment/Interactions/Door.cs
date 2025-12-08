@@ -89,7 +89,7 @@ public class Door : NetworkBehaviour, IInteractable
         // _obstacle.enabled = isOpen.Value;
     }
 
-    [ServerRpc(RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     public void ToggleDoorServerRpc()
     {
         isOpen.Value = !isOpen.Value;
