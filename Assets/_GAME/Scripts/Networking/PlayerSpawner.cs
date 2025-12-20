@@ -28,7 +28,7 @@ public class PlayerSpawner : NetworkBehaviour
         // If Host and in correct scene, Instantiate all players
         if(IsHost && sceneName == "Prototype Map" && !_playersSpawned)
         {
-            if (NetworkManager.Singleton.ConnectedClients.Count >= NetPlayerManager.Instance.usernames.Count)
+            if (NetworkManager.Singleton.ConnectedClients.Count >= NetPlayerManager.Instance.playerData.Count)
             {
                 _playersSpawned = true;
                 foreach (ulong id in clientsCompleted)

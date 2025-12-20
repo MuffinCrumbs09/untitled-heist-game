@@ -29,7 +29,7 @@ public class ObjectiveSystem : MonoBehaviour
         if (CurrentObjectiveIndex == ObjectiveList.Count)
         {
             stats.TotalMoneyStole += NetStore.Instance.Payout.Value;
-            stats.TotalKills += NetStore.Instance.TotalKills;
+            stats.TotalKills += NetPlayerManager.Instance.GetLocalPlayersKills();
             stats.TotalHeists++;
             SaveManager.Instance.SaveGame(stats);
 

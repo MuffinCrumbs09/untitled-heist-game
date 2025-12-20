@@ -32,6 +32,6 @@ public class AIHitHandler : MonoBehaviour
     public void RegisterDeath(GameObject killer)
     {
         if(killer.GetComponent<NetworkObject>().IsLocalPlayer)
-            NetStore.Instance.TotalKills++;
+            NetPlayerManager.Instance.AddPlayerKillServerRpc();
     }
 }

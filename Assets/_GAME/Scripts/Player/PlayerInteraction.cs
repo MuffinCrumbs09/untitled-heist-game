@@ -16,12 +16,12 @@ public class PlayerInteraction : NetworkBehaviour
     #region Unity Events
     private void OnEnable()
     {
-        NetPlayerManager.Instance.playerStates.OnListChanged += UpdatePlayerStates;
+        NetPlayerManager.Instance.playerData.OnListChanged += UpdatePlayerStates;
     }
 
     private void OnDisable()
     {
-        NetPlayerManager.Instance.playerStates.OnListChanged -= UpdatePlayerStates;
+        NetPlayerManager.Instance.playerData.OnListChanged -= UpdatePlayerStates;
 
         if (IsOwner)
         {
@@ -121,13 +121,14 @@ public class PlayerInteraction : NetworkBehaviour
         Debug.Log(NetPlayerManager.Instance.GetCurrentPlayerState(cliendID));
     }
 
-    private void UpdatePlayerStates(NetworkListEvent<NetPlayerState> changeEvent)
+    private void UpdatePlayerStates(NetworkListEvent<NetPlayerData> changeEvent)
     {
+        ulong targetID = changeEvent.Value.CLIENTID;
         GameObject changedPlayer = null;
 
         foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
         {
-            if (player.GetComponent<NetworkBehaviour>().OwnerClientId == changeEvent.Value.clientID)
+            if (player.GetComponent<NetworkBehaviour>().OwnerClientId == targetID)
             {
                 changedPlayer = player;
                 break;

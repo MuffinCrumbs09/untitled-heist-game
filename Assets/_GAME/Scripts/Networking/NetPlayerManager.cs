@@ -7,11 +7,8 @@ using UnityEngine;
 public class NetPlayerManager : NetworkBehaviour
 {
     public static NetPlayerManager Instance;
-    public NetworkList<NetString> usernames;
-    public NetworkList<NetPlayerState> playerStates;
 
-    // Server-Only Storage
-    private Dictionary<ulong, string> _clientIdToName;
+    public NetworkList<NetPlayerData> playerData;
 
     private void Awake()
     {
@@ -20,112 +17,86 @@ public class NetPlayerManager : NetworkBehaviour
 
         Instance = this;
 
-        usernames = new NetworkList<NetString>();
-        playerStates = new NetworkList<NetPlayerState>();
-        _clientIdToName = new Dictionary<ulong, string>();
+        playerData = new();
     }
 
-    #region PlayerState
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void SetPlayerStateServerRpc(PlayerState newState, RpcParams rpc = default)
+    #region Write
+    [Rpc(SendTo.Server)]
+    public void AddNewPlayerDataServerRpc(string username, RpcParams rpc = default)
     {
         ulong id = rpc.Receive.SenderClientId;
-        for (int i = 0; i < playerStates.Count; i++)
+        playerData.Add(new NetPlayerData(username, id));
+    }
+
+    [Rpc(SendTo.Server)]
+    public void RemovePlayerDataByIDServerRpc(ulong targetID)
+    {
+        for (int i = 0; i < playerData.Count; i++)
         {
-            if (playerStates[i].clientID == id)
+            ulong id = playerData[i].CLIENTID;
+            if (id.Equals(targetID))
+                playerData.RemoveAt(i);
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    public void SetPlayerStateServerRpc(PlayerState newState, RpcParams rpc = default)
+    {
+        ulong targetID = rpc.Receive.SenderClientId;
+
+        for (int i = 0; i < playerData.Count; i++)
+        {
+            var temp = playerData[i];
+            if (temp.CLIENTID.Equals(targetID))
             {
-                var temp = playerStates[i];
-                temp.state = newState;
-                playerStates[i] = temp;
+                temp.STATE = newState;
+                playerData[i] = temp;
             }
         }
     }
 
-
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void AddPlayerStateServerRpc(PlayerState newState, RpcParams rpc = default)
+    [Rpc(SendTo.Server)]
+    public void AddPlayerKillServerRpc(RpcParams rpc = default)
     {
-        ulong senderId = rpc.Receive.SenderClientId;
+        ulong targetID = rpc.Receive.SenderClientId;
 
-        // Check if this player has a state set up
-        bool exists = false;
-        for (int i = 0; i < playerStates.Count; i++)
+        for (int i = 0; i < playerData.Count; i++)
         {
-            if (playerStates[i].clientID == senderId)
+            var temp = playerData[i];
+            if (temp.CLIENTID.Equals(targetID))
             {
-                exists = true;
-                break;
+                temp.KILLS++;
+                playerData[i] = temp;
             }
         }
-
-        if (!exists)
-        {
-            playerStates.Add(new NetPlayerState
-            {
-                clientID = senderId,
-                state = newState
-            });
-
-            Debug.Log("Added new client");
-        }
-        else
-        {
-            Debug.Log("Somehow, it already exists?");
-        }
-    }
-    public PlayerState GetCurrentPlayerState(ulong clientID)
-    {
-        for (int i = 0; i < playerStates.Count; i++)
-        {
-            if (playerStates[i].clientID == clientID)
-                return playerStates[i].state;
-        }
-
-        Debug.Log("Something happened, returning a default value:");
-        return PlayerState.Error;
     }
     #endregion
 
-    #region Usernames
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void AddUsernameServerRpc(string username, RpcParams rpc = default)
+    #region Read
+    public PlayerState GetCurrentPlayerState(ulong targetID)
     {
-        _clientIdToName[rpc.Receive.SenderClientId] = username;
-        usernames.Add(username);
+        for (int i = 0; i < playerData.Count; i++)
+        {
+            var temp = playerData[i];
+            if (temp.CLIENTID == targetID)
+                return temp.STATE;
+        }
 
-        Debug.Log($"Added username '{username}' to shared list");
+        return PlayerState.Error;
     }
 
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void RemoveUsernameServerRpc(ulong clientId)
+    public int GetLocalPlayersKills()
     {
-        if (_clientIdToName.TryGetValue(clientId, out string disconnectedName))
-        {
-            for (int i = 0; i < usernames.Count; i++)
-                if (usernames[i] == disconnectedName)
-                {
-                    usernames.RemoveAt(i);
-                    _clientIdToName.Remove(clientId);
+        ulong targetID = NetworkManager.Singleton.LocalClientId;
 
-                    Debug.Log($"Removed disconnected player: {disconnectedName}");
-                }
-        }
-        else
+        for (int i = 0; i < playerData.Count; i++)
         {
-            Debug.LogWarning($"Attempted to remove ClientId {clientId} but key not found in dictionary.");
-        }
-    }
-
-    public string GetAllUsernames()
-    {
-        string allPlayers = "";
-
-        foreach (NetString username in usernames)
-        {
-            allPlayers += username.ToString() + "\n";
+            var temp = playerData[i];
+            if (temp.CLIENTID == targetID)
+                return temp.KILLS;
         }
 
-        return allPlayers;
+        return 0;
     }
     #endregion
 }

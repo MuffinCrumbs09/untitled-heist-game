@@ -1,6 +1,7 @@
 using System;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SocialPlatforms;
 
 public class SubtitleManager : NetworkBehaviour
 {
@@ -105,14 +106,13 @@ public class SubtitleManager : NetworkBehaviour
 
     private string GetLocalUsername()
     {
-        if (NetPlayerManager.Instance != null && NetPlayerManager.Instance.usernames.Count > 0)
-        {
-            ulong localClientId = NetworkManager.Singleton.LocalClientId;
+        ulong localID = NetworkManager.Singleton.LocalClientId;
+        NetPlayerManager manager = NetPlayerManager.Instance;
 
-            if (localClientId < (ulong)NetPlayerManager.Instance.usernames.Count)
-            {
-                return NetPlayerManager.Instance.usernames[(int)localClientId].ToString();
-            }
+        for (int i = 0; i < manager.playerData.Count; i++)
+        {
+            if (manager.playerData[i].CLIENTID.Equals(localID))
+                return manager.playerData[i].USERNAME;
         }
 
         return "Player";

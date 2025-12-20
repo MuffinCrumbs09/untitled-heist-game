@@ -17,6 +17,10 @@ public class SaveManager : MonoBehaviour
         filePath = Application.persistentDataPath + "/PlayerData.json";
     }
 
+    /// <summary>
+    /// Saves the players stats locally
+    /// </summary>
+    /// <param name="stats"></param>
     public void SaveGame(PlayerStats stats)
     {
         string json = JsonUtility.ToJson(stats, true);
@@ -24,6 +28,10 @@ public class SaveManager : MonoBehaviour
         File.WriteAllText(filePath, json);
     }
 
+    /// <summary>
+    /// Loads or Creates a new PlayerStats
+    /// </summary>
+    /// <returns>Players Current Stats</returns>
     public PlayerStats LoadGame()
     {
         if (File.Exists(filePath))

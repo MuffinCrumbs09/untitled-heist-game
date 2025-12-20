@@ -41,12 +41,13 @@ public class RelayManager : MonoBehaviour
 
     private string joinCode;
     private string filePath;
-    private float _playerCount;
     #endregion
 
     #region Unity Functions
     private void OnDisable()
     {
+        NetPlayerManager.Instance.playerData.OnListChanged -= OnPlayerDataChanged;
+
         if (NetworkManager.Singleton != null)
             NetworkManager.Singleton.OnConnectionEvent -= ConnectionEvent;
     }
@@ -61,6 +62,7 @@ public class RelayManager : MonoBehaviour
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
         NetworkManager.Singleton.OnConnectionEvent += ConnectionEvent;
+        NetPlayerManager.Instance.playerData.OnListChanged += OnPlayerDataChanged;
 
         // Button Assignment
         CreateLobby.onClick.AddListener(StartRelay);
@@ -76,15 +78,6 @@ public class RelayManager : MonoBehaviour
 
         filePath = Application.persistentDataPath + "/PlayerName.txt";
     }
-
-    private void Update()
-    {
-        if (PlayerListTxt.text != NetPlayerManager.Instance.GetAllUsernames())
-            PlayerListTxt.text = NetPlayerManager.Instance.GetAllUsernames();
-
-        if (_playerCount != Players.Count)
-            ShowPlayers();
-    }
     #endregion
 
     #region Functions
@@ -96,18 +89,6 @@ public class RelayManager : MonoBehaviour
     private void ToggleCam()
     {
         _cameraAnim.SetTrigger("Toggle");
-    }
-
-    private void ShowPlayers()
-    {
-        int playerCount = NetPlayerManager.Instance.usernames.Count;
-        _playerCount = 0;
-
-        for (int x = 0; x <= playerCount - 1; x++)
-        {
-            Players[x].SetActive(true);
-            _playerCount++;
-        }
     }
 
     //Loads the game scene
@@ -189,8 +170,7 @@ public class RelayManager : MonoBehaviour
             string playerName = File.ReadAllText(filePath);
 
             // Add player to the net player manager
-            NetPlayerManager.Instance.AddUsernameServerRpc(playerName);
-            NetPlayerManager.Instance.AddPlayerStateServerRpc(PlayerState.MaskOff);
+            NetPlayerManager.Instance.AddNewPlayerDataServerRpc(playerName);
             CanvasManager.Instance.PickCanvas(CurrentCanvas.InLobby);
         }
         // Client Disconnected
@@ -204,8 +184,33 @@ public class RelayManager : MonoBehaviour
             }
 
             if (manager.IsServer && manager.IsListening)
-                NetPlayerManager.Instance.RemoveUsernameServerRpc(data.ClientId);
+                NetPlayerManager.Instance.RemovePlayerDataByIDServerRpc(data.ClientId);
         }
+    }
+
+    private void OnPlayerDataChanged(NetworkListEvent<NetPlayerData> changeEvent)
+    {
+        // Show Players
+        foreach (GameObject obj in Players)
+            obj.SetActive(false);
+
+        int playerCount = NetPlayerManager.Instance.playerData.Count;
+
+        for (int x = 0; x <= playerCount - 1; x++)
+        {
+            Players[x].SetActive(true);
+        }
+
+        // Show Usernames
+        List<string> name = new();
+
+        foreach (NetPlayerData data in NetPlayerManager.Instance.playerData)
+        {
+            name.Add(data.USERNAME);
+        }
+
+        string finalString = string.Join("\n", name);
+        PlayerListTxt.text = finalString;
     }
     #endregion
 }
