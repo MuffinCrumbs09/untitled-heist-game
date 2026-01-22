@@ -1,126 +1,103 @@
 using UnityEngine;
 using UnityEditor;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEditor.SceneManagement;
 
 public class ReplaceTool : EditorWindow
 {
-    private string searchString = "";
     private GameObject replacementPrefab;
 
-    // Menu Item
     [MenuItem("Tools/Custom/ObjectReplacer")]
     public static void ShowWindow()
     {
-        GetWindow<ReplaceTool>("Objet Replacer");
+        GetWindow<ReplaceTool>("Object Replacer");
     }
 
-    // UI
     private void OnGUI()
     {
-        GUILayout.Label("Object Replacer", EditorStyles.boldLabel);
+        GUILayout.Label("Replace Selected Objects", EditorStyles.boldLabel);
         EditorGUILayout.Space(10);
 
-        // String Input
-        GUILayout.Label("Search Criteria", EditorStyles.miniLabel);
-        searchString = EditorGUILayout.TextField("Name Contains:", searchString);
-        EditorGUILayout.Space(10);
+        replacementPrefab = (GameObject)EditorGUILayout.ObjectField(
+            "Replacement Prefab",
+            replacementPrefab,
+            typeof(GameObject),
+            false
+        );
 
-        // Prefab Input
-        GUILayout.Label("Replacement Prefab", EditorStyles.miniLabel);
-        replacementPrefab = (GameObject)EditorGUILayout.ObjectField("Replacement Prefab:", replacementPrefab, typeof(GameObject), false);
         EditorGUILayout.Space(20);
 
-        // Confirmation
-        GUI.enabled = !string.IsNullOrEmpty(searchString) && replacementPrefab != null;
-        if (GUILayout.Button("Find and Replace Object"))
-            ReplaceObjects();
+        GUI.enabled = replacementPrefab != null && Selection.gameObjects.Length > 0;
+        if (GUILayout.Button("Replace Selected Objects"))
+        {
+            ReplaceSelectedObjects();
+        }
         GUI.enabled = true;
 
-        if (Event.current.type == EventType.Repaint)
-        {
-            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-            buttonStyle.fontSize = 14;
-        }
-        EditorGUILayout.Space(10);
+        EditorGUILayout.Space(5);
+        EditorGUILayout.LabelField(
+            $"Selected Objects: {Selection.gameObjects.Length}",
+            EditorStyles.miniLabel
+        );
     }
 
-    // Logic
-
-    private void ReplaceObjects()
+    private void ReplaceSelectedObjects()
     {
-        GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        List<GameObject> objectsToReplace = new();
+        GameObject[] selectedObjects = Selection.gameObjects;
 
-        foreach (GameObject obj in allObjects)
+        if (selectedObjects.Length == 0)
         {
-            if (obj.name.Contains(searchString))
-                objectsToReplace.Add(obj);
-        }
-
-        if (objectsToReplace.Count == 0)
-        {
-            EditorUtility.DisplayDialog("Replacement Tool", $"No GameObjects found with names containing '{searchString}'.", "OK");
+            EditorUtility.DisplayDialog(
+                "Replace Tool",
+                "No GameObjects selected.",
+                "OK"
+            );
             return;
         }
 
-        // Confirmation dialog
         bool confirmed = EditorUtility.DisplayDialog(
             "Confirm Replacement",
-            $"Are you sure you want to replace {objectsToReplace.Count} objects containing '{searchString}' with '{replacementPrefab.name}'?",
-            "Yes, Replace Them",
+            $"Are you sure you want to replace {selectedObjects.Length} selected objects with '{replacementPrefab.name}'?",
+            "Yes, Replace",
             "Cancel"
         );
 
         if (!confirmed) return;
 
+        Undo.SetCurrentGroupName("Replace Selected Objects");
+        int undoGroup = Undo.GetCurrentGroup();
+
         int replacedCount = 0;
 
-        // Start a group for the undo operation
-        Undo.SetCurrentGroupName("Replace Objects by String Name");
-        int undoGroupIndex = Undo.GetCurrentGroup();
-
-        // Perform the replacement
-        foreach (GameObject oldObject in objectsToReplace)
+        foreach (GameObject oldObject in selectedObjects)
         {
-            GameObject newObject = (GameObject)PrefabUtility.InstantiatePrefab(replacementPrefab);
+            Transform oldTransform = oldObject.transform;
 
-            if (newObject != null)
-            {
-                // Store original position
-                Vector3 oldPosition = oldObject.transform.localPosition;
-                Vector3 oldScale = oldObject.transform.localScale;
-                Quaternion oldRotation = oldObject.transform.localRotation;
-                Transform oldParent = oldObject.transform.parent;
-                string oldName = oldObject.name;
+            GameObject newObject = (GameObject)PrefabUtility.InstantiatePrefab(
+                replacementPrefab,
+                oldTransform.parent
+            );
 
-                // Record the old object for destruction (allows undo to bring it back)
-                Undo.DestroyObjectImmediate(oldObject);
+            if (newObject == null)
+                continue;
 
-                // Set parent for the new object
-                if (oldParent != null)
-                {
-                    Undo.SetTransformParent(newObject.transform, oldParent, "Set Parent");
-                }
+            Undo.RegisterCreatedObjectUndo(newObject, "Create Replacement");
 
-                // Set position, rotation, and scale
-                newObject.transform.localPosition = oldPosition;
-                newObject.transform.localRotation = oldRotation;
-                newObject.transform.localScale = oldScale;
+            // Copy transform data
+            newObject.transform.localPosition = oldTransform.localPosition;
+            newObject.transform.localRotation = oldTransform.localRotation;
+            newObject.transform.localScale = oldTransform.localScale;
 
-
-                newObject.name = oldName.Replace(searchString, replacementPrefab.name);
-                replacedCount++;
-            }
+            Undo.DestroyObjectImmediate(oldObject);
+            replacedCount++;
         }
-        // Create a single undo action
-        Undo.CollapseUndoOperations(undoGroupIndex);
 
-        // Mark the current scene as dirty to ensure changes are saved
+        Undo.CollapseUndoOperations(undoGroup);
         EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
 
-        EditorUtility.DisplayDialog("Replacement Complete", $"Successfully replaced {replacedCount} objects.", "OK");
+        EditorUtility.DisplayDialog(
+            "Replacement Complete",
+            $"Successfully replaced {replacedCount} objects.",
+            "OK"
+        );
     }
 }
