@@ -6,6 +6,10 @@ public class ReplaceTool : EditorWindow
 {
     private GameObject replacementPrefab;
 
+    private bool resetLocalPosition = false;
+    private bool resetLocalRotation = false;
+    private bool resetLocalScale = false;
+
     [MenuItem("Tools/Custom/ObjectReplacer")]
     public static void ShowWindow()
     {
@@ -23,6 +27,12 @@ public class ReplaceTool : EditorWindow
             typeof(GameObject),
             false
         );
+
+        EditorGUILayout.Space(10);
+
+        resetLocalPosition = EditorGUILayout.Toggle("Reset Local Position", resetLocalPosition);
+        resetLocalRotation = EditorGUILayout.Toggle("Reset Local Rotation", resetLocalRotation);
+        resetLocalScale = EditorGUILayout.Toggle("Reset Local Scale", resetLocalScale);
 
         EditorGUILayout.Space(20);
 
@@ -86,6 +96,15 @@ public class ReplaceTool : EditorWindow
             newObject.transform.localPosition = oldTransform.localPosition;
             newObject.transform.localRotation = oldTransform.localRotation;
             newObject.transform.localScale = oldTransform.localScale;
+
+            if (resetLocalPosition)
+                newObject.transform.localPosition = Vector3.zero;
+
+            if (resetLocalRotation)
+                newObject.transform.localRotation = Quaternion.identity;
+
+            if (resetLocalScale)
+                newObject.transform.localScale = Vector3.one;
 
             Undo.DestroyObjectImmediate(oldObject);
             replacedCount++;
