@@ -9,7 +9,7 @@ public class ChildGiver : EditorWindow
     private bool resetLocalRotation = true;
     private bool resetLocalScale = true;
 
-    [MenuItem("Custom/Child Giver")]
+    [MenuItem("Tools/Custom/Child Giver")]
     public static void ShowWindow()
     {
         GetWindow<ChildGiver>("ChildGiver");
