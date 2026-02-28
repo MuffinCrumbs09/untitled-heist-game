@@ -1,6 +1,5 @@
 using Unity.Netcode;
 using UnityEngine;
-using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -14,9 +13,12 @@ public class MapManager : NetworkBehaviour
     public M_RandomDialouge MapRandomDialouge;
     public ObjectiveSystem ObjectiveSystem;
 
-    private Dictionary<string, (int min, int max)> _roomLimits = new();
-    private Dictionary<string, int> _currentCount = new();
-    private List<(string areaName, string roomType)> _activatedRooms = new();
+    [Header("Room Tags")]
+    [SerializeField] private RoomTypeTag _hallTag;
+
+    private Dictionary<RoomTypeTag, (int min, int max)> _roomLimits = new();
+    private Dictionary<RoomTypeTag, int> _currentCount = new();
+    private List<(string areaName, RoomTypeTag roomType)> _activatedRooms = new();
 
     public NetworkList<NetRoomData> syncedRooms;
 
@@ -29,6 +31,7 @@ public class MapManager : NetworkBehaviour
 
         syncedRooms = new NetworkList<NetRoomData>();
     }
+
     public override void OnNetworkSpawn()
     {
         // Disable all rooms
@@ -39,7 +42,6 @@ public class MapManager : NetworkBehaviour
             for (int i = 0; i < areaObj.transform.childCount; i++)
             {
                 Transform child = areaObj.transform.GetChild(i);
-
                 child.gameObject.SetActive(false);
             }
         }
@@ -52,7 +54,7 @@ public class MapManager : NetworkBehaviour
             // Send results to clients
             foreach (var (area, room) in _activatedRooms)
             {
-                syncedRooms.Add(new NetRoomData(area, room));
+                syncedRooms.Add(new NetRoomData(area, room.name));
             }
         }
     }
@@ -77,38 +79,37 @@ public class MapManager : NetworkBehaviour
 
     private void AllocateRooms()
     {
-        // Get ready
         M_Rooms rooms = Map.MapRooms;
         List<M_Areas> availableAreas = new List<M_Areas>(Areas);
         SetRoomLimits(rooms);
 
         // Non-Hall rooms
-
         foreach (var kvp in _roomLimits)
         {
-            string roomType = kvp.Key;
-            if (roomType.Equals("Hall", System.StringComparison.OrdinalIgnoreCase))
-                continue;
+            RoomTypeTag roomTag = kvp.Key;
+            if (roomTag == _hallTag) continue;
+
             int min = kvp.Value.min;
             int max = kvp.Value.max;
-
             int roomCount = min > 0 ? Random.Range(min, max + 1) : 0;
 
             for (int i = 0; i < roomCount; i++)
             {
                 int areaRef = -1;
-                GameObject room = PickRandomArea(roomType, availableAreas, ref areaRef);
+                GameObject room = PickRandomArea(roomTag, availableAreas, ref areaRef);
                 if (room == null) continue;
-                if (_currentCount[room.tag] >= _roomLimits[room.tag].max) continue;
 
-                _currentCount[room.tag]++;
+                RoomTypeTag roomType = GetRoomType(room.transform);
+                if (roomType == null || _currentCount[roomType] >= _roomLimits[roomType].max) continue;
+
+                _currentCount[roomType]++;
                 availableAreas.RemoveAt(areaRef);
                 room.SetActive(true);
 
                 string parentAreaName = room.transform.parent.name;
-                _activatedRooms.Add((parentAreaName, room.tag));
+                _activatedRooms.Add((parentAreaName, roomType));
 
-                ProcessDependencies(parentAreaName, room.tag, availableAreas);
+                ProcessDependencies(parentAreaName, roomType, availableAreas);
             }
         }
 
@@ -123,10 +124,10 @@ public class MapManager : NetworkBehaviour
             for (int i = 0; i < areaObj.transform.childCount; i++)
             {
                 Transform child = areaObj.transform.GetChild(i);
-                if (child.CompareTag("Hall"))
+                if (IsRoomType(child, _hallTag))
                 {
                     child.gameObject.SetActive(true);
-                    _activatedRooms.Add((area.Area, "Hall"));
+                    _activatedRooms.Add((area.Area, _hallTag));
                     break;
                 }
             }
@@ -136,39 +137,35 @@ public class MapManager : NetworkBehaviour
         string s = "";
         foreach (var kvp in _activatedRooms)
         {
-            s += kvp.areaName + ": " + kvp.roomType + "\n";
+            s += kvp.areaName + ": " + kvp.roomType.name + "\n";
         }
         Debug.Log(s);
     }
 
     private void SetRoomLimits(M_Rooms rooms)
     {
-        FieldInfo[] fields = typeof(M_Rooms).GetFields(BindingFlags.Public | BindingFlags.Instance);
-
-        foreach (FieldInfo field in fields)
+        foreach (RoomTypeLimit limit in rooms.Limits)
         {
-            // X = Min, y = Max
-            Vector2 _minMax = (Vector2)field.GetValue(rooms);
-            int min = (int)_minMax.x;
-            int max = _minMax.y == 0 ? 99 : (int)_minMax.y;
+            int min = (int)limit.MinMax.x;
+            int max = limit.MinMax.y == 0 ? 99 : (int)limit.MinMax.y;
 
-            _roomLimits[field.Name] = (min, max);
-            _currentCount[field.Name] = 0;
+            _roomLimits[limit.RoomType] = (min, max);
+            _currentCount[limit.RoomType] = 0;
         }
     }
 
-    private GameObject PickRandomArea(string selectedRoom, List<M_Areas> avaliableAreas, ref int areaIndex)
+    private GameObject PickRandomArea(RoomTypeTag selectedRoom, List<M_Areas> availableAreas, ref int areaIndex)
     {
         const int maxAttempts = 20;
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            int index = Random.Range(0, avaliableAreas.Count());
-            GameObject area = GameObject.Find(avaliableAreas[index].Area);
+            int index = Random.Range(0, availableAreas.Count);
+            GameObject area = GameObject.Find(availableAreas[index].Area);
 
             for (int i = 0; i < area.transform.childCount; i++)
             {
                 Transform child = area.transform.GetChild(i);
-                if (child.gameObject.CompareTag(selectedRoom))
+                if (IsRoomType(child, selectedRoom))
                 {
                     areaIndex = index;
                     return child.gameObject;
@@ -176,15 +173,14 @@ public class MapManager : NetworkBehaviour
             }
         }
 
-        Debug.LogWarning("Something has gone wrong. Method doesnt work!");
+        Debug.LogWarning($"Could not find a valid area for room type '{selectedRoom.name}'.");
         return null;
     }
 
-    private void ProcessDependencies(string areaName, string roomType, List<M_Areas> avaliableAreas)
+    private void ProcessDependencies(string areaName, RoomTypeTag roomType, List<M_Areas> availableAreas)
     {
         M_Areas areaConfig = Areas.FirstOrDefault(a => a.Area == areaName);
 
-        // if theres no dependencies, return
         if (areaConfig.Dependencies == null || areaConfig.Dependencies.Length == 0)
             return;
 
@@ -194,78 +190,73 @@ public class MapManager : NetworkBehaviour
                 continue;
 
             GameObject targetArea = GameObject.Find(dependency.TargetAreaName);
-            GameObject exisitingRoom = null;
-            string existingRoomType = null;
+            GameObject existingRoom = null;
+            RoomTypeTag existingRoomType = null;
 
             for (int i = 0; i < targetArea.transform.childCount; i++)
             {
                 Transform child = targetArea.transform.GetChild(i);
                 if (child.gameObject.activeSelf)
                 {
-                    exisitingRoom = child.gameObject;
-                    existingRoomType = child.tag;
+                    existingRoom = child.gameObject;
+                    existingRoomType = GetRoomType(child);
                     break;
                 }
             }
 
-            if (exisitingRoom != null && existingRoomType == dependency.RequiredRoomType)
+            if (existingRoom != null && existingRoomType == dependency.RequiredRoomType)
                 continue;
 
-            // Deativate old room
-            if (exisitingRoom != null)
+            // Deactivate old room
+            if (existingRoom != null)
             {
-                exisitingRoom.SetActive(false);
+                existingRoom.SetActive(false);
                 _currentCount[existingRoomType]--;
-
                 _activatedRooms.Remove((dependency.TargetAreaName, existingRoomType));
             }
 
-            // If limit has been reached, remove old area and add it back to avaliable
+            // If limit reached, free up an existing room of the required type
             if (_currentCount[dependency.RequiredRoomType] >= _roomLimits[dependency.RequiredRoomType].max)
             {
-                Debug.Log("here");
-                var oldType = _activatedRooms.FirstOrDefault(t => t.roomType == dependency.RequiredRoomType && t.areaName == dependency.TargetAreaName);
+                Debug.Log("Limit reached — freeing room to satisfy dependency.");
+                var oldEntry = _activatedRooms.FirstOrDefault(t =>
+                    t.roomType == dependency.RequiredRoomType && t.areaName == dependency.TargetAreaName);
 
-                // fallback
-                if (oldType == default)
-                    oldType = _activatedRooms.FirstOrDefault(t => t.roomType == dependency.RequiredRoomType);
+                if (oldEntry == default)
+                    oldEntry = _activatedRooms.FirstOrDefault(t => t.roomType == dependency.RequiredRoomType);
 
-                GameObject removeAreaObj = GameObject.Find(oldType.areaName);
+                GameObject removeAreaObj = GameObject.Find(oldEntry.areaName);
                 for (int i = 0; i < removeAreaObj.transform.childCount; i++)
                 {
                     Transform child = removeAreaObj.transform.GetChild(i);
-                    if (child.CompareTag(dependency.RequiredRoomType) && child.gameObject.activeSelf)
+                    if (IsRoomType(child, dependency.RequiredRoomType) && child.gameObject.activeSelf)
                     {
                         child.gameObject.SetActive(false);
                         _currentCount[dependency.RequiredRoomType]--;
+                        _activatedRooms.RemoveAll(t => t.areaName == oldEntry.areaName && t.roomType == oldEntry.roomType);
 
-                        _activatedRooms.RemoveAll(t => t.areaName == oldType.areaName && t.roomType == oldType.roomType);
-
-                        M_Areas oldArea = Areas.FirstOrDefault(a => a.Area == oldType.areaName);
-                        if (oldArea != null && !avaliableAreas.Contains(oldArea))
-                            avaliableAreas.Add(oldArea);
+                        M_Areas oldArea = Areas.FirstOrDefault(a => a.Area == oldEntry.areaName);
+                        if (oldArea != null && !availableAreas.Contains(oldArea))
+                            availableAreas.Add(oldArea);
 
                         break;
                     }
                 }
             }
 
-
-            // Activate dependant room
+            // Activate dependent room
             for (int i = 0; i < targetArea.transform.childCount; i++)
             {
                 Transform child = targetArea.transform.GetChild(i);
-                if (child.CompareTag(dependency.RequiredRoomType))
+                if (IsRoomType(child, dependency.RequiredRoomType))
                 {
                     child.gameObject.SetActive(true);
                     _currentCount[dependency.RequiredRoomType]++;
                     _activatedRooms.Add((dependency.TargetAreaName, dependency.RequiredRoomType));
 
-                    M_Areas trgArea = avaliableAreas.FirstOrDefault(a => a.Area == dependency.TargetAreaName);
+                    M_Areas trgArea = availableAreas.FirstOrDefault(a => a.Area == dependency.TargetAreaName);
                     if (trgArea != null)
-                    {
-                        avaliableAreas.Remove(trgArea);
-                    }
+                        availableAreas.Remove(trgArea);
                 }
             }
         }
@@ -281,7 +272,6 @@ public class MapManager : NetworkBehaviour
             {
                 if (task is MinigameTask minigameTask)
                 {
-                    // Gather all matching computers for this minigame
                     List<Computer> computers = new();
                     List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
 
@@ -293,7 +283,6 @@ public class MapManager : NetworkBehaviour
                     int random = Random.Range(0, computers.Count);
                     Computer selected = computers[random];
 
-                    // Assign locally on host
                     selected.associatedTask = minigameTask;
 
                     string timerPath = string.Empty;
@@ -311,11 +300,9 @@ public class MapManager : NetworkBehaviour
                         }
                     }
 
-                    // Prepare data to sync to clients
                     string computerPath = GetGameObjectPath(selected.transform.gameObject);
                     string taskName = minigameTask.taskName;
 
-                    // Send RPC to clients to apply the same assignment (use NetString for network serialization)
                     AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName }, new NetString[] { timerPath });
                     Debug.Log($"Assigned computer '{computerPath}' -> task '{taskName}'");
                 }
@@ -326,7 +313,6 @@ public class MapManager : NetworkBehaviour
     [ClientRpc]
     private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames, NetString[] timerPaths)
     {
-        // Clients will apply assignments received from host
         for (int i = 0; i < computerPaths.Length; i++)
         {
             string compPath = computerPaths[i];
@@ -334,13 +320,10 @@ public class MapManager : NetworkBehaviour
             string timerPath = timerPaths[i];
 
             GameObject compObj = GameObject.Find(compPath);
-            if (compObj == null)
-                continue;
+            if (compObj == null) continue;
 
-            if (!compObj.TryGetComponent(out Computer computer))
-                continue;
+            if (!compObj.TryGetComponent(out Computer computer)) continue;
 
-            // Find matching MinigameTask by name in ObjectiveSystem
             if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
                 ObjectiveSystem = ObjectiveSystem.Instance;
 
@@ -358,25 +341,22 @@ public class MapManager : NetworkBehaviour
                             break;
                         }
                     }
+
                     if (computer.associatedTask != null) break;
                 }
             }
 
-            // Assign timer if provided
             if (!string.IsNullOrEmpty(timerPath))
             {
                 GameObject timerObj = GameObject.Find(timerPath);
                 if (timerObj != null && timerObj.TryGetComponent(out DoorTimer dt))
-                {
                     computer.timer = dt;
-                }
             }
         }
     }
 
     public void AssignObjectiveTransforms()
     {
-        // Gather all location data to sync to clients
         List<(string taskName, string locationPath)> locationAssignments = new();
 
         foreach (var objective in ObjectiveSystem.ObjectiveList)
@@ -421,7 +401,6 @@ public class MapManager : NetworkBehaviour
             }
         }
 
-        // Sync to clients
         if (locationAssignments.Count > 0)
         {
             NetString[] taskNames = locationAssignments.Select(x => (NetString)x.taskName).ToArray();
@@ -433,17 +412,14 @@ public class MapManager : NetworkBehaviour
     [ClientRpc]
     private void AssignObjectiveTransformsClientRpc(NetString[] taskNames, NetString[] locationPaths)
     {
-        // Clients will apply objective location assignments received from host
         for (int i = 0; i < taskNames.Length; i++)
         {
             string taskName = taskNames[i];
             string locationPath = locationPaths[i];
 
             GameObject locationObj = GameObject.Find(locationPath);
-            if (locationObj == null)
-                continue;
+            if (locationObj == null) continue;
 
-            // Find matching LocationTask by name in ObjectiveSystem
             if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
                 ObjectiveSystem = ObjectiveSystem.Instance;
 
@@ -475,10 +451,13 @@ public class MapManager : NetworkBehaviour
         foreach (var room in syncedRooms)
         {
             GameObject areaObj = GameObject.Find(room.AreaName);
+            if (areaObj == null) continue;
+
             for (int i = 0; i < areaObj.transform.childCount; i++)
             {
                 Transform child = areaObj.transform.GetChild(i);
-                if (child.CompareTag(room.RoomType))
+                RoomType rt = child.GetComponent<RoomType>();
+                if (rt != null && rt.Tag != null && rt.Tag.name == (string)room.RoomType)
                 {
                     child.gameObject.SetActive(true);
                     break;
@@ -488,7 +467,7 @@ public class MapManager : NetworkBehaviour
     }
     #endregion
 
-    #region Helper
+    #region Helpers
     private void CheckNonHallAreas(List<M_Areas> availableAreas)
     {
         var emptyNonHallAreas = availableAreas.Where(a => !a.CanBeHall).ToList();
@@ -509,12 +488,12 @@ public class MapManager : NetworkBehaviour
 
             if (!hasActiveRoom)
             {
-                string selectedRoomType = area.Rooms[Random.Range(0, area.Rooms.Length)];
+                RoomTypeTag selectedRoomType = area.Rooms[Random.Range(0, area.Rooms.Length)];
 
                 for (int i = 0; i < areaObj.transform.childCount; i++)
                 {
                     Transform child = areaObj.transform.GetChild(i);
-                    if (child.CompareTag(selectedRoomType))
+                    if (IsRoomType(child, selectedRoomType))
                     {
                         if (_currentCount.ContainsKey(selectedRoomType) &&
                             _currentCount[selectedRoomType] < _roomLimits[selectedRoomType].max)
@@ -537,34 +516,33 @@ public class MapManager : NetworkBehaviour
 
         foreach (var roomData in _activatedRooms)
         {
-            if (lowerTaskName.Contains(roomData.roomType.ToLower()))
-            {
-                return roomData.roomType;
-            }
+            if (lowerTaskName.Contains(roomData.roomType.name.ToLower()))
+                return roomData.roomType.name;
         }
+
         return null;
     }
 
-    private List<Transform> FindRoomsByTag(string roomTag)
+    /// <summary>
+    /// Finds all active room transforms matching the given room type tag name.
+    /// </summary>
+    private List<Transform> FindRoomsByTag(string roomTagName)
     {
         List<Transform> foundRooms = new List<Transform>();
 
         foreach (var roomData in _activatedRooms)
         {
-            if (roomData.roomType.Equals(roomTag, System.StringComparison.OrdinalIgnoreCase))
+            if (!roomData.roomType.name.Equals(roomTagName, System.StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            GameObject areaObj = GameObject.Find(roomData.areaName);
+            if (areaObj == null) continue;
+
+            for (int i = 0; i < areaObj.transform.childCount; i++)
             {
-                GameObject areaObj = GameObject.Find(roomData.areaName);
-                if (areaObj != null)
-                {
-                    for (int i = 0; i < areaObj.transform.childCount; i++)
-                    {
-                        Transform child = areaObj.transform.GetChild(i);
-                        if (child.CompareTag(roomTag) && child.gameObject.activeSelf)
-                        {
-                            foundRooms.Add(child);
-                        }
-                    }
-                }
+                Transform child = areaObj.transform.GetChild(i);
+                if (IsRoomType(child, roomData.roomType) && child.gameObject.activeSelf)
+                    foundRooms.Add(child);
             }
         }
 
@@ -576,9 +554,7 @@ public class MapManager : NetworkBehaviour
         foreach (Transform child in room)
         {
             if (child.TryGetComponent(out Computer computer))
-            {
                 computers.Add(computer);
-            }
 
             FindComputersByRoom(child, ref computers);
         }
@@ -589,9 +565,7 @@ public class MapManager : NetworkBehaviour
         foreach (Transform child in room)
         {
             if (child.TryGetComponent(out DoorTimer timer))
-            {
                 return timer;
-            }
         }
 
         return null;
@@ -610,5 +584,10 @@ public class MapManager : NetworkBehaviour
         return path;
     }
 
+    private static bool IsRoomType(Transform t, RoomTypeTag tag) =>
+        t.TryGetComponent<RoomType>(out RoomType rt) && rt.Tag == tag;
+
+    private static RoomTypeTag GetRoomType(Transform t) =>
+        t.TryGetComponent<RoomType>(out RoomType rt) ? rt.Tag : null;
     #endregion
 }

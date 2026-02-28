@@ -7,7 +7,7 @@ public class M_Areas : ScriptableObject
     public string Area;
 
     [Header("Rooms")]
-    public string[] Rooms;
+    public RoomTypeTag[] Rooms;
     public bool CanBeHall;
 
     [Header("Dependencies")]

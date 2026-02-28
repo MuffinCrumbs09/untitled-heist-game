@@ -46,18 +46,18 @@ public class Door : NetworkBehaviour, IInteractable
         SoundType type = open ? SoundType.DOOR_OPEN : SoundType.DOOR_CLOSED;
         SoundManager.Instance.PlaySoundServerRpc(type, transform.position);
 
-        Quaternion startRot = transform.rotation;
+        Quaternion startRot = transform.localRotation;
         Quaternion endRot = open ? _doorOpen : _doorClosed;
         float elapsed = 0f;
 
         while (elapsed < 1f)
         {
             elapsed += Time.deltaTime * openSpeed;
-            transform.rotation = Quaternion.Lerp(startRot, endRot, elapsed);
+            transform.localRotation = Quaternion.Lerp(startRot, endRot, elapsed);
             yield return null;
         }
 
-        transform.rotation = endRot;
+        transform.localRotation = endRot;
     }
 
     #region Interface

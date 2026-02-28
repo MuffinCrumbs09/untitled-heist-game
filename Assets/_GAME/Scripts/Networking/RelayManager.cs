@@ -94,7 +94,7 @@ public class RelayManager : MonoBehaviour
     //Loads the game scene
     public void StartGame()
     {
-        NetworkManager.Singleton.SceneManager.LoadScene("Prototype Map", LoadSceneMode.Single);
+        NetworkManager.Singleton.SceneManager.LoadScene("MicroBank", LoadSceneMode.Single);
     }
     private void QuitLobby()
     {

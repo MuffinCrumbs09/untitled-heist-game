@@ -23,12 +23,7 @@ public class RenameTool : EditorWindow
         GUILayout.Label("Object Renamer", EditorStyles.boldLabel);
         EditorGUILayout.Space(10);
 
-        // String Input
-        GUILayout.Label("Search Criteria", EditorStyles.miniLabel);
-        searchString = EditorGUILayout.TextField("Name Contains:", searchString);
-        EditorGUILayout.Space(10);
-
-        // Prefab Input
+        // New Name Input
         GUILayout.Label("Replacement Name", EditorStyles.miniLabel);
         replacementName = EditorGUILayout.TextField("Replacement Name:", replacementName);
         EditorGUILayout.Space(20);
@@ -51,25 +46,22 @@ public class RenameTool : EditorWindow
 
     private void RenameObjects()
     {
-        GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        List<GameObject> objectsToRename = new();
+        // Get Selected Objects
+        GameObject[] selectedObjects = Selection.gameObjects;
 
-        foreach (GameObject obj in allObjects)
+        if (selectedObjects.Length == 0)
         {
-            if (obj.name.Contains(searchString))
-                objectsToRename.Add(obj);
-        }
-
-        if (objectsToRename.Count == 0)
-        {
-            EditorUtility.DisplayDialog("Rename Tool", $"No GameObjects found with names containing '{searchString}'.", "OK");
+            EditorUtility.DisplayDialog(
+                "Rename Tool",
+                "No GameObjects selected.",
+                "OK"
+            );
             return;
         }
-
         // Confirmation dialog
         bool confirmed = EditorUtility.DisplayDialog(
             "Confirm Replacement",
-            $"Are you sure you want to rename {objectsToRename.Count} objects containing '{searchString}' with '{replacementName}'?",
+            $"Are you sure you want to rename {selectedObjects.Length} objects containing '{searchString}' with '{replacementName}'?",
             "Yes, Rename Them",
             "Cancel"
         );
@@ -79,9 +71,9 @@ public class RenameTool : EditorWindow
         int renameCount = 0;
 
         // Rename
-        for(int i = 0; i < objectsToRename.Count; i++)
+        for (int i = 0; i < selectedObjects.Length; i++)
         {
-            GameObject rename = objectsToRename[i];
+            GameObject rename = selectedObjects[i];
             rename.name = $"{replacementName} {i}";
 
             renameCount++;

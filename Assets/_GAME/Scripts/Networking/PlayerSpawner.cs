@@ -14,7 +14,7 @@ public class PlayerSpawner : NetworkBehaviour
 
     private void Start()
     {
-        DontDestroyOnLoad(this.gameObject);
+        DontDestroyOnLoad(gameObject);
     }
 
     // On spawn, whenever a scene is loaded, run "SceneLoaded"
@@ -26,7 +26,7 @@ public class PlayerSpawner : NetworkBehaviour
     private void SceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
         // If Host and in correct scene, Instantiate all players
-        if(IsHost && sceneName == "Prototype Map" && !_playersSpawned)
+        if(IsHost && sceneName == "MicroBank" && !_playersSpawned)
         {
             if (NetworkManager.Singleton.ConnectedClients.Count >= NetPlayerManager.Instance.playerData.Count)
             {
