@@ -5,6 +5,10 @@ TagManager:
   serializedVersion: 3
   tags:
   - SquadLeader
+  - Office
+  - Hall
+  - Security
+  - Vault
   layers:
   - Default
   - TransparentFX
@@ -17,7 +21,7 @@ TagManager:
   - Obstacle
   - DoorTrigger
   - Player
-  - 
+  - Door
   - 
   - 
   - 

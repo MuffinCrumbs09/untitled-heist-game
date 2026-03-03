@@ -1,4 +1,4 @@
-using System;
+    using System;
 using Unity.Behavior;
 using UnityEngine;
 using UnityEngine.AI;
@@ -29,6 +29,8 @@ public partial class StrafeAction : Action
         Agent.Value.speed = StrafeSpeed.Value;
         Agent.Value.stoppingDistance = 0.1f;
 
+        Agent.Value.GetComponent<EnemyAnimator>()?.SetStrafing(true);
+
         CalculateNewStrafeDirection();
         return Status.Running;
     }
@@ -50,6 +52,8 @@ public partial class StrafeAction : Action
         Agent.Value.speed = prevSpeed;
         Agent.Value.stoppingDistance = prevStop;
         Agent.Value.ResetPath();
+
+        Agent.Value.GetComponent<EnemyAnimator>()?.SetStrafing(false);
     }
 
 

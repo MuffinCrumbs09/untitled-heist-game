@@ -1,5 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
+using Unity.AI.Navigation;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,6 +17,10 @@ public class MapManager : NetworkBehaviour
 
     [Header("Room Tags")]
     [SerializeField] private RoomTypeTag _hallTag;
+
+    [Header("NavMesh")]
+    [SerializeField] private NavMeshSurface _navMeshSurface;
+    public event System.Action OnNavMeshReady;
 
     private Dictionary<RoomTypeTag, (int min, int max)> _roomLimits = new();
     private Dictionary<RoomTypeTag, int> _currentCount = new();
@@ -56,13 +62,19 @@ public class MapManager : NetworkBehaviour
             {
                 syncedRooms.Add(new NetRoomData(area, room.name));
             }
+            // Bake NavMesh AFTER roooms are spawned
+            StartCoroutine(BakeNavMeshThenInit());
         }
     }
 
     private void Start()
     {
         if (!IsServer) return;
+        OnNavMeshReady += OnNavMeshBaked;
+    }
 
+    private void OnNavMeshBaked()
+    {
         int max = 0;
         foreach (Loot loot in GameObject.FindObjectsByType<Loot>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
@@ -589,5 +601,14 @@ public class MapManager : NetworkBehaviour
 
     private static RoomTypeTag GetRoomType(Transform t) =>
         t.TryGetComponent<RoomType>(out RoomType rt) ? rt.Tag : null;
+
+    private IEnumerator BakeNavMeshThenInit()
+    {
+        AsyncOperation bake = _navMeshSurface.UpdateNavMesh(_navMeshSurface.navMeshData);
+        yield return bake;
+
+        Debug.Log("[MapManager] NavMesh baked successfully.");
+        OnNavMeshReady?.Invoke();
+    }
     #endregion
 }

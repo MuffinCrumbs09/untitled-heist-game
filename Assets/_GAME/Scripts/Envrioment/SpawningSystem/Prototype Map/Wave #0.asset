@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Wave #0
   m_EditorClassIdentifier: Assembly-CSharp::WaveConfiguration
   waveNumber: 0
-  waveDuration: 5
+  waveDuration: 2
   isEndlessWave: 0
   enemyPrefabs: []
   baseEnemiesPerSpawn: 0

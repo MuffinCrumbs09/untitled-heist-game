@@ -132,6 +132,7 @@
   <Project Path="Unity.Animation.Rigging.DocCodeExamples.csproj" />
   <Project Path="Unity.RenderPipeline.Universal.ShaderLibrary.csproj" />
   <Project Path="Unity.Services.Authentication.Editor.Shared.csproj" />
+  <Project Path="Bezi.Editor.csproj" />
   <Project Path="Unity.Netcode.PackageChecker.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.Shaders.csproj" />
   <Project Path="Unity.RenderPipelines.Core.Runtime.Shared.csproj" />
