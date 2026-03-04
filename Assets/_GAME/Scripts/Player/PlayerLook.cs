@@ -95,7 +95,7 @@ public class PlayerLook : NetworkBehaviour
         else
         {
             // Disable the player model for the local.
-            GetComponent<Renderer>().enabled = false;
+            transform.GetComponentInChildren<SkinnedMeshRenderer>().enabled = false;
         }
     }
 }

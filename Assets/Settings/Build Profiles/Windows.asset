@@ -10,29 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 15003, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: New Windows Profile
-  m_EditorClassIdentifier: 
+  m_Name: Windows
+  m_EditorClassIdentifier: UnityEditor.dll::UnityEditor.Build.Profile.BuildProfile
   m_AssetVersion: 1
   m_BuildTarget: 19
   m_Subtarget: 2
   m_PlatformId: 4e3c793746204150860bf175a9a41a05
   m_PlatformBuildProfile:
-    rid: 2239482136600510736
-  m_OverrideGlobalSceneList: 1
-  m_Scenes:
-  - m_enabled: 1
-    m_path: Assets/_GAME/Scenes/Main Menu.unity
-  - m_enabled: 1
-    m_path: Assets/_GAME/Scenes/Test Map.unity
-  - m_enabled: 1
-    m_path: Assets/_GAME/Scenes/Prototype Map.unity
+    rid: 3958162804409106555
+  m_OverrideGlobalSceneList: 0
+  m_Scenes: []
   m_ScriptingDefines: []
   m_PlayerSettingsYaml:
     m_Settings: []
   references:
     version: 2
     RefIds:
-    - rid: 2239482136600510736
+    - rid: 3958162804409106555
       type: {class: WindowsPlatformSettings, ns: UnityEditor.WindowsStandalone, asm: UnityEditor.WindowsStandalone.Extensions}
       data:
         m_Development: 0
@@ -46,6 +40,8 @@ MonoBehaviour:
         m_ExplicitArrayBoundsChecks: 0
         m_CompressionType: 0
         m_InstallInBuildFolder: 0
+        m_InsightsSettingsContainer:
+          m_BuildProfileEngineDiagnosticsState: 2
         m_WindowsBuildAndRunDeployTarget: 0
         m_Architecture: 0
         m_CreateSolution: 0

@@ -1,16 +1,20 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.UI;
 
 public class PlayerInteraction : NetworkBehaviour
 {
-    [SerializeField] private float interactRange = 2f;
-    private float checkTime;
+    [Header("Network References")]
+    public GameObject GunModel;
+    public GameObject ArmModel;
+    public MeshRenderer gunRender;
 
     IInteractable interacion;
     IInteractable previousInteraction;
 
     #region Serialized Private
-    public GameObject ArmModel;
+    [Header("Local References")]
+    [SerializeField] private float interactRange = 2f;
     #endregion
 
     #region Unity Events
@@ -117,8 +121,7 @@ public class PlayerInteraction : NetworkBehaviour
             return;
 
         NetPlayerManager.Instance.SetPlayerStateServerRpc(PlayerState.MaskOn);
-
-        Debug.Log(NetPlayerManager.Instance.GetCurrentPlayerState(cliendID));
+        SetArmModelVisibility(true);
     }
 
     private void UpdatePlayerStates(NetworkListEvent<NetPlayerData> changeEvent)
@@ -135,8 +138,11 @@ public class PlayerInteraction : NetworkBehaviour
             }
         }
 
-        PlayerInteraction armModel = changedPlayer.GetComponent<PlayerInteraction>();
-        armModel.SetArmModelVisibility(true);
+        if(changedPlayer == NetworkManager.Singleton.LocalClient.PlayerObject)
+            return;
+
+        // if (changedPlayer.TryGetComponent(out PlayerAnimator targetAnimator))
+        //     targetAnimator.networkAnimator.SetLayerWeight(1, 1f);
     }
 
     public override void OnNetworkSpawn()
@@ -145,6 +151,10 @@ public class PlayerInteraction : NetworkBehaviour
         {
             InputReader.Instance.MaskEvent += MaskOn;
             InputReader.Instance.InteractEvent += TryInteract;
+        }
+        else
+        {
+            gunRender.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }
 
         SetArmModelVisibility(false);

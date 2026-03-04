@@ -63,9 +63,9 @@ public class PlayerUI : MonoBehaviour
 
         // Get player Components
         _playerMovement = _player.GetComponent<PlayerMovement>();
-        _playerInteract = _player.GetComponent<PlayerInteraction>();
-        _playerHealth = _player.GetComponent<PlayerHealthController>();
-        _gun = _playerInteract.ArmModel.transform.GetChild(0).GetChild(0).GetComponent<Gun>();
+        _playerInteract = _player.GetComponentInChildren<PlayerInteraction>();
+        _playerHealth = _player.GetComponentInChildren<PlayerHealthController>();
+        _gun = _playerInteract.ArmModel.transform.GetComponentInChildren<Gun>();
 
         // Set the max values
         StaminaSlider.maxValue = _playerMovement.MovementStats.maxStamina;

@@ -12865,7 +12865,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  player: {fileID: 966433995528178787, guid: 80d83a6815670c549a3c4bff8367d4a3, type: 3}
+  player: {fileID: 5054517447293796584, guid: 23250933826adba469dab91870b8ef00, type: 3}
 --- !u!1001 &1811963510
 PrefabInstance:
   m_ObjectHideFlags: 0

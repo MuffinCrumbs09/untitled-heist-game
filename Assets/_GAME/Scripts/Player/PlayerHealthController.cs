@@ -10,6 +10,8 @@ public class PlayerHealthController : Health
     public float ShieldRegenTime;
     public int ShieldRegenAmount;
 
+    public SkinnedMeshRenderer PlayerMesh;
+    public MeshRenderer[] meshRenderers;
     private float time;
 
     public bool HasShield { private set; get; } = true;
@@ -28,16 +30,35 @@ public class PlayerHealthController : Health
 
     private void DeadStateChanged(bool previousValue, bool newValue)
     {
-        if(newValue)
+        if (newValue)
             StartCoroutine(WaitForAlive());
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if (!IsOwner)
+        {   
+            PlayerMesh.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            foreach (var mesh in meshRenderers)
+                mesh.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            ToggleRenderers(true);
+        }
     }
 
     private void Update()
     {
-        if (!IsOwner) { GetComponent<Renderer>().enabled = !IsDead; return; }
+        if (!IsOwner) { ToggleRenderers(!IsDead);  return; }
 
         if (shield.Value < MaxShield)
             RegenerateShield();
+    }
+
+    private void ToggleRenderers(bool enabled)
+    {
+        PlayerMesh.enabled = enabled;
+        foreach (var mesh in meshRenderers)
+            mesh.enabled = enabled;
     }
 
     public void ResetTime()

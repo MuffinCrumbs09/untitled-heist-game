@@ -21,28 +21,37 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
     public int KILLS;
     public PlayerState STATE;
     #endregion
-    
+
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
-        if(serializer.IsReader)
+        if (serializer.IsReader)
         {
             var reader = serializer.GetFastBufferReader();
             reader.ReadValueSafe(out USERNAME);
             reader.ReadValueSafe(out CLIENTID);
-        } else {
+            reader.ReadValueSafe(out KILLS);
+            reader.ReadValueSafe(out STATE);
+        }
+        else
+        {
             var writer = serializer.GetFastBufferWriter();
             writer.WriteValueSafe(USERNAME);
             writer.WriteValueSafe(CLIENTID);
+            writer.WriteValueSafe(KILLS);
+            writer.WriteValueSafe(STATE);
         }
     }
 
     public bool Equals(NetPlayerData other)
     {
-        return other.KILLS == KILLS && other.STATE == STATE;
+        return other.CLIENTID == CLIENTID &&
+       other.USERNAME.Equals(USERNAME) &&
+       other.KILLS == KILLS &&
+       other.STATE == STATE;
     }
 
     // Constructor
-    public NetPlayerData(NetString user,  ulong id)
+    public NetPlayerData(NetString user, ulong id)
     {
         USERNAME = user;
         CLIENTID = id;

@@ -34,17 +34,12 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Update()
     {
-        canMove = !GetComponent<PlayerHealthController>().IsDead;
+        canMove = !GetComponentInChildren<PlayerHealthController>().IsDead;
         if (!canMove) return;
 
         HandleStamina();
 
         isGrounded = _cc.isGrounded;
-    }
-
-    private void FixedUpdate()
-    {
-        if (!canMove) return;
         CalculateMovement(InputReader.Instance.MovementValue, InputReader.Instance.IsSprinting);
     }
 
