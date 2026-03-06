@@ -1,7 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
 
-[SerializeField]
 public enum ComputerType
 {
     TIMER,

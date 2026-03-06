@@ -28,13 +28,21 @@ public partial class MovementAction : Action
         return Status.Running;
     }
 
+    private const float DestinationUpdateThreshold = 0.5f;
+
     protected override Status OnUpdate()
     {
-        if (_agent.destination != Target.Value.transform.position)
+        if (Target.Value == null) return Status.Failure;
+
+        float distToDestination = Vector3.Distance(_agent.destination, Target.Value.transform.position);
+        if (distToDestination > DestinationUpdateThreshold)
             _agent.SetDestination(Target.Value.transform.position);
 
-        return Vector3.Distance(_agent.transform.position, Target.Value.transform.position) >= StoppingDist.Value ? Status.Running : Status.Success;
+        return Vector3.Distance(_agent.transform.position, Target.Value.transform.position) >= StoppingDist.Value
+            ? Status.Running
+            : Status.Success;
     }
+
 
     protected override void OnEnd()
     {

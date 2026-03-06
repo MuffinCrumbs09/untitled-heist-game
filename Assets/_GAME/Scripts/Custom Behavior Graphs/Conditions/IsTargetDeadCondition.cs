@@ -21,7 +21,7 @@ public partial class IsTargetDeadCondition : Condition
 
     public override void OnStart()
     {
-        player = Target.Value.GetComponent<PlayerHealthController>();
+        player = Target.Value.GetComponentInChildren<PlayerHealthController>();
     }
 
     public override void OnEnd()

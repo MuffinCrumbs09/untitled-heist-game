@@ -182,12 +182,13 @@ public class EnemySpawner : NetworkBehaviour
             Vector3 spawnPosition = selectedSpawnPoint.GetSpawnPosition();
             Quaternion spawnRotation = selectedSpawnPoint.GetSpawnRotation();
 
-            GameObject enemyInstance = Instantiate(enemyPrefab, spawnPosition, spawnRotation, enemyContainer);
+            GameObject enemyInstance = Instantiate(enemyPrefab, spawnPosition, spawnRotation);
             NetworkObject networkObject = enemyInstance.GetComponent<NetworkObject>();
 
             if (networkObject != null)
             {
                 networkObject.Spawn(true);
+                // enemyInstance.transform.SetParent(enemyContainer);
                 spawnedEnemies.Add(networkObject);
             }
             else
