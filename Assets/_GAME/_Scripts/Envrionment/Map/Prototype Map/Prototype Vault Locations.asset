@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 975fd4f0258ed6f49b39456bd7b0a6fb, type: 3}
+  m_Name: Prototype Vault Locations
+  m_EditorClassIdentifier: Assembly-CSharp::M_Locations
+  RoomName: Vault
+  LocationNames:
+  - RoomObjectName: Vault #1
+    LocationObjectName: V#1
+  - RoomObjectName: Vault #2
+    LocationObjectName: V#2
+  - RoomObjectName: Vault #3
+    LocationObjectName: V#3
