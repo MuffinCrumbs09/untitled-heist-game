@@ -94,14 +94,33 @@ public class Rifle : Gun
         {
             targetPos = hit.point;
 
-            if (hit.transform.TryGetComponent(out Health hitHealth))
+            if (_isAI)
             {
-                hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
+                LoggerEvent.Log(LogPrefix.Enemy, "Hit", this);
+                Health hitHealth = hit.transform.root.GetComponentInChildren<Health>();
+                if (hitHealth != null)
+                {
+                    hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
+                }
+            }
+            else
+            {
+                if (hit.transform.TryGetComponent(out Health hitHealth))
+                {
+                    hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
+                }
             }
         }
         else
         {
             targetPos = rayOrigin + shootDirection * GunData.Range;
+
+            if(_isAI)
+            {
+                LoggerEvent.Log(LogPrefix.Enemy, "Miss", this);
+                Debug.DrawRay(rayOrigin, shootDirection * 10f, Color.red, 2f);
+
+            }
         }
 
         SpawnBulletTrailServerRpc(GunMuzzle.position, targetPos);

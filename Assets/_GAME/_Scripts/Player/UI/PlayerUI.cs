@@ -9,10 +9,9 @@ using UnityEngine.UI;
 public class PlayerUI : MonoBehaviour
 {
     #region Private Serialized
-    [Header("UI - Sliders")]
-    [SerializeField] private Slider ShieldSlider;
-    [SerializeField] private Slider HealthSlider;
-    [SerializeField] private Slider StaminaSlider;
+    [Header("UI - Materials")]
+    [SerializeField] private Material ShieldSlider;
+    [SerializeField] private Material[] HealthSliders;
     [Header("UI - Text")]
     [SerializeField] private TMP_Text InteractText;
     [SerializeField] private TMP_Text AmmoText;
@@ -25,10 +24,13 @@ public class PlayerUI : MonoBehaviour
     private PlayerMovement _playerMovement;
     private PlayerInteraction _playerInteract;
     private PlayerHealthController _playerHealth;
+    private Camera _playerCamera;
     private Gun _gun;
 
     //  Misc
     private GameObject _player;
+    private float _healthPercent => _playerHealth.GetHealth() / _playerHealth.maxHealth;
+    private float _shieldPercent => _playerHealth.GetShield() / _playerHealth.MaxShield;
     #endregion
 
     #region Unity Events
@@ -65,22 +67,16 @@ public class PlayerUI : MonoBehaviour
         _playerMovement = _player.GetComponent<PlayerMovement>();
         _playerInteract = _player.GetComponentInChildren<PlayerInteraction>();
         _playerHealth = _player.GetComponentInChildren<PlayerHealthController>();
+        _playerCamera = _player.GetComponent<PlayerLook>().Cam.transform.GetChild(2).GetComponent<Camera>();
         _gun = _playerInteract.ArmModel.transform.GetComponentInChildren<Gun>();
 
-        // Set the max values
-        StaminaSlider.maxValue = _playerMovement.MovementStats.maxStamina;
-        HealthSlider.maxValue = _playerHealth.maxHealth;
-        ShieldSlider.maxValue = _playerHealth.MaxShield;
+        GetComponent<Canvas>().worldCamera = _playerCamera;
     }
     private void UpdateSliders()
     {
-        float stamina = _playerMovement.Stamina;
-        float health = _playerHealth.GetHealth();
-        float shield = _playerHealth.GetShield();
-        
-        StaminaSlider.value = stamina;
-        HealthSlider.value = health;
-        ShieldSlider.value = shield;
+        // ShieldSlider.SetFloat("_FillAmount", _shieldPercent);
+        for (int i = 0; i < HealthSliders.Length; i++)
+            HealthSliders[i].SetFloat("_Health", _healthPercent);
     }
 
     private void UpdateInteractText()

@@ -83,11 +83,11 @@ public class PlayerHealthController : Health
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    public void ChangeShieldServerRpc(int toChange)
+    public void ChangeShieldServerRpc(float toChange)
     {
         ApplyShieldChange(toChange);
     }
-    private void ApplyShieldChange(int amount)
+    private void ApplyShieldChange(float amount)
     {
         shield.Value = Mathf.Clamp(shield.Value + amount, 0, MaxShield);
         HasShield = shield.Value > 0;

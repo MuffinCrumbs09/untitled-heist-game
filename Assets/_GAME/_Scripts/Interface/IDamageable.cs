@@ -2,5 +2,5 @@ using UnityEngine;
 
 public interface IDamageable
 {   
-    public void ChangeHealth(int toChange, GameObject attacker);
+    public void ChangeHealth(float toChange, GameObject attacker);
 }

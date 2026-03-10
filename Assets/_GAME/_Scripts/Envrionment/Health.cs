@@ -22,7 +22,7 @@ public class Health : NetworkBehaviour, IDamageable
 
     [HideInInspector] public UnityEvent<GameObject> OnDamaged;
 
-    protected void ApplyHealthChange(int amount)
+    protected void ApplyHealthChange(float amount)
     {
         health.Value = Mathf.Clamp(health.Value + amount, 0, maxHealth);
 
@@ -34,7 +34,7 @@ public class Health : NetworkBehaviour, IDamageable
 
         _attacker = null;
     }
-    public void ChangeHealth(int toChange, GameObject attacker)
+    public void ChangeHealth(float toChange, GameObject attacker)
     {
         if (isDead.Value) return;
 
@@ -51,14 +51,8 @@ public class Health : NetworkBehaviour, IDamageable
             }
         }
 
-        if (IsServer)
-        {
-            ApplyHealthChange(toChange);
-        }
-        else
-        {
-            ChangeHealthServerRpc(toChange);
-        }
+        ChangeHealthServerRpc(toChange);
+
     }
 
     public float GetHealth()
@@ -68,7 +62,7 @@ public class Health : NetworkBehaviour, IDamageable
 
     #region Networking
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void ChangeHealthServerRpc(int amount)
+    private void ChangeHealthServerRpc(float amount)
     {
         ApplyHealthChange(amount);
     }

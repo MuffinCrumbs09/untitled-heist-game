@@ -9,7 +9,7 @@ public class GunData : ScriptableObject
     [Header("Fire Config")]
     public float Range;
     public float FireRate;
-    public int Damage;
+    public float Damage;
     public float maxAnimRot;
     public float defaultAnimRot;
 

@@ -16,8 +16,8 @@ MonoBehaviour:
   TargetLayer:
     serializedVersion: 2
     m_Bits: 64
-  Range: 50
-  FireRate: 10
+  Range: 100
+  FireRate: 5
   Damage: 75
   maxAnimRot: 6
   defaultAnimRot: 10
@@ -28,7 +28,7 @@ MonoBehaviour:
   RecoilAmount: 1
   hipMaxRecoil: {x: 2.5, y: 2.5}
   aimMaxRecoil: {x: 1.5, y: 1.5}
-  RecoilSpeed: 6
+  RecoilSpeed: 4
   ResetRecoilSpeed: 4
   BulletTrailPrefab: {fileID: 8645289296226527373, guid: 81d3ebfc691409948842bcffd81e9b69, type: 3}
   BulletSpeed: 100
