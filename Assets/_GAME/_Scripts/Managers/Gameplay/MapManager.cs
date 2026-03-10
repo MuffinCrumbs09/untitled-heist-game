@@ -142,7 +142,7 @@ public class MapManager : NetworkBehaviour
             }
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         // Debug output — logs every activated room and its type
         string s = "";
         s += "--- Activated Roooms ---\n";
@@ -151,7 +151,7 @@ public class MapManager : NetworkBehaviour
             s += kvp.areaName + ": " + kvp.roomType.name + "\n";
         }
         LoggerEvent.Log(LogPrefix.Environment, s, this);
-        #endif
+#endif
     }
 
     /// <summary>
@@ -197,10 +197,10 @@ public class MapManager : NetworkBehaviour
             }
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         LoggerEvent.LogWarning(LogPrefix.Environment, $"Failed to find area for room type '{selectedRoom.name}' after {maxAttempts} attempts.", this);
-        #endif
-        
+#endif
+
         return null;
     }
 
@@ -255,9 +255,9 @@ public class MapManager : NetworkBehaviour
             // --- Step 5: If the required room type is at its global cap, free up one instance elsewhere ---
             if (_currentCount[dependency.RequiredRoomType] >= _roomLimits[dependency.RequiredRoomType].max)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 LoggerEvent.LogWarning(LogPrefix.Environment, $"Room type '{dependency.RequiredRoomType.name}' is at its cap. Attempting to free one up for dependency.", this);
-                #endif
+#endif
 
                 // Prefer freeing a room in the exact target area; fall back to any area with that type
                 var oldEntry = _activatedRooms.FirstOrDefault(t =>
@@ -365,10 +365,10 @@ public class MapManager : NetworkBehaviour
         AsyncOperation bake = _navMeshSurface.UpdateNavMesh(_navMeshSurface.navMeshData);
         yield return bake; // Wait until the bake finishes before continuing
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         LoggerEvent.Log(LogPrefix.Environment, "NavMesh baking complete.", this);
-        #endif
-        
+#endif
+
         OnNavMeshReady?.Invoke();
     }
 
@@ -416,36 +416,78 @@ public class MapManager : NetworkBehaviour
                     // Only process tasks that don't already have assigned areas
                     if (locationTask.possibleAreas == null || locationTask.possibleAreas.Count == 0)
                     {
+#if UNITY_EDITOR
+                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Processing LocationTask: '{locationTask.taskName}', possibleAreas count: {locationTask.possibleAreas?.Count ?? -1}", this);
+#endif
+
                         // Derive the room type name from the task name (e.g. "Go to Vault" → "Vault")
                         string roomtag = ExtractRoomTagFromTaskName(locationTask.taskName);
+
+#if UNITY_EDITOR
+                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Extracted roomtag: '{roomtag ?? "NULL"}' from task '{locationTask.taskName}'", this);
+                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] _activatedRooms contains: {string.Join(", ", _activatedRooms.Select(r => $"{r.areaName}:{r.roomType.name}"))}", this);
+#endif
 
                         if (!string.IsNullOrEmpty(roomtag))
                         {
                             List<Transform> foundRooms = FindRoomsByTag(roomtag);
 
+#if UNITY_EDITOR
+                            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] FindRoomsByTag('{roomtag}') returned {foundRooms.Count} room(s)", this);
+#endif
+
                             foreach (Transform room in foundRooms)
                             {
+#if UNITY_EDITOR
+                                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Evaluating room transform: '{room.name}'", this);
+#endif
+
                                 // Match the active room to a configured location entry
                                 foreach (M_Locations location in Map.MapLocations)
                                 {
                                     if (location.RoomName != roomtag)
+                                    {
+#if UNITY_EDITOR
+                                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Skipping M_Locations entry '{location.RoomName}' (looking for '{roomtag}')", this);
+#endif
                                         continue;
+                                    }
 
                                     for (int i = 0; i < location.LocationNames.Count; i++)
                                     {
+#if UNITY_EDITOR
+                                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Comparing room.name='{room.name}' vs LocationNames[{i}].RoomObjectName='{location.LocationNames[i].RoomObjectName}'", this);
+#endif
+
                                         if (room.name == location.LocationNames[i].RoomObjectName)
                                         {
                                             // Find the actual GameObject the player must reach
                                             GameObject toSet = GameObject.Find(location.LocationNames[i].LocationObjectName);
+
+#if UNITY_EDITOR
+                                            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Matched! Looking for LocationObjectName='{location.LocationNames[i].LocationObjectName}', GameObject.Find result: {(toSet != null ? toSet.name : "NULL")}", this);
+#endif
+
                                             locationTask.possibleAreas.Add(toSet.transform);
                                             string locationPath = GetGameObjectPath(toSet);
                                             locationAssignments.Add((locationTask.taskName, locationPath));
+
+#if UNITY_EDITOR
+                                            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Assigned location '{locationPath}' to task '{locationTask.taskName}'", this);
+#endif
+
                                             break;
                                         }
                                     }
                                 }
                             }
                         }
+                    }
+                    else
+                    {
+#if UNITY_EDITOR
+                        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Skipping task '{locationTask.taskName}' — possibleAreas already populated ({locationTask.possibleAreas.Count} entries)", this);
+#endif
                     }
                 }
             }
@@ -454,9 +496,19 @@ public class MapManager : NetworkBehaviour
         // Send all location assignments to clients in a single RPC call
         if (locationAssignments.Count > 0)
         {
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Sending {locationAssignments.Count} location assignment(s) to clients via RPC", this);
+#endif
+
             NetString[] taskNames = locationAssignments.Select(x => (NetString)x.taskName).ToArray();
             NetString[] locationPaths = locationAssignments.Select(x => (NetString)x.locationPath).ToArray();
             AssignObjectiveTransformsClientRpc(taskNames, locationPaths);
+        }
+        else
+        {
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] No location assignments were made — RPC will not be sent", this);
+#endif
         }
     }
 
@@ -476,6 +528,7 @@ public class MapManager : NetworkBehaviour
                 if (task is MinigameTask minigameTask)
                 {
                     List<Computer> computers = new();
+                    List<Computer> onComputers = new();
                     // Find all rooms of the type this minigame task requires
                     List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
 
@@ -485,36 +538,36 @@ public class MapManager : NetworkBehaviour
 
                     if (computers.Count == 0) continue;
 
-                    // Pick a computer at random
-                    int random = Random.Range(0, computers.Count);
-                    Computer selected = computers[random];
-
-                    selected.associatedTask = minigameTask;
-
-                    // If this computer controls a door timer, find and link the DoorTimer in the vault
-                    string timerPath = string.Empty;
-                    if (selected.type == ComputerType.TIMER)
+                    if (minigameTask.isRandomComputer)
                     {
-                        List<Transform> vaultRooms = FindRoomsByTag("Vault");
-                        if (vaultRooms.Count > 0)
+                        int randomOn = Random.Range((int)minigameTask.MinMax.x, (int)minigameTask.MinMax.y); // Random number of computers to turn on for visual effect
+                        for (int i = 0; i < randomOn; i++)
                         {
-                            DoorTimer timer = FindTimerByRoom(vaultRooms[0]);
-                            if (timer != null)
-                            {
-                                selected.timer = timer;
-                                timerPath = GetGameObjectPath(timer.gameObject);
-                            }
+                            int index = Random.Range(0, computers.Count);
+                            computers[index].GetComponent<ComputerSettings>().SetIsOnRpc(true);
+                            onComputers.Add(computers[index]);
+                            computers.RemoveAt(index);
                         }
                     }
+                    else
+                    {
+                        onComputers = computers;
+                    }
+
+                    // Pick a computer at random
+                    int random = Random.Range(0, onComputers.Count);
+                    Computer selected = onComputers[random];
+
+                    selected.associatedTask = minigameTask;
 
                     // Build scene paths for network transmission (GameObject.Find needs full paths)
                     string computerPath = GetGameObjectPath(selected.transform.gameObject);
                     string taskName = minigameTask.taskName;
 
-                    AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName }, new NetString[] { timerPath });
-                    #if UNITY_EDITOR
+                    AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName });
+#if UNITY_EDITOR
                     LoggerEvent.Log(LogPrefix.Environment, $"Assigned computer '{computerPath}' to task '{taskName}'.", this);
-                    #endif
+#endif
                 }
             }
         }
@@ -593,13 +646,12 @@ public class MapManager : NetworkBehaviour
     /// Each client looks up the Computer by scene path and matches it to the correct MinigameTask.
     /// </summary>
     [ClientRpc]
-    private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames, NetString[] timerPaths)
+    private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames)
     {
         for (int i = 0; i < computerPaths.Length; i++)
         {
             string compPath = computerPaths[i];
             string taskName = taskNames[i];
-            string timerPath = timerPaths[i];
 
             GameObject compObj = GameObject.Find(compPath);
             if (compObj == null) continue;
@@ -628,14 +680,6 @@ public class MapManager : NetworkBehaviour
 
                     if (computer.associatedTask != null) break;
                 }
-            }
-
-            // If a timer path was provided, link the DoorTimer to the computer
-            if (!string.IsNullOrEmpty(timerPath))
-            {
-                GameObject timerObj = GameObject.Find(timerPath);
-                if (timerObj != null && timerObj.TryGetComponent(out DoorTimer dt))
-                    computer.timer = dt;
             }
         }
     }

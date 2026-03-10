@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: Micro Settings
   m_EditorClassIdentifier: 
   MapRooms: {fileID: 11400000, guid: 1f03b9ab4a6d1f14f93f3e428c52c01d, type: 2}
-  MapLocations: []
+  MapLocations:
+  - {fileID: 11400000, guid: 1dadf47f0efb4ef48a7045d0eb9e1027, type: 2}
+  - {fileID: 11400000, guid: 611d5162defd3664b912487b64cc150c, type: 2}
   MapName: 
   MapDesc: 
   Contractor: 

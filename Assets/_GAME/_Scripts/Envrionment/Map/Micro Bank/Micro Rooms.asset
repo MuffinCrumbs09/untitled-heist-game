@@ -13,13 +13,15 @@ MonoBehaviour:
   m_Name: Micro Rooms
   m_EditorClassIdentifier: 
   Limits:
+  - RoomType: {fileID: 11400000, guid: 156233caee42394498876f5165de92e8, type: 2}
+    MinMax: {x: 1, y: 1}
   - RoomType: {fileID: 11400000, guid: 99432bf654494f442babc48bca273437, type: 2}
     MinMax: {x: 0, y: 1}
   - RoomType: {fileID: 11400000, guid: ec8fab1885d213e4d8c5ebede7ec1b18, type: 2}
     MinMax: {x: 1, y: 1}
   - RoomType: {fileID: 11400000, guid: b884befcbd2049c4f807c121713fb4a4, type: 2}
     MinMax: {x: 1, y: 2}
-  - RoomType: {fileID: 11400000, guid: 156233caee42394498876f5165de92e8, type: 2}
-    MinMax: {x: 1, y: 1}
   - RoomType: {fileID: 11400000, guid: ee13dcfe1bc2c0045adea6503bcd63fb, type: 2}
     MinMax: {x: 1, y: 2}
+  - RoomType: {fileID: 11400000, guid: 5359ed0ec82a46b47a1059d21f33b239, type: 2}
+    MinMax: {x: 1, y: 1}

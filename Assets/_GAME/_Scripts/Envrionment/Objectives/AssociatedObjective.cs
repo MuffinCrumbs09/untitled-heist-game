@@ -5,6 +5,7 @@ public class AssociatedObjective : MonoBehaviour
 {
     [Header("Settings")]
     [SerializeField] private int ObjectiveIndex;
+    [SerializeField] private int TaskIndex;
     [Header("Interactables")]
     [Tooltip("Add the MonoBehaviour scripts (Computer, Door, Keypad, Loot, etc.) that should only be active for this objective.")]
     [SerializeField] private List<MonoBehaviour> Interactables = new();
@@ -21,13 +22,21 @@ public class AssociatedObjective : MonoBehaviour
     {
         if (ObjectiveSystem.Instance == null) return;
 
-        bool isEnabled = ObjectiveSystem.Instance.CurrentObjectiveIndex == ObjectiveIndex;
-
-        if (isEnabled != wasEnabled)
+        if (IsEnabled() != wasEnabled)
         {
-            SetInteractablesState(isEnabled);
-            wasEnabled = isEnabled;
+            SetInteractablesState(IsEnabled());
+            wasEnabled = IsEnabled();
         }
+}
+
+    private bool IsEnabled()
+    {
+        bool objectiveMatch = ObjectiveSystem.Instance.CurrentObjectiveIndex == ObjectiveIndex;
+        bool taskMatch = true;
+        if(TaskIndex > 0)
+            taskMatch = ObjectiveSystem.Instance.GetCurObjective().tasks[TaskIndex - 1].isCompleted;
+        
+        return objectiveMatch && taskMatch;
     }
 
     private void SetInteractablesState(bool state)
@@ -36,7 +45,15 @@ public class AssociatedObjective : MonoBehaviour
         {
             if (mono != null)
             {
-                mono.enabled = state;
+                if (mono is Computer computer)
+                {
+                    if (mono.GetComponent<ComputerSettings>().IsOn.Value)
+                        mono.enabled = state;
+                    
+                    continue;
+                }
+                else
+                    mono.enabled = state;
             }
         }
     }
