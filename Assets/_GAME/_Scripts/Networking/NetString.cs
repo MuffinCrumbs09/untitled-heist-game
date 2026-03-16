@@ -5,6 +5,7 @@ using Unity.Netcode;
 public struct NetString : INetworkSerializable, System.IEquatable<NetString>
 {
     ForceNetworkSerializeByMemcpy<FixedString512Bytes> st;
+
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         if (serializer.IsReader)
@@ -18,11 +19,10 @@ public struct NetString : INetworkSerializable, System.IEquatable<NetString>
             writer.WriteValueSafe(st);
         }
     }
+
     public bool Equals(NetString other)
     {
-        if (String.Equals(other.st.ToString(), st.ToString(), StringComparison.CurrentCultureIgnoreCase))
-            return true;
-        return false;
+        return string.Equals(st.Value.ToString(), other.st.Value.ToString(), StringComparison.Ordinal);
     }
 
     public override string ToString() => st.Value.ToString();

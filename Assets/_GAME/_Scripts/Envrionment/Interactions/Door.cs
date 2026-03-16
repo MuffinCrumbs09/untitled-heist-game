@@ -5,9 +5,9 @@ using Unity.Services.Matchmaker.Models;
 using System.Diagnostics;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(NetworkObject)),
+[
     RequireComponent(typeof(NavMeshObstacle))]
-public class Door : NetworkBehaviour, IInteractable
+public class Door : NetworkBehaviour, IInteractable, IReady
 {
     [Header("Settings")]
     [SerializeField] private string interactionText = "Door";
@@ -16,14 +16,16 @@ public class Door : NetworkBehaviour, IInteractable
     [SerializeField] private Vector3 doorClosed;
     public NetworkVariable<bool> isOpen = new NetworkVariable<bool>(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    bool isReady = false;
+
     private Quaternion _doorOpen;
     private Quaternion _doorClosed;
     private NavMeshObstacle _obstacle;
-    public void Start()
+    public override void OnNetworkSpawn()
     {
         _doorOpen = Quaternion.Euler(doorOpen.x, doorOpen.y, doorOpen.z);
 
-        if(doorClosed == Vector3.zero)
+        if (doorClosed == Vector3.zero)
             doorClosed = transform.localEulerAngles;
 
         _doorClosed = Quaternion.Euler(doorClosed.x, doorClosed.y, doorClosed.z);
@@ -34,9 +36,10 @@ public class Door : NetworkBehaviour, IInteractable
         _obstacle.enabled = false; // isOpen.Value;
 
         isOpen.OnValueChanged += DoorStateChanged;
+        isReady = true;
     }
 
-    public override void OnDestroy()
+    public override void OnNetworkDespawn()
     {
         isOpen.OnValueChanged -= DoorStateChanged;
     }
@@ -89,10 +92,15 @@ public class Door : NetworkBehaviour, IInteractable
         // _obstacle.enabled = isOpen.Value;
     }
 
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    [Rpc(SendTo.Server)]
     public void ToggleDoorServerRpc()
     {
         isOpen.Value = !isOpen.Value;
+    }
+
+    public bool IsReady()
+    {
+        return isReady;
     }
     #endregion
 }

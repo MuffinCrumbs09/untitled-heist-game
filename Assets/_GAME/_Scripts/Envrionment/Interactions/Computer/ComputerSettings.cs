@@ -12,10 +12,19 @@ public class ComputerSettings : NetworkBehaviour
     [SerializeField] private Material[] OnMats;
     [SerializeField] private Renderer render;
 
-    void Start()
+    public override void OnNetworkSpawn()
     {
         IsOn.OnValueChanged += OnIsOnChanged;
+        // Apply initial state for late-joiners or pre-set values
+        if (IsOn.Value && ChangeMats)
+            OnIsOnChanged(false, true);
     }
+
+    public override void OnNetworkDespawn()
+    {
+        IsOn.OnValueChanged -= OnIsOnChanged;
+    }
+
 
     [Rpc(SendTo.Server)]
     public void SetIsOnRpc(bool value)

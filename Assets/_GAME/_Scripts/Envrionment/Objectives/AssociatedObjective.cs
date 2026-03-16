@@ -14,9 +14,17 @@ public class AssociatedObjective : MonoBehaviour
 
     private void Start()
     {
+        // Subscribe to IsOn changes for all computers
+        foreach (MonoBehaviour mono in Interactables)
+        {
+            if (mono is Computer && mono.TryGetComponent(out ComputerSettings settings))
+                settings.IsOn.OnValueChanged += (_, _) => SetInteractablesState(IsEnabled());
+        }
+
         wasEnabled = ObjectiveSystem.Instance.CurrentObjectiveIndex == ObjectiveIndex;
         SetInteractablesState(wasEnabled);
     }
+
 
     private void Update()
     {
@@ -27,15 +35,15 @@ public class AssociatedObjective : MonoBehaviour
             SetInteractablesState(IsEnabled());
             wasEnabled = IsEnabled();
         }
-}
+    }
 
     private bool IsEnabled()
     {
         bool objectiveMatch = ObjectiveSystem.Instance.CurrentObjectiveIndex == ObjectiveIndex;
         bool taskMatch = true;
-        if(TaskIndex > 0)
+        if (TaskIndex > 0)
             taskMatch = ObjectiveSystem.Instance.GetCurObjective().tasks[TaskIndex - 1].isCompleted;
-        
+
         return objectiveMatch && taskMatch;
     }
 
@@ -43,18 +51,16 @@ public class AssociatedObjective : MonoBehaviour
     {
         foreach (MonoBehaviour mono in Interactables)
         {
-            if (mono != null)
+            if (mono == null) continue;
+
+            if (mono is Computer && mono.TryGetComponent(out ComputerSettings settings))
             {
-                if (mono is Computer computer)
-                {
-                    if (mono.GetComponent<ComputerSettings>().IsOn.Value)
-                        mono.enabled = state;
-                    
-                    continue;
-                }
-                else
-                    mono.enabled = state;
+                mono.enabled = state && settings.IsOn.Value;
+                continue;
             }
+
+            mono.enabled = state;
         }
     }
+
 }

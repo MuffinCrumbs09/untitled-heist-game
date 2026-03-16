@@ -4,6 +4,7 @@ using Unity.AI.Navigation;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.Events;
 
 public class MapManager : NetworkBehaviour
 {
@@ -13,8 +14,11 @@ public class MapManager : NetworkBehaviour
     [Header("Map Settings")]
     public M_Settings Map;
     public M_Areas[] Areas;
+    public RandomObjectiveData[] RandomObjectives;
     public M_RandomDialouge MapRandomDialouge;
     public ObjectiveSystem ObjectiveSystem;
+
+    [SerializeField] private UnityEvent OnMapGenerated; // Optional event that fires after map generation is complete, for hooking up custom logic in the inspector
 
     [Header("Room Tags")]
     [SerializeField] private RoomTypeTag _hallTag;
@@ -370,6 +374,7 @@ public class MapManager : NetworkBehaviour
 #endif
 
         OnNavMeshReady?.Invoke();
+        OnMapGenerated?.Invoke();
     }
 
     /// <summary>
@@ -393,6 +398,7 @@ public class MapManager : NetworkBehaviour
         // Assign world-space transforms and computers to objective tasks
         AssignObjectiveTransforms();
         AssignCorrectComputer();
+        SpawnRandomObjectives();
     }
     #endregion
 
@@ -469,7 +475,7 @@ public class MapManager : NetworkBehaviour
 #endif
 
                                             locationTask.possibleAreas.Add(toSet.transform);
-                                            string locationPath = GetGameObjectPath(toSet);
+                                            string locationPath = Helper.GetGameObjectPath(toSet);
                                             locationAssignments.Add((locationTask.taskName, locationPath));
 
 #if UNITY_EDITOR
@@ -561,7 +567,7 @@ public class MapManager : NetworkBehaviour
                     selected.associatedTask = minigameTask;
 
                     // Build scene paths for network transmission (GameObject.Find needs full paths)
-                    string computerPath = GetGameObjectPath(selected.transform.gameObject);
+                    string computerPath = Helper.GetGameObjectPath(selected.transform.gameObject);
                     string taskName = minigameTask.taskName;
 
                     AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName });
@@ -570,6 +576,38 @@ public class MapManager : NetworkBehaviour
 #endif
                 }
             }
+        }
+    }
+
+    private void SpawnRandomObjectives()
+    {
+        foreach (RandomObjectiveData data in RandomObjectives)
+        {
+            List<NetString> locationPaths = new();
+
+            List<Transform> candidateRooms = FindRoomsByTag(data.RequiredRoomType.name);
+
+            foreach (Transform room in candidateRooms)
+            {
+                List<GameObject> items = new();
+                Helper.FindItemsByRoom(room, data.SpawnItemType, ref items);
+
+                int remaining = data.GetRandomSpawnCount();
+
+                while (remaining > 0 && items.Count > 0)
+                {
+                    int index = Random.Range(0, items.Count);
+                    GameObject chosen = items[index];
+                    items.RemoveAt(index);
+
+                    chosen.SetActive(true);
+                    locationPaths.Add((NetString)Helper.GetGameObjectPath(chosen));
+                    remaining--;
+                }
+            }
+
+            if (locationPaths.Count > 0)
+                SpawnRandomObjectivesClientRpc(locationPaths.ToArray());
         }
     }
     #endregion
@@ -683,6 +721,18 @@ public class MapManager : NetworkBehaviour
             }
         }
     }
+
+    [Rpc(SendTo.NotServer)]
+    public void SpawnRandomObjectivesClientRpc(NetString[] itemsPaths)
+    {
+        foreach (NetString path in itemsPaths)
+        {
+            GameObject itemObj = GameObject.Find(path);
+            if (itemObj != null)
+                itemObj.SetActive(true);
+        }
+    }
+
     #endregion
 
     #region Helpers
@@ -743,7 +793,6 @@ public class MapManager : NetworkBehaviour
             FindComputersByRoom(child, ref computers); // Recurse into nested children
         }
     }
-
     /// <summary>
     /// Searches the immediate children of a room transform for a DoorTimer component.
     /// Returns the first one found, or null.
@@ -758,24 +807,6 @@ public class MapManager : NetworkBehaviour
 
         return null;
     }
-
-    /// <summary>
-    /// Builds a full scene hierarchy path for a GameObject (e.g. "Root/Parent/Child/Object").
-    /// Used for passing object references across the network, since NetworkObject paths are stable.
-    /// </summary>
-    private string GetGameObjectPath(GameObject obj)
-    {
-        if (obj == null) return string.Empty;
-        string path = obj.name;
-        Transform current = obj.transform.parent;
-        while (current != null)
-        {
-            path = current.name + "/" + path;
-            current = current.parent;
-        }
-        return path;
-    }
-
     /// <summary>
     /// Returns true if the given Transform has a RoomType component whose Tag matches the provided tag.
     /// </summary>

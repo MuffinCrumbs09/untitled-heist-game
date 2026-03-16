@@ -2,137 +2,163 @@ using UnityEngine;
 using Unity.Netcode;
 using System.Collections.Generic;
 using System.Collections;
-using System;
 
-[RequireComponent(typeof(NetworkObject)),
-RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(NetworkObject))]
+[RequireComponent(typeof(Collider))]
 public class Elevator : NetworkBehaviour, IInteractable
 {
-    public NetworkVariable<bool> DoorState = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    public NetworkVariable<int> currentFloor = new(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-    public NetworkVariable<bool> isMoving = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    // Network Variables
+    public NetworkVariable<bool>    DoorState    = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<int>     CurrentFloor = new(0,     NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool>    IsMoving     = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<Vector3> ElevatorPos  = new(Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    // Inspector
     [Header("Elevator Settings")]
-    public float moveSpeed = .1f;
+    [Tooltip("Units per second")]
+    public float moveSpeed = 3f;
     public List<Vector3> floorPositions = new();
+
     [Header("Door Settings")]
     public float doorMoveSpeed = 2f;
-    [Tooltip("0 = closed, 1 = open")]
+    [Tooltip("Index 0 = closed offset, Index 1 = open offset")]
     public Vector3[] doorOffsets = new Vector3[2];
-    [Tooltip("0 = left door, 1 = right door")]
-    public Transform[] doorTransforms = new Transform[2]; // 0 = left door, 1 = right door
-    [Header("Collider Settings")]
-    public Collider triggerCollider;
+    [Tooltip("Index 0 = left door, Index 1 = right door")]
+    public Transform[] doorTransforms = new Transform[2];
 
-    #region Unity Events
-    private void Start()
+    [Header("Timing")]
+    public float doorCloseWait  = 1f;
+    public float doorOpenDelay  = 0.2f;
+
+    // Private
+    private Coroutine _moveCoroutine;
+    private Coroutine[] _doorCoroutines = new Coroutine[2];
+
+
+    #region Unity / Network Events
+
+    public override void OnNetworkSpawn()
     {
-        DoorState.OnValueChanged += DoorStateChanged;
+        if(IsServer)
+            ElevatorPos.Value = transform.localPosition;
+
+        transform.localPosition = ElevatorPos.Value;
+
+        ElevatorPos.OnValueChanged  += OnElevatorPosSynced;
+        DoorState.OnValueChanged    += OnDoorStateChanged;
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        ElevatorPos.OnValueChanged  -= OnElevatorPosSynced;
+        DoorState.OnValueChanged    -= OnDoorStateChanged;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServer) return;
+        if (!IsServer || !other.CompareTag("Player")) return;
 
-        if (other.CompareTag("Player"))
-        {
-            NetworkObject playerNetObj = other.GetComponent<NetworkObject>();
-            if (playerNetObj != null)
-            {
-                playerNetObj.TrySetParent(NetworkObject, true);
-            }
-        }
+        if (other.TryGetComponent(out NetworkObject netObj))
+            netObj.TrySetParent(NetworkObject, true);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (!IsServer) return;
+        if (!IsServer || !other.CompareTag("Player")) return;
 
-        if (other.CompareTag("Player"))
-        {
-            NetworkObject playerNetObj = other.GetComponent<NetworkObject>();
-            if (playerNetObj != null)
-            {
-                playerNetObj.TryRemoveParent(true);
-            }
-        }
+        if (other.TryGetComponent(out NetworkObject netObj))
+            netObj.TryRemoveParent(true);
     }
+
     #endregion
 
-    #region Functions
-    private IEnumerator ToggleDoor(Transform doorTransform, bool open, bool isLeftDoor)
+    #region Callbacks
+
+    // Runs on ALL clients — keeps visual position in sync
+    private void OnElevatorPosSynced(Vector3 _, Vector3 newPos)
     {
-        SoundType type = open ? SoundType.DOOR_OPEN : SoundType.DOOR_CLOSED;
-        SoundManager.Instance.PlaySoundServerRpc(type, transform.position);
+        transform.localPosition = newPos;
+    }
 
-        Vector3 startPos = doorTransform.localPosition;
-        Vector3 endPos = doorOffsets[open ? 1 : 0];
+    // Runs on ALL clients — drives door animations
+    private void OnDoorStateChanged(bool _, bool open)
+    {
+        SetDoorCoroutine(0, open, isLeftDoor: true);
+        SetDoorCoroutine(1, open, isLeftDoor: false);
+    }
 
-        if (isLeftDoor)
-            endPos.x = -endPos.x;
+    #endregion
 
-        float elapsed = 0f;
 
-        while (elapsed < 1f)
+    #region Coroutines
+
+    private void SetDoorCoroutine(int index, bool open, bool isLeftDoor)
+    {
+        if (_doorCoroutines[index] != null)
+            StopCoroutine(_doorCoroutines[index]);
+
+        _doorCoroutines[index] = StartCoroutine(AnimateDoor(doorTransforms[index], open, isLeftDoor));
+    }
+
+    private IEnumerator AnimateDoor(Transform door, bool open, bool isLeftDoor)
+    {
+        SoundType sound = open ? SoundType.DOOR_OPEN : SoundType.DOOR_CLOSED;
+        SoundManager.Instance.PlaySoundServerRpc(sound, transform.position);
+
+        Vector3 start  = door.localPosition;
+        Vector3 target = doorOffsets[open ? 1 : 0];
+        if (isLeftDoor) target.x = -target.x;
+
+        float t = 0f;
+        while (t < 1f)
         {
-            elapsed += Time.deltaTime * doorMoveSpeed;
-            doorTransform.localPosition = Vector3.Lerp(startPos, endPos, elapsed);
+            t += Time.deltaTime * doorMoveSpeed;
+            door.localPosition = Vector3.Lerp(start, target, t);
             yield return null;
         }
 
-        doorTransform.localPosition = endPos;
+        door.localPosition = target;
     }
 
-    private IEnumerator ServerMoveElevator(int targetFloor)
+    // Server-only
+    private IEnumerator MoveElevatorRoutine(int targetFloor)
     {
-        isMoving.Value = true;
+        IsMoving.Value = true;
 
-        // Close doors first
+        // Close doors before moving
         if (DoorState.Value)
         {
             DoorState.Value = false;
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(doorCloseWait);
         }
 
-        Vector3 targetPosition = floorPositions[targetFloor];
+        Vector3 targetPos = floorPositions[targetFloor];
 
-        while (Vector3.Distance(transform.localPosition, targetPosition) > 0.01f)
+        while (true)
         {
-            transform.localPosition = Vector3.MoveTowards(
-                transform.localPosition,
-                targetPosition,
-                moveSpeed * Time.deltaTime
-            );
+            Vector3 next = Vector3.MoveTowards(ElevatorPos.Value, targetPos, moveSpeed * Time.deltaTime);
+            ElevatorPos.Value = next;              // synced to all clients via NetworkVariable
+
+            if (Vector3.SqrMagnitude(next - targetPos) < 0.0001f)
+                break;
 
             yield return null;
         }
 
-        transform.localPosition = targetPosition;
+        ElevatorPos.Value  = targetPos;
+        CurrentFloor.Value = targetFloor;
 
-        currentFloor.Value = targetFloor;
+        yield return new WaitForSeconds(doorOpenDelay);
 
-        yield return new WaitForSeconds(0.2f);
-
-        // Open doors
         DoorState.Value = true;
-
-        isMoving.Value = false;
+        IsMoving.Value  = false;
     }
+
     #endregion
 
-    #region Calllbacks
-    private void DoorStateChanged(bool previous, bool current)
-    {
-        StartCoroutine(ToggleDoor(doorTransforms[0], current, true));
-        StartCoroutine(ToggleDoor(doorTransforms[1], current, false));
-    }
-    #endregion
 
-    #region Interface
-    public bool CanInteract()
-    {
-        return isMoving.Value == false;
-    }
+    #region IInteractable
+    public bool CanInteract() => !IsMoving.Value;
 
     public void Interact()
     {
@@ -140,8 +166,8 @@ public class Elevator : NetworkBehaviour, IInteractable
 
         if (inside)
         {
-            int nextFloor = (currentFloor.Value + 1) % floorPositions.Count;
-            MoveToFloorServerRpc(nextFloor);
+            int next = (CurrentFloor.Value + 1) % floorPositions.Count;
+            MoveToFloorServerRpc(next);
         }
         else
         {
@@ -154,21 +180,28 @@ public class Elevator : NetworkBehaviour, IInteractable
         bool inside = NetworkManager.LocalClient.PlayerObject.transform.IsChildOf(NetworkObject.transform);
         return inside ? "Next Floor" : "Toggle Doors";
     }
+
     #endregion
 
-    #region Networking
+    #region RPCs
+
     [Rpc(SendTo.Server)]
     public void ToggleDoorsServerRpc()
     {
-        DoorState.Value = !DoorState.Value;
+        if (!IsMoving.Value)
+            DoorState.Value = !DoorState.Value;
     }
 
     [Rpc(SendTo.Server)]
     public void MoveToFloorServerRpc(int floor)
     {
-        if (isMoving.Value) return;
+        if (IsMoving.Value) return;
 
-        StartCoroutine(ServerMoveElevator(floor));
+        if (_moveCoroutine != null)
+            StopCoroutine(_moveCoroutine);
+
+        _moveCoroutine = StartCoroutine(MoveElevatorRoutine(floor));
     }
+
     #endregion
 }
