@@ -17,18 +17,21 @@ public class Computer : NetworkBehaviour, IInteractable
 
     // Task
     public MinigameTask associatedTask;
-    [SerializeField] private int TimeToHack;
+
+    public NetworkVariable<bool> IsHacking = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> IsHacked = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<int> TimeToHack = new(0);
+    private int timeToHack => TimeToHack.Value;
 
     public bool CanInteract()
     {
-        if (associatedTask == null) return enabled && !IsHacked.Value;
+        if (associatedTask == null) return enabled && !IsHacking.Value;
 
         foreach (var task in ObjectiveSystem.Instance.GetCurObjective().tasks)
         {
             if (task is MinigameTask minitask)
                 if (minitask == associatedTask)
-                    return true && !IsHacked.Value;
+                    return true && !IsHacking.Value;
         }
 
         return false;
@@ -73,14 +76,14 @@ public class Computer : NetworkBehaviour, IInteractable
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void StartHackRpc()
     {
-        IsHacked.Value = true;
+        IsHacking.Value = true;
         StartCoroutine(StartHack());
     }
 
     private IEnumerator StartHack()
     {
-        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {TimeToHack} seconds remaining.");
-        yield return new WaitForSeconds(TimeToHack);
+        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {timeToHack} seconds remaining.");
+        yield return new WaitForSeconds(timeToHack);
         OnHackCompleteServerRpc();
     }
 
@@ -89,17 +92,22 @@ public class Computer : NetworkBehaviour, IInteractable
     {
         // Server receives the RPC and broadcasts to all clients
         SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
+        IsHacked.Value = true;
         OnHackCompleteClientRpc();
+    }
+
+    [Rpc(SendTo.Server)]
+    public void ResetComputerRpc(int time)
+    {
+        IsHacked.Value = false;
+        IsHacking.Value = false;
+        if(time != -1)
+            TimeToHack.Value = time;
     }
 
     [ClientRpc]
     private void OnHackCompleteClientRpc()
     {
-        if (associatedTask != null)
-        {
-            associatedTask.CompleteTask();
-        }
-
-        Destroy(this);
+        associatedTask?.CompleteTask();
     }
 }

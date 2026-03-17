@@ -15,6 +15,7 @@ public class MapManager : NetworkBehaviour
     public M_Settings Map;
     public M_Areas[] Areas;
     public RandomObjectiveData[] RandomObjectives;
+    public ObjectiveHintData[] ObjectiveHints;
     public M_RandomDialouge MapRandomDialouge;
     public ObjectiveSystem ObjectiveSystem;
 
@@ -399,6 +400,7 @@ public class MapManager : NetworkBehaviour
         AssignObjectiveTransforms();
         AssignCorrectComputer();
         SpawnRandomObjectives();
+        SpawnObjectiveHints();
     }
     #endregion
 
@@ -525,58 +527,79 @@ public class MapManager : NetworkBehaviour
     /// </summary>
     private void AssignCorrectComputer()
     {
+        List<NetString> computerPaths = new();
+        List<NetString> taskNames = new();
+
         foreach (var objective in ObjectiveSystem.ObjectiveList)
         {
             if (objective.tasks == null) continue;
 
             foreach (var task in objective.tasks)
             {
-                if (task is MinigameTask minigameTask)
-                {
-                    List<Computer> computers = new();
-                    List<Computer> onComputers = new();
-                    // Find all rooms of the type this minigame task requires
-                    List<Transform> foundRooms = FindRoomsByTag(minigameTask.RoomType);
+                if (task is not MinigameTask minigameTask) continue;
+                if(!minigameTask.setComputer) continue;
 
-                    // Collect every Computer component within those rooms (recursive search)
-                    foreach (Transform room in foundRooms)
-                        FindComputersByRoom(room, ref computers);
+                List<Computer> computers = GatherComputersForTask(minigameTask);
+                if (computers.Count == 0) continue;
 
-                    if (computers.Count == 0) continue;
+                Computer selected = SelectAndActivateComputers(minigameTask, computers);
+                if (selected == null) continue;
 
-                    if (minigameTask.isRandomComputer)
-                    {
-                        int randomOn = Random.Range((int)minigameTask.MinMax.x, (int)minigameTask.MinMax.y); // Random number of computers to turn on for visual effect
-                        for (int i = 0; i < randomOn; i++)
-                        {
-                            int index = Random.Range(0, computers.Count);
-                            computers[index].GetComponent<ComputerSettings>().SetIsOnRpc(true);
-                            onComputers.Add(computers[index]);
-                            computers.RemoveAt(index);
-                        }
-                    }
-                    else
-                    {
-                        onComputers = computers;
-                    }
+                selected.associatedTask = minigameTask;
+                computerPaths.Add((NetString)Helper.GetGameObjectPath(selected.gameObject));
+                taskNames.Add((NetString)minigameTask.taskName);
 
-                    // Pick a computer at random
-                    int random = Random.Range(0, onComputers.Count);
-                    Computer selected = onComputers[random];
-
-                    selected.associatedTask = minigameTask;
-
-                    // Build scene paths for network transmission (GameObject.Find needs full paths)
-                    string computerPath = Helper.GetGameObjectPath(selected.transform.gameObject);
-                    string taskName = minigameTask.taskName;
-
-                    AssignComputersClientRpc(new NetString[] { computerPath }, new NetString[] { taskName });
 #if UNITY_EDITOR
-                    LoggerEvent.Log(LogPrefix.Environment, $"Assigned computer '{computerPath}' to task '{taskName}'.", this);
+                LoggerEvent.Log(LogPrefix.Environment,
+                    $"Assigned computer '{computerPaths[^1]}' to task '{minigameTask.taskName}'.", this);
 #endif
-                }
             }
         }
+
+        // Single batched RPC for all computers
+        if (computerPaths.Count > 0)
+            AssignComputersClientRpc(computerPaths.ToArray(), taskNames.ToArray());
+    }
+
+    /// <summary>
+    /// Collects all Computer components from rooms matching the task's required room type.
+    /// </summary>
+    private List<Computer> GatherComputersForTask(MinigameTask task)
+    {
+        List<Computer> computers = new();
+
+        foreach (Transform room in FindRoomsByTag(task.RoomType))
+            FindComputersByRoom(room, ref computers);
+
+        return computers;
+    }
+
+    /// <summary>
+    /// Handles the "random on" visual pass, then returns one selected Computer.
+    /// Keeps visual state mutation separate from the selection result.
+    /// </summary>
+    private Computer SelectAndActivateComputers(MinigameTask task, List<Computer> computers)
+    {
+        if (!task.isRandomComputer)
+            return computers[Random.Range(0, computers.Count)];
+
+        // Shuffle a copy so we don't mutate the original list
+        List<Computer> pool = new(computers);
+        int activateCount = Random.Range((int)task.MinMax.x, (int)task.MinMax.y);
+
+        Computer selected = null;
+
+        for (int i = 0; i < activateCount && pool.Count > 0; i++)
+        {
+            int index = Random.Range(0, pool.Count);
+            Computer computer = pool[index];
+            pool.RemoveAt(index);
+
+            computer.GetComponent<ComputerSettings>().SetIsOnRpc(true);
+            selected ??= computer; // First activated computer becomes the task target
+        }
+
+        return selected;
     }
 
     private void SpawnRandomObjectives()
@@ -608,6 +631,40 @@ public class MapManager : NetworkBehaviour
 
             if (locationPaths.Count > 0)
                 SpawnRandomObjectivesClientRpc(locationPaths.ToArray());
+        }
+    }
+
+    private void SpawnObjectiveHints()
+    {
+        foreach (ObjectiveHintData data in ObjectiveHints)
+        {
+            Transform targetRoom = Helper.GoToTaskRoom(data.Index.x, data.Index.y);
+
+            if (targetRoom == null)
+            {
+#if UNITY_EDITOR
+                LoggerEvent.LogWarning(LogPrefix.Environment, $"Couldn't find room for Objective and Task: {data.Index}. Continuing", this);
+#endif
+                continue;
+            }
+
+            List<GameObject> items = new();
+            Helper.FindItemsByRoom(targetRoom, data.SpawnItemType, ref items);
+
+            foreach (GameObject item in items)
+            {
+                if (item.TryGetComponent(out RandomObject objectData))
+                {
+                    objectData.ChangeStateRpc(true);
+                }
+                else
+                {
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"{item.name} has no ObjectData. Continuing", this);
+#endif
+                    continue;
+                }
+            }
         }
     }
     #endregion

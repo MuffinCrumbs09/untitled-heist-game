@@ -3,6 +3,8 @@ using UnityEngine;
 public class MinigameTask : Task
 {
     public string RoomType;
+
+    public bool setComputer = true;
     
     [Header("Settings - Random")]
     public bool isRandomComputer = false;
