@@ -23,14 +23,14 @@ public class PlayerUI : MonoBehaviour
     // Components
     private PlayerMovement _playerMovement;
     private PlayerInteraction _playerInteract;
-    private PlayerHealthController _playerHealth;
+    private PlayerStats _playerStats;
     private Camera _playerCamera;
     private Gun _gun;
 
     //  Misc
     private GameObject _player;
-    private float _healthPercent => _playerHealth.GetHealth() / _playerHealth.maxHealth;
-    private float _shieldPercent => _playerHealth.GetShield() / _playerHealth.MaxShield;
+    private float _healthPercent => _playerStats.GetHealthNormalised();
+    private float _shieldPercent => _playerStats.GetShieldNormalised();
     #endregion
 
     #region Unity Events
@@ -66,7 +66,7 @@ public class PlayerUI : MonoBehaviour
         // Get player Components
         _playerMovement = _player.GetComponent<PlayerMovement>();
         _playerInteract = _player.GetComponentInChildren<PlayerInteraction>();
-        _playerHealth = _player.GetComponentInChildren<PlayerHealthController>();
+        _playerStats = _player.GetComponentInChildren<PlayerStats>();
         _playerCamera = _player.GetComponent<PlayerLook>().Cam.transform.GetChild(2).GetComponent<Camera>();
         _gun = _playerInteract.ArmModel.transform.GetComponentInChildren<Gun>();
 
@@ -74,7 +74,8 @@ public class PlayerUI : MonoBehaviour
     }
     private void UpdateSliders()
     {
-        // ShieldSlider.SetFloat("_FillAmount", _shieldPercent);
+        ShieldSlider.SetFloat("_Shield", _shieldPercent);
+
         for (int i = 0; i < HealthSliders.Length; i++)
             HealthSliders[i].SetFloat("_Health", _healthPercent);
     }

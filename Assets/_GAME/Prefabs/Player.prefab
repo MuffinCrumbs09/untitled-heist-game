@@ -2806,7 +2806,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2506562637
+  GlobalObjectIdHash: 2142278117
   InScenePlacedSourceGlobalObjectIdHash: 3869913985
   DeferredDespawnTick: 0
   Ownership: 1
@@ -5926,6 +5926,7 @@ GameObject:
   - component: {fileID: 6236238978247668293}
   - component: {fileID: 3176828194770131573}
   - component: {fileID: 6281363040297882973}
+  - component: {fileID: 347323200461174690}
   m_Layer: 10
   m_Name: Local Player
   m_TagString: Untagged
@@ -6014,6 +6015,41 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _animator: {fileID: 8525467576190753233}
   networkAnimator: {fileID: 8204400130323243705}
+--- !u!114 &347323200461174690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8654619910456400991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8c85a0de5cf47c4b8590a6b71ae7b4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+  healthSegments: 4
+  healthRegenRate: 5
+  maxShield: 50
+  regenCooldown: 5
+  shieldRegenRate: 10
+  bulletDamageReduction: 0.05
+  CurrentHealth:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  CurrentShield:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  SegmentLostMask:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!1 &8847330629326763724
 GameObject:
   m_ObjectHideFlags: 0

@@ -30,4 +30,9 @@ public class GunData : ScriptableObject
     [Header("VFX")]
     public GameObject BulletTrailPrefab;
     public float BulletSpeed;
+
+    [Header("AI Accuracy")]
+    public float AIMaxSpread = 5f;   // degrees of spread at close range
+    public float AIMinSpread = 0.5f; // degrees of spread at point-blank
+    public float AISpreadAtRange = 23f; // degrees of spread at max range
 }

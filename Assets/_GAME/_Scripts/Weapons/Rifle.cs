@@ -88,7 +88,7 @@ public class Rifle : Gun
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
         Vector3 rayOrigin = _isAI ? AimTransform.position : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
-        Vector3 shootDirection = _isAI ? AimTransform.forward : Look.Cam.transform.forward;
+        Vector3 shootDirection = _isAI ? GetAIShootDirection() : Look.Cam.transform.forward;
 
         if (Physics.Raycast(rayOrigin, shootDirection, out hit, GunData.Range, GunData.TargetLayer))
         {
@@ -97,10 +97,10 @@ public class Rifle : Gun
             if (_isAI)
             {
                 LoggerEvent.Log(LogPrefix.Enemy, "Hit", this);
-                Health hitHealth = hit.transform.root.GetComponentInChildren<Health>();
+                PlayerStats hitHealth = hit.transform.root.GetComponentInChildren<PlayerStats>();
                 if (hitHealth != null)
                 {
-                    hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
+                    hitHealth.TakeDamageServerRpc(GunData.Damage, true);
                 }
             }
             else
@@ -115,11 +115,10 @@ public class Rifle : Gun
         {
             targetPos = rayOrigin + shootDirection * GunData.Range;
 
-            if(_isAI)
+            if (_isAI)
             {
                 LoggerEvent.Log(LogPrefix.Enemy, "Miss", this);
                 Debug.DrawRay(rayOrigin, shootDirection * 10f, Color.red, 2f);
-
             }
         }
 
@@ -127,6 +126,32 @@ public class Rifle : Gun
         SoundManager.Instance.PlaySoundServerRpc(SoundType.RIFLE, transform.position);
 
         recoilTimer = Random.Range(0f, 1f);
+    }
+
+    // Returns a shoot direction for the AI with randomised spread.
+    // Spread is scaled by distance to target — the further away, the less accurate.
+    // Tweak AIMinSpread, AIMaxSpread, and AISpreadAtRange on the GunData asset.
+    private Vector3 GetAIShootDirection()
+    {
+        Vector3 ideal = AimTransform.forward;
+
+        // Scale spread based on how far away the target is
+        float distanceFraction = 0f;
+        if (Physics.Raycast(AimTransform.position, ideal, out RaycastHit rangeCheck, GunData.Range, GunData.TargetLayer))
+            distanceFraction = rangeCheck.distance / GunData.Range;
+
+        float spreadDegrees = Mathf.Lerp(GunData.AIMinSpread, GunData.AISpreadAtRange, distanceFraction);
+        spreadDegrees = Mathf.Min(spreadDegrees, GunData.AIMaxSpread);
+
+        // Apply a random rotation within the spread cone
+        float spreadAngle = Random.Range(-spreadDegrees, spreadDegrees);
+        Quaternion randomRotation = Quaternion.Euler(
+            Random.Range(-spreadAngle, spreadAngle),
+            Random.Range(-spreadAngle, spreadAngle),
+            0f
+        );
+
+        return randomRotation * ideal;
     }
 
     private void SetAllLayers(GameObject obj, int newLayer)

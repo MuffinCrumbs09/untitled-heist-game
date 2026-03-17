@@ -1,47 +1,50 @@
 using System.IO;
 using UnityEngine;
 
-public class SaveManager : MonoBehaviour
+namespace Stats
 {
-    public static SaveManager Instance;
-
-    private string filePath;
-
-    private void Awake()
+    public class SaveManager : MonoBehaviour
     {
-        if (Instance != null && Instance != this)
-            Destroy(this);
+        public static SaveManager Instance;
 
-        Instance = this;
+        private string filePath;
 
-        filePath = Application.persistentDataPath + "/PlayerData.json";
-    }
-
-    /// <summary>
-    /// Saves the players stats locally
-    /// </summary>
-    /// <param name="stats"></param>
-    public void SaveGame(PlayerStats stats)
-    {
-        string json = JsonUtility.ToJson(stats, true);
-
-        File.WriteAllText(filePath, json);
-    }
-
-    /// <summary>
-    /// Loads or Creates a new PlayerStats
-    /// </summary>
-    /// <returns>Players Current Stats</returns>
-    public PlayerStats LoadGame()
-    {
-        if (File.Exists(filePath))
+        private void Awake()
         {
-            string json = File.ReadAllText(filePath);
+            if (Instance != null && Instance != this)
+                Destroy(this);
 
-            PlayerStats stats = JsonUtility.FromJson<PlayerStats>(json);
-            return stats;
+            Instance = this;
+
+            filePath = Application.persistentDataPath + "/PlayerData.json";
         }
-        else
-            return new PlayerStats();
+
+        /// <summary>
+        /// Saves the players stats locally
+        /// </summary>
+        /// <param name="stats"></param>
+        public void SaveGame(PlayerStats stats)
+        {
+            string json = JsonUtility.ToJson(stats, true);
+
+            File.WriteAllText(filePath, json);
+        }
+
+        /// <summary>
+        /// Loads or Creates a new PlayerStats
+        /// </summary>
+        /// <returns>Players Current Stats</returns>
+        public PlayerStats LoadGame()
+        {
+            if (File.Exists(filePath))
+            {
+                string json = File.ReadAllText(filePath);
+
+                PlayerStats stats = JsonUtility.FromJson<PlayerStats>(json);
+                return stats;
+            }
+            else
+                return new PlayerStats();
+        }
     }
 }

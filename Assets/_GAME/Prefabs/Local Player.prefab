@@ -410,6 +410,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &917036034793176358
 GameObject:
@@ -434,6 +435,7 @@ GameObject:
   - component: {fileID: 5012658778096610027}
   - component: {fileID: 2842689685183393978}
   - component: {fileID: 6701485858728966872}
+  - component: {fileID: 9079968834492198640}
   m_Layer: 10
   m_Name: Local Player
   m_TagString: Player
@@ -514,6 +516,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &9043257047792622065
 CapsuleCollider:
@@ -575,7 +578,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3749427906
+  GlobalObjectIdHash: 3724078906
   InScenePlacedSourceGlobalObjectIdHash: 3869913985
   DeferredDespawnTick: 0
   Ownership: 1
@@ -748,6 +751,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
   ShowTopMostFoldoutHeaderGroup: 1
   _animator: {fileID: 5244611511112221320}
+  networkAnimator: {fileID: 0}
 --- !u!114 &6701485858728966872
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -761,8 +765,52 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkAnimator
   ShowTopMostFoldoutHeaderGroup: 1
-  TransitionStateInfoList: []
+  NetworkAnimatorExpanded: 0
+  AuthorityMode: 0
   m_Animator: {fileID: 5244611511112221320}
+  TransitionStateInfoList: []
+  AnimatorParameterEntries:
+    ParameterEntries:
+    - name: Speed
+      NameHash: -823668238
+      Synchronize: 1
+      ParameterType: 1
+  AnimatorParametersExpanded: 0
+--- !u!114 &9079968834492198640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 917036034793176358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8c85a0de5cf47c4b8590a6b71ae7b4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
+  ShowTopMostFoldoutHeaderGroup: 1
+  maxHealth: 100
+  healthSegments: 4
+  healthRegenRate: 5
+  maxShield: 50
+  regenCooldown: 5
+  shieldRegenRate: 10
+  bulletDamageReduction: 0.05
+  CurrentHealth:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  CurrentShield:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
+  SegmentLostMask:
+    UpdateTraits:
+      MinSecondsBetweenUpdates: 0
+      MaxSecondsBetweenUpdates: 0
+    m_InternalValue: 0
 --- !u!1 &1019577777187920896
 GameObject:
   m_ObjectHideFlags: 0
@@ -851,6 +899,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1045895404411124309
 GameObject:
@@ -1098,6 +1147,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1384854188535298064
 GameObject:
@@ -1361,6 +1411,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1845600529114340793
 GameObject:
@@ -1504,6 +1555,7 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -1972,6 +2024,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2581022664525445005
 GameObject:
@@ -2095,6 +2148,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2919262634490250895
 GameObject:
@@ -2216,6 +2270,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &2958975601036763680
 GameObject:
@@ -2459,6 +2514,7 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -2734,6 +2790,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3892434209237157247
 GameObject:
@@ -3019,6 +3076,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4309928293556588310
 GameObject:
@@ -3388,6 +3446,7 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -4511,6 +4570,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6797492493328838623
 GameObject:
@@ -4666,6 +4726,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6985587872533071465
 GameObject:
@@ -4978,6 +5039,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &7365418025272240342
 GameObject:
@@ -5067,6 +5129,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &7412369291035634135
 GameObject:
@@ -5342,6 +5405,7 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
@@ -5963,6 +6027,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8850512807155795240
 GameObject:

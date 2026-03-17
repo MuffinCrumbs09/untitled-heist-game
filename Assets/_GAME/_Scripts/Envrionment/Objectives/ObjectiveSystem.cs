@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using Stats;
 
 public class ObjectiveSystem : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class ObjectiveSystem : MonoBehaviour
 
     [HideInInspector] public int CurrentObjectiveIndex { get; private set; } = 0;
 
-    private PlayerStats stats;
+    private Stats.PlayerStats stats;
 
     private void Awake()
     {
