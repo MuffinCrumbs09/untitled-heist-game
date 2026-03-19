@@ -1583,7 +1583,7 @@ GameObject:
   - component: {fileID: 9061553428009084677}
   - component: {fileID: 7387887495238525323}
   - component: {fileID: 4025264428199336218}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: SM_Wep_RifleBandit_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2319,7 +2319,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4042210890220895884}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Left Rifle Grip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2806,7 +2806,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2142278117
+  GlobalObjectIdHash: 2506562637
   InScenePlacedSourceGlobalObjectIdHash: 3869913985
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2841,7 +2841,7 @@ CharacterController:
   m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.3
-  m_SkinWidth: 0.08
+  m_SkinWidth: 0.05
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &4100136188550163417
@@ -5069,7 +5069,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 892135848978169677}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Muzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5305,7 +5305,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1080951981224089194}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Right Rifle Grip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5869,7 +5869,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5122527153592126895}
   - component: {fileID: 3788627817748559783}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Rifle
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -96,7 +96,9 @@ public class Rifle : Gun
 
             if (_isAI)
             {
+#if UNITY_EDITOR
                 LoggerEvent.Log(LogPrefix.Enemy, "Hit", this);
+#endif
                 PlayerStats hitHealth = hit.transform.root.GetComponentInChildren<PlayerStats>();
                 if (hitHealth != null)
                 {
@@ -117,7 +119,9 @@ public class Rifle : Gun
 
             if (_isAI)
             {
+#if UNITY_EDITOR
                 LoggerEvent.Log(LogPrefix.Enemy, "Miss", this);
+#endif
                 Debug.DrawRay(rayOrigin, shootDirection * 10f, Color.red, 2f);
             }
         }

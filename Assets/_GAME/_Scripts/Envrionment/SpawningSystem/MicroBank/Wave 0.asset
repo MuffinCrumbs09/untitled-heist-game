@@ -18,6 +18,6 @@ MonoBehaviour:
   enemyPrefabs: []
   baseEnemiesPerSpawn: 0
   additionalEnemiesPerPlayerPerSpawn: 0
-  spawnInterval: 0
+  spawnInterval: 1
   maxSimultaneousEnemies: 0
   maxEnemiesPerSpawn: 0

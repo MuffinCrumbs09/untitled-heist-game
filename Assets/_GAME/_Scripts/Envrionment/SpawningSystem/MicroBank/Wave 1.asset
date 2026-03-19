@@ -20,5 +20,5 @@ MonoBehaviour:
   baseEnemiesPerSpawn: 4
   additionalEnemiesPerPlayerPerSpawn: 1
   spawnInterval: 15
-  maxSimultaneousEnemies: 15
+  maxSimultaneousEnemies: 10
   maxEnemiesPerSpawn: 5

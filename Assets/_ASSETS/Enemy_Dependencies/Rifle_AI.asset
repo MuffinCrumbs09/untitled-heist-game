@@ -17,8 +17,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1024
   Range: 50
-  FireRate: 6
-  Damage: 2.5
+  FireRate: 3
+  Damage: 1.25
   maxAnimRot: 6
   defaultAnimRot: 10
   MagazineSize: 30
@@ -32,3 +32,6 @@ MonoBehaviour:
   ResetRecoilSpeed: 4
   BulletTrailPrefab: {fileID: 8645289296226527373, guid: 81d3ebfc691409948842bcffd81e9b69, type: 3}
   BulletSpeed: 100
+  AIMaxSpread: 5
+  AIMinSpread: 0.5
+  AISpreadAtRange: 23
