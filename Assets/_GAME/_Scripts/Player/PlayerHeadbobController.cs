@@ -1,75 +1,82 @@
-using System;
-using System.ComponentModel.Design;
 using Unity.Netcode;
 using UnityEngine;
 
 public class PlayerHeadbobController : NetworkBehaviour
 {
-    #region Public
-    [Header("Headbob Settings")]
+    #region Settings
+    [Header("Toggle")]
     public bool Enabled = true;
-    [Range(0, 0.1f)]
-    public float walkAmp = 0.001f;
-    [Range(0, 0.1f)]
-    public float sprintAmp = 0.015f;
-    [SerializeField, Range(0, 30f)]
-    private float _frequency = 10.0f; // How oftern it bobs/step amount
+
+    [Header("Amplitude (Intensity)")]
+    public float walkAmp   = 0.05f;
+    public float sprintAmp = 0.10f;
+
+    [Header("Frequency (Speed)")]
+    [SerializeField] private float _frequency   = 10.0f;
+    [SerializeField] private float _smoothSpeed = 10.0f;
     #endregion
 
-    #region Private
-    private float _amplitude; // Current Intensity
+    #region Private Variables
+    private float   _timer;
+    private float   _currentAmp;
+    private Vector3 _bobOffset;          // Current bob displacement only
+    private Vector3 _previousBobOffset;  // Last frame's displacement
 
-    [SerializeField]
-    private Transform _camera = null;
-
-    private Vector3 _startPos;
+    [SerializeField] private Transform _camera;
     #endregion
 
-    #region Unity Events
+    // ─────────────────────────────────────────────
     void Start()
     {
-        _startPos = _camera.localPosition;
+        if (_camera == null) _camera = Camera.main.transform;
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner) enabled = false;
     }
 
     void Update()
     {
-        if (!Enabled)
-            return;
+        if (!Enabled) return;
 
-        _amplitude = InputReader.Instance.IsSprinting ? sprintAmp : walkAmp;
+        // Remove last frame's bob before applying new one,
+        // so this system stays independent of camera base position.
+        _camera.localPosition -= _previousBobOffset;
 
-        if (InputReader.Instance.MovementValue.magnitude > 0)
-            PlayMotion(FootStepMotion());
+        float moveMag = InputReader.Instance.MovementValue.magnitude;
 
-        ResetPosition();
+        if (moveMag > 0.1f)
+        {
+            _currentAmp  = InputReader.Instance.IsSprinting ? sprintAmp : walkAmp;
+            _timer      += Time.deltaTime * _frequency;
+
+            Vector3 targetBob = FootStepMotion(_timer);
+
+            // Lerp toward target for smooth entry/exit
+            _bobOffset = Vector3.Lerp(_bobOffset, targetBob, _smoothSpeed * Time.deltaTime);
+        }
+        else
+        {
+            // Let the timer coast to the nearest zero-crossing to avoid a pop
+            _timer += Time.deltaTime * _frequency;
+            float snapWindow = _frequency * Time.deltaTime * 1.5f; // ~1.5 frames of tolerance
+
+            if (Mathf.Abs(Mathf.Sin(_timer)) < snapWindow)
+                _timer = 0f;   // Close enough to neutral — safe to reset
+
+            // Lerp bob offset back to zero
+            _bobOffset = Vector3.Lerp(_bobOffset, Vector3.zero, _smoothSpeed * Time.deltaTime);
+        }
+
+        _previousBobOffset       = _bobOffset;
+        _camera.localPosition   += _bobOffset;
     }
-    #endregion
 
-    #region Functions
-    private void PlayMotion(Vector3 motion)
+    private Vector3 FootStepMotion(float time)
     {
-        _camera.localPosition += motion;
-    }
-
-    private void ResetPosition()
-    {
-        if (_camera.localPosition == _startPos)
-            return;
-        _camera.localPosition = Vector3.Lerp(_camera.localPosition, _startPos, 1 * Time.deltaTime);
-    }
-
-    private Vector3 FootStepMotion()
-    {
-        Vector3 pos = Vector3.zero;
-        pos.y += Mathf.Sin(Time.time * _frequency) * _amplitude; // Smooth Y motion
-        pos.x += Mathf.Cos(Time.time * _frequency / 2) * _amplitude * 2; // X motion
-        return pos;
-    }
-    #endregion
-
-    // If client doesn't own this, disable me
-    public override void OnNetworkSpawn()
-    {
-        if (!IsOwner) enabled = false;
+        float x = Mathf.Cos(time / 2f) * _currentAmp * 2f;
+        float y = Mathf.Sin(time)       * _currentAmp;
+        return new Vector3(x, y, 0f);
     }
 }

@@ -88,7 +88,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &89487213042288077
 GameObject:
@@ -132,7 +131,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2513085884472521701}
   - component: {fileID: 2418447518916758446}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: RigLayerRight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -178,7 +177,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7561829823737660555}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_02_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -210,7 +209,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2321784424242589430}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_03_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -242,7 +241,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2310984990049319026}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_02_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -306,7 +305,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3568565339165352189}
   - component: {fileID: 3591982918282084787}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Character_Male_SuitVest_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -375,7 +374,6 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 1
@@ -508,7 +506,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5803306186682887568}
   - component: {fileID: 6505381401877246967}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Left Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -633,7 +631,6 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -704,7 +701,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2852263788752454036}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: head_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -798,7 +795,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2672731795500171429}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: UpperArm_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -909,7 +906,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &1319392720243426755
 GameObject:
@@ -920,7 +916,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 375337087963135190}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_04_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -952,7 +948,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 642701620107319750}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: clavicle_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1110,7 +1106,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1665637969027910677}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_03_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1173,7 +1169,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1135734846356125665}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_02_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1301,7 +1297,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6006939810126980616}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: lowerarm_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1365,7 +1361,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3561045174531871095}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: spine_03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1480,7 +1476,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3040442666691557535
 GameObject:
@@ -1570,7 +1565,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3318519215131874431
 GameObject:
@@ -1660,7 +1654,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3373656166174969068
 GameObject:
@@ -1671,7 +1664,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 939310933982389226}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_04_r_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1839,7 +1832,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4872034120400422464}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_03_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1871,7 +1864,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1371525120927968135}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_04_l_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1934,7 +1927,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1947856921413586068}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: neck_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1966,7 +1959,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6068455167419700705}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_01_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2141,7 +2134,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4191729636193357147
 GameObject:
@@ -2382,7 +2374,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5279620975681975552}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_04_l_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2524,7 +2516,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &4681726338102734262
 GameObject:
@@ -2535,7 +2526,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7785055457460904840}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: head
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2567,7 +2558,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 378534321302584736}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_01_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2599,7 +2590,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5578758898452961011}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Hand_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2729,7 +2720,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2510745737042417073}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_03_l_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2913,10 +2904,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   Enabled: 1
-  walkAmp: 0.001
-  sprintAmp: 0.004
+  walkAmp: 0.05
+  sprintAmp: 0.1
   _frequency: 10
-  _camera: {fileID: 1735988427176288463}
+  _smoothSpeed: 10
+  _camera: {fileID: 8648935362661586087}
 --- !u!33 &6357844524991849460
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -2972,7 +2964,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!114 &4271984452514213633
 MonoBehaviour:
@@ -3181,7 +3172,6 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -3277,7 +3267,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5392506725770718537}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: UpperArm_L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3403,7 +3393,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1177836272486725950}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: lowerarm_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3435,7 +3425,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4771383838346718972}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_04_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3578,7 +3568,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &5771070817180799971
 GameObject:
@@ -3589,7 +3578,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6573270180636863022}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Hand_R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3686,7 +3675,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5454125390812522121}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_03_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3718,7 +3707,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1819096015350265175}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_01_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3861,7 +3850,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6171063376621530971
 GameObject:
@@ -3907,7 +3895,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 750819651350584676}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_03_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4040,7 +4028,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3495111921764115523}
   - component: {fileID: 513350601055632630}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Right Hand
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4095,7 +4083,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5875718391318036753}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: clavicle_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4161,7 +4149,7 @@ GameObject:
   - component: {fileID: 3495795207119627394}
   - component: {fileID: 6473854337248359613}
   - component: {fileID: 8041680312897238054}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4266,7 +4254,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5474398761930121422}
   - component: {fileID: 3568205039461474465}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Arms_Male
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4366,7 +4354,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5828117387028773859}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_04_r_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4476,7 +4464,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6937498243282224526
 GameObject:
@@ -4711,7 +4698,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2796744231364705487}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_02_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4743,7 +4730,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1798545378179088145}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_04_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4885,7 +4872,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &7210818831704887544
 GameObject:
@@ -4897,7 +4883,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2475889943956306104}
   - component: {fileID: 3408165417281882402}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: RigLayerLeft
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4943,7 +4929,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5985351633909067780}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_02_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5006,7 +4992,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8555926146402494254}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: thumb_03_r_end
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5037,7 +5023,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5047518707634605904}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_03_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5234,7 +5220,6 @@ SkinnedMeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
@@ -5336,7 +5321,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5845292863562381855}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_04_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5400,7 +5385,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5855335967926163263}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_02_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5463,7 +5448,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7287639947368810843}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_01_l
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5528,7 +5513,7 @@ GameObject:
   m_Component:
   - component: {fileID: 796972106028590648}
   - component: {fileID: 3212655255739179808}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: Weapon Holder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5613,7 +5598,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9175752934903267635}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: finger_01_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5857,7 +5842,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8651498334422673849
 GameObject:
@@ -6059,7 +6043,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5686426067423523365}
-  m_Layer: 10
+  m_Layer: 7
   m_Name: indexFinger_01_r
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6170,7 +6154,6 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &8898838356077114154
 GameObject:
@@ -6324,5 +6307,4 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
