@@ -55,7 +55,7 @@ Material:
     m_Ints: []
     m_Floats:
     - _EmissionStrengh: 1.8
-    - _Health: 1
+    - _Health: 0
     - _IsDown: 0
     m_Colors:
     - White: {r: 1, g: 1, b: 1, a: 1}
