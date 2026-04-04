@@ -16,7 +16,7 @@ public class ObjectiveSpawnUnlocker : NetworkBehaviour
         if (!IsServer || hasUnlocked)
             return;
 
-        if (ObjectiveSystem.Instance.CurrentObjectiveIndex >= ObjectiveIndex)
+        if (ObjectiveSystem.Instance.CurrentObjectiveIndex.Value >= ObjectiveIndex)
         {
             UnlockSpawnPoints();
         }

@@ -100,7 +100,7 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
                 if (task is CustomTask custom)
                     if (!custom.isCompleted)
                     {
-                        custom.CompleteTask();
+                        custom.CompleteTask(ObjectiveSystem.Instance, ObjectiveSystem.Instance.CurrentObjectiveIndex.Value, cur.tasks.IndexOf(task));
                         break;
                     }
             }

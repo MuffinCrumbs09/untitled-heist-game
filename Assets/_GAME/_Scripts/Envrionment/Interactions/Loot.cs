@@ -1,4 +1,3 @@
-using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -14,51 +13,32 @@ public class Loot : NetworkBehaviour, IInteractable
     private int clickTimes = 0;
     private bool isPlayerNearby = false;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
         progressUI.SetButtonText("E");
         progressUI.Hide();
     }
 
-    private void Update()
-    {
-        if (isPlayerNearby)
-        {
-            float progress = (float)clickTimes / clickAmount;
-            progressUI.SetProgress(progress);
-        }
-    }
-
     #region Interface
-    // Unused
-    public bool CanInteract()
-    {
-        return true;
-    }
+    public bool CanInteract() => true;
 
     public void Interact()
     {
         clickTimes++;
+        progressUI.SetProgress((float)clickTimes / clickAmount);
 
         if (clickTimes >= clickAmount)
-            PickupLoot();
+            PickupLootServerRpc();
     }
 
-    public string InteractText()
-    {
-        return string.Empty;
-    }
+    public string InteractText() => string.Empty;
     #endregion
-
-    private void PickupLoot()
-    {
-        progressUI.Hide();
-        PickupLootServerRpc();
-    }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void PickupLootServerRpc()
     {
+        if (!IsSpawned) return;
+
         NetStore.Instance.ChangePayoutServerRpc(LootValue);
         NetworkObject.Despawn();
     }
@@ -66,16 +46,13 @@ public class Loot : NetworkBehaviour, IInteractable
     public void OnPlayerEnter()
     {
         isPlayerNearby = true;
-
         progressUI.Show();
         progressUI.SetProgress((float)clickTimes / clickAmount);
-
     }
 
     public void OnPlayerExit()
     {
         isPlayerNearby = false;
-
         progressUI.Hide();
     }
 }

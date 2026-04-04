@@ -21,24 +21,32 @@ public class Objective
             if (!task.isCompleted)
                 return false;
         }
-
         return true;
     }
 
-    public void UpdateObjective()
+    /// <summary>
+    /// Called every frame by ObjectiveSystem (server only).
+    /// objectiveSystem reference is passed so tasks can call CompleteTask().
+    /// </summary>
+    public void UpdateObjective(ObjectiveSystem objectiveSystem)
     {
-        if (!_hasStarted && NetworkManager.Singleton.IsServer) StartTask();
+        // Server-only: fire the intro subtitle once.
+        if (!_hasStarted && NetworkManager.Singleton.IsServer)
+            StartTask();
 
-        foreach (var task in tasks)
+        int objectiveIndex = objectiveSystem.ObjectiveList.IndexOf(this);
+
+        for (int i = 0; i < tasks.Count; i++)
         {
-            task.UpdateTask();
+            if (!tasks[i].isCompleted)
+                tasks[i].UpdateTask(objectiveSystem, objectiveIndex, i);
         }
     }
 
-    public void StartTask()
+    private void StartTask()
     {
         _hasStarted = true;
-        if (speakerName == null || speech == null) return;
+        if (string.IsNullOrEmpty(speakerName) || string.IsNullOrEmpty(speech)) return;
         SubtitleManager.Instance.ShowNPCSubtitle(speakerName, speech, 6.5f);
     }
 }

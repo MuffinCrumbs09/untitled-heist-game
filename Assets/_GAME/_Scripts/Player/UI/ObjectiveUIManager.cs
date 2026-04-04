@@ -25,7 +25,7 @@ public class ObjectiveUIManager : MonoBehaviour
     {
         if (objectiveSystem == null || objectiveUIList.Count == 0) return;
 
-        int currentObjectiveIndex = objectiveSystem.CurrentObjectiveIndex;
+        int currentObjectiveIndex = objectiveSystem.CurrentObjectiveIndex.Value;
         bool allObjectivesComplete = (currentObjectiveIndex == objectiveSystem.ObjectiveList.Count);
 
         for (int i = 0; i < objectiveUIList.Count; i++)

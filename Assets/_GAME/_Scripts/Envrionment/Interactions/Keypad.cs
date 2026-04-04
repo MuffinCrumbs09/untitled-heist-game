@@ -14,7 +14,7 @@ public class Keypad : NetworkBehaviour, IInteractable
         bool objective;
         ObjectiveSystem instance = ObjectiveSystem.Instance;
 
-        objective = instance.CurrentObjectiveIndex == objectiveIndex;
+        objective = instance.CurrentObjectiveIndex.Value == objectiveIndex;
         if (!objective) return false;
         if (objective && (taskDependencyIndex.Length == 0 || taskDependencyIndex == null)) return true;
 

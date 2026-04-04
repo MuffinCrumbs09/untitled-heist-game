@@ -69,7 +69,7 @@ public class VaultDoor : NetworkBehaviour, IInteractable
 
     public bool CanInteract()
     {
-        return !isOpen.Value && ObjectiveSystem.Instance.CurrentObjectiveIndex == ObjectiveIndex;
+        return !isOpen.Value && ObjectiveSystem.Instance.CurrentObjectiveIndex.Value == ObjectiveIndex;
     }
     #endregion
 

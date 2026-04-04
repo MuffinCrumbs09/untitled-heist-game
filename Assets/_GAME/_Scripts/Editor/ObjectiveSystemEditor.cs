@@ -27,13 +27,7 @@ public class ObjectiveSystemEditor : Editor
         for (int i = 0; i < objectiveCount; i++)
         {
             if (oldObjectiveFoldouts != null && i < oldObjectiveFoldouts.Length)
-            {
                 objectiveFoldouts[i] = oldObjectiveFoldouts[i];
-            }
-            else
-            {
-                objectiveFoldouts[i] = false;
-            }
 
             var objectiveProperty = objectiveListProperty.GetArrayElementAtIndex(i);
             var tasksProperty = objectiveProperty.FindPropertyRelative("tasks");
@@ -46,20 +40,9 @@ public class ObjectiveSystemEditor : Editor
                 for (int j = 0; j < taskCount; j++)
                 {
                     if (j < oldTaskFoldouts[i].Length)
-                    {
                         taskFoldouts[i][j] = oldTaskFoldouts[i][j];
-                    }
                     else
-                    {
                         taskFoldouts[i][j] = true;
-                    }
-                }
-            }
-            else
-            {
-                for (int j = 0; j < taskCount; j++)
-                {
-                    taskFoldouts[i][j] = false;
                 }
             }
         }
@@ -70,13 +53,16 @@ public class ObjectiveSystemEditor : Editor
         serializedObject.Update();
 
         EditorGUILayout.Space(10);
-        EditorGUILayout.LabelField("Objective System", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Objective System  (Server-Authoritative)", EditorStyles.boldLabel);
+        EditorGUILayout.HelpBox(
+            "CurrentObjectiveIndex is a NetworkVariable — do not edit it directly in Play mode. " +
+            "Task completion is replicated via NetworkList<bool>.",
+            MessageType.Info
+        );
         EditorGUILayout.Space(5);
 
         if (objectiveFoldouts.Length != objectiveListProperty.arraySize)
-        {
             InitializeFoldouts();
-        }
 
         for (int i = 0; i < objectiveListProperty.arraySize; i++)
         {
@@ -86,27 +72,25 @@ public class ObjectiveSystemEditor : Editor
 
         EditorGUILayout.Space(10);
         if (GUILayout.Button("Add New Objective", GUILayout.Height(30)))
-        {
             AddNewObjective();
-        }
 
         serializedObject.ApplyModifiedProperties();
     }
 
     private void DrawObjective(int objectiveIndex)
     {
-        var objectiveProperty = objectiveListProperty.GetArrayElementAtIndex(objectiveIndex);
-        var objectiveNameProperty = objectiveProperty.FindPropertyRelative("objectiveName");
-        var speakerNameProperty = objectiveProperty.FindPropertyRelative("speakerName");
-        var speechProperty = objectiveProperty.FindPropertyRelative("speech");
-        var tasksProperty = objectiveProperty.FindPropertyRelative("tasks");
+        var objectiveProperty    = objectiveListProperty.GetArrayElementAtIndex(objectiveIndex);
+        var objectiveNameProp    = objectiveProperty.FindPropertyRelative("objectiveName");
+        var speakerNameProp      = objectiveProperty.FindPropertyRelative("speakerName");
+        var speechProp           = objectiveProperty.FindPropertyRelative("speech");
+        var tasksProp            = objectiveProperty.FindPropertyRelative("tasks");
 
         EditorGUILayout.BeginVertical(GUI.skin.box);
 
         EditorGUILayout.BeginHorizontal();
         objectiveFoldouts[objectiveIndex] = EditorGUILayout.Foldout(
             objectiveFoldouts[objectiveIndex],
-            string.IsNullOrEmpty(objectiveNameProperty.stringValue) ? "Unnamed Objective" : objectiveNameProperty.stringValue,
+            string.IsNullOrEmpty(objectiveNameProp.stringValue) ? "Unnamed Objective" : objectiveNameProp.stringValue,
             true
         );
 
@@ -122,51 +106,29 @@ public class ObjectiveSystemEditor : Editor
         {
             EditorGUI.indentLevel++;
 
-            EditorGUILayout.PropertyField(objectiveNameProperty, new GUIContent("Objective Name"));
-            EditorGUILayout.PropertyField(speakerNameProperty, new GUIContent("Speaker's Name"));
-            EditorGUILayout.PropertyField(speechProperty, new GUIContent("Speech"));
+            EditorGUILayout.PropertyField(objectiveNameProp, new GUIContent("Objective Name"));
+            EditorGUILayout.PropertyField(speakerNameProp,   new GUIContent("Speaker's Name"));
+            EditorGUILayout.PropertyField(speechProp,        new GUIContent("Speech"));
             EditorGUILayout.Space(5);
 
             EditorGUILayout.LabelField("Tasks:", EditorStyles.boldLabel);
 
-            if (taskFoldouts[objectiveIndex].Length != tasksProperty.arraySize)
+            if (taskFoldouts[objectiveIndex].Length != tasksProp.arraySize)
             {
-                bool[] oldTaskStates = taskFoldouts[objectiveIndex];
-                taskFoldouts[objectiveIndex] = new bool[tasksProperty.arraySize];
-
-                for (int j = 0; j < tasksProperty.arraySize; j++)
-                {
-                    if (j < oldTaskStates.Length)
-                    {
-                        taskFoldouts[objectiveIndex][j] = oldTaskStates[j];
-                    }
-                    else
-                    {
-                        taskFoldouts[objectiveIndex][j] = true;
-                    }
-                }
+                bool[] old = taskFoldouts[objectiveIndex];
+                taskFoldouts[objectiveIndex] = new bool[tasksProp.arraySize];
+                for (int j = 0; j < tasksProp.arraySize; j++)
+                    taskFoldouts[objectiveIndex][j] = j < old.Length ? old[j] : true;
             }
 
-            for (int j = 0; j < tasksProperty.arraySize; j++)
-            {
-                DrawTask(tasksProperty, j, objectiveIndex);
-            }
+            for (int j = 0; j < tasksProp.arraySize; j++)
+                DrawTask(tasksProp, j, objectiveIndex);
 
             EditorGUILayout.Space(5);
             EditorGUILayout.BeginHorizontal();
-
             EditorGUILayout.PrefixLabel("Add Task");
 
-            string[] taskOptions = new string[]
-            {
-                "Select Task Type",
-                "Minigame Task",
-                "Timer Task",
-                "Location Task",
-                "Loot Task",
-                "Custom Task"
-            };
-
+            string[] taskOptions = { "Select Task Type", "Minigame Task", "Timer Task", "Location Task", "Loot Task", "Custom Task" };
             int selectedIndex = EditorGUILayout.Popup(0, taskOptions);
 
             if (selectedIndex > 0)
@@ -180,61 +142,49 @@ public class ObjectiveSystemEditor : Editor
                     5 => typeof(CustomTask),
                     _ => null
                 };
-
-                if (taskType != null)
-                {
-                    AddTask(tasksProperty, taskType, objectiveIndex);
-                }
+                if (taskType != null) AddTask(tasksProp, taskType, objectiveIndex);
             }
 
             EditorGUILayout.EndHorizontal();
-
             EditorGUI.indentLevel--;
         }
 
         EditorGUILayout.EndVertical();
     }
 
-    private void DrawTask(SerializedProperty tasksProperty, int taskIndex, int objectiveIndex)
+    private void DrawTask(SerializedProperty tasksProp, int taskIndex, int objectiveIndex)
     {
-        var taskProperty = tasksProperty.GetArrayElementAtIndex(taskIndex);
+        var taskProperty = tasksProp.GetArrayElementAtIndex(taskIndex);
 
         if (taskProperty.managedReferenceValue == null)
         {
             EditorGUILayout.HelpBox("Task is null. Please remove and add a new task.", MessageType.Warning);
             if (GUILayout.Button("Remove Null Task"))
-            {
-                tasksProperty.DeleteArrayElementAtIndex(taskIndex);
-            }
+                tasksProp.DeleteArrayElementAtIndex(taskIndex);
             return;
         }
 
         Task task = taskProperty.managedReferenceValue as Task;
-        string taskTypeName = task.GetType().Name;
-        string taskDisplayName = string.IsNullOrEmpty(task.taskName) ? $"Unnamed {taskTypeName}" : task.taskName;
+        string typeName    = task.GetType().Name;
+        string displayName = string.IsNullOrEmpty(task.taskName) ? $"Unnamed {typeName}" : task.taskName;
 
         EditorGUILayout.BeginVertical(GUI.skin.box);
-
         EditorGUILayout.BeginHorizontal();
         taskFoldouts[objectiveIndex][taskIndex] = EditorGUILayout.Foldout(
             taskFoldouts[objectiveIndex][taskIndex],
-            $"{taskDisplayName} ({taskTypeName})",
+            $"{displayName} ({typeName})",
             true
         );
 
         if (GUILayout.Button("X", GUILayout.Width(25)))
         {
-            tasksProperty.DeleteArrayElementAtIndex(taskIndex);
-            bool[] oldStates = taskFoldouts[objectiveIndex];
-            taskFoldouts[objectiveIndex] = new bool[tasksProperty.arraySize];
-
-            for (int i = 0; i < tasksProperty.arraySize; i++)
+            tasksProp.DeleteArrayElementAtIndex(taskIndex);
+            bool[] old = taskFoldouts[objectiveIndex];
+            taskFoldouts[objectiveIndex] = new bool[tasksProp.arraySize];
+            for (int i = 0; i < tasksProp.arraySize; i++)
             {
-                int oldIndex = i >= taskIndex ? i + 1 : i;
-                if (oldIndex < oldStates.Length)
-                {
-                    taskFoldouts[objectiveIndex][i] = oldStates[oldIndex];
-                }
+                int oldI = i >= taskIndex ? i + 1 : i;
+                if (oldI < old.Length) taskFoldouts[objectiveIndex][i] = old[oldI];
             }
             return;
         }
@@ -243,9 +193,7 @@ public class ObjectiveSystemEditor : Editor
         if (taskFoldouts[objectiveIndex][taskIndex])
         {
             EditorGUI.indentLevel++;
-
             EditorGUILayout.PropertyField(taskProperty, new GUIContent("Task Settings"), true);
-
             EditorGUI.indentLevel--;
         }
 
@@ -255,85 +203,39 @@ public class ObjectiveSystemEditor : Editor
     private void AddNewObjective()
     {
         objectiveListProperty.arraySize++;
-        var newElement = objectiveListProperty.GetArrayElementAtIndex(objectiveListProperty.arraySize - 1);
-        newElement.FindPropertyRelative("objectiveName").stringValue = "New Objective";
-
-        var tasksProperty = newElement.FindPropertyRelative("tasks");
-        tasksProperty.ClearArray();
-
+        var newEl = objectiveListProperty.GetArrayElementAtIndex(objectiveListProperty.arraySize - 1);
+        newEl.FindPropertyRelative("objectiveName").stringValue = "New Objective";
+        newEl.FindPropertyRelative("tasks").ClearArray();
         serializedObject.ApplyModifiedProperties();
 
-        bool[] oldFoldouts = objectiveFoldouts;
+        bool[] old = objectiveFoldouts;
         objectiveFoldouts = new bool[objectiveListProperty.arraySize];
-
-        for (int i = 0; i < oldFoldouts.Length; i++)
-        {
-            objectiveFoldouts[i] = oldFoldouts[i];
-        }
+        for (int i = 0; i < old.Length; i++) objectiveFoldouts[i] = old[i];
         objectiveFoldouts[objectiveFoldouts.Length - 1] = true;
-
         InitializeFoldouts();
     }
 
-    private void AddTask(SerializedProperty tasksProperty, System.Type taskType, int objectiveIndex)
+    private void AddTask(SerializedProperty tasksProp, System.Type taskType, int objectiveIndex)
     {
-        int oldSize = tasksProperty.arraySize;
-        tasksProperty.arraySize++;
-        var newTaskElement = tasksProperty.GetArrayElementAtIndex(tasksProperty.arraySize - 1);
+        int oldSize = tasksProp.arraySize;
+        tasksProp.arraySize++;
+        var newEl = tasksProp.GetArrayElementAtIndex(tasksProp.arraySize - 1);
 
-        switch (taskType)
+        newEl.managedReferenceValue = taskType switch
         {
-            case var type when type == typeof(MinigameTask):
-                newTaskElement.managedReferenceValue = new MinigameTask
-                {
-                    taskName = "New Minigame Task",
-                    isCompleted = false
-                };
-                break;
-
-            case var type when type == typeof(TimerTask):
-                newTaskElement.managedReferenceValue = new TimerTask
-                {
-                    taskName = "New Timer Task",
-                    isCompleted = false,
-                    timerDuration = 10f
-                };
-                break;
-
-            case var type when type == typeof(LocationTask):
-                newTaskElement.managedReferenceValue = new LocationTask
-                {
-                    taskName = "New Location Task",
-                    isCompleted = false
-                };
-                break;
-
-            case var type when type == typeof(LootTask):
-                newTaskElement.managedReferenceValue = new LootTask
-                {
-                    taskName = "New Loot Task",
-                    isCompleted = false
-                };
-                break;
-
-            case var type when type == typeof(CustomTask):
-                newTaskElement.managedReferenceValue = new CustomTask
-                {
-                    taskName = "New Custom Task",
-                    isCompleted = false
-                };
-                break;
-        }
+            var t when t == typeof(MinigameTask) => new MinigameTask { taskName = "New Minigame Task" },
+            var t when t == typeof(TimerTask)    => new TimerTask    { taskName = "New Timer Task", timerDuration = 10f },
+            var t when t == typeof(LocationTask) => new LocationTask { taskName = "New Location Task" },
+            var t when t == typeof(LootTask)     => new LootTask     { taskName = "New Loot Task" },
+            var t when t == typeof(CustomTask)   => new CustomTask   { taskName = "New Custom Task" },
+            _ => null
+        };
 
         serializedObject.ApplyModifiedProperties();
 
-        bool[] oldTaskStates = taskFoldouts[objectiveIndex];
-        taskFoldouts[objectiveIndex] = new bool[tasksProperty.arraySize];
-
-        for (int i = 0; i < oldSize; i++)
-        {
-            taskFoldouts[objectiveIndex][i] = oldTaskStates[i];
-        }
+        bool[] old = taskFoldouts[objectiveIndex];
+        taskFoldouts[objectiveIndex] = new bool[tasksProp.arraySize];
+        for (int i = 0; i < oldSize; i++) taskFoldouts[objectiveIndex][i] = old[i];
         taskFoldouts[objectiveIndex][oldSize] = true;
     }
 }

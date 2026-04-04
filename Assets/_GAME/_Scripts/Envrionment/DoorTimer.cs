@@ -54,7 +54,7 @@ public class DoorTimer : NetworkBehaviour
             if (task is CustomTask custom)
                 if (!custom.isCompleted)
                 {
-                    custom.CompleteTask();
+                    custom.CompleteTask(objectiveSystem: ObjectiveSystem.Instance, objectiveIndex: ObjectiveSystem.Instance.CurrentObjectiveIndex.Value, taskIndex: cur.tasks.IndexOf(task) );
                     break;
                 }
         }

@@ -108,6 +108,6 @@ public class Computer : NetworkBehaviour, IInteractable
     [ClientRpc]
     private void OnHackCompleteClientRpc()
     {
-        associatedTask?.CompleteTask();
+        associatedTask?.CompleteTask(ObjectiveSystem.Instance, ObjectiveSystem.Instance.CurrentObjectiveIndex.Value, ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask));
     }
 }
