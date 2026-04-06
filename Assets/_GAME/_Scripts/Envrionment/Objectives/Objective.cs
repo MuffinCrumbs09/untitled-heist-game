@@ -43,6 +43,19 @@ public class Objective
         }
     }
 
+/// <summary>
+/// Get the current task index
+/// </summary>
+/// <returns>Task index or -1</returns>
+    public int GetCurrentTaskIndex()
+    {
+        for(int i = 0; i < tasks.Count; i++)
+            if(!tasks[i].isCompleted)
+                return i;
+        
+        return -1;
+    }
+
     private void StartTask()
     {
         _hasStarted = true;

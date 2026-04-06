@@ -62,6 +62,9 @@ public class TimerTask : Task
     public override void UpdateTask(ObjectiveSystem objectiveSystem, int objectiveIndex, int taskIndex)
     {
         if (isCompleted) return;
+        
+        // Server-only: track elapsed time on server for consistency
+        if (!objectiveSystem.IsServer) return;
 
         _timer += Time.deltaTime;
 
@@ -87,7 +90,7 @@ public class LocationTask : Task
     public void CompleteTask(ObjectiveSystem objectiveSystem, int objectiveIndex, int taskIndex)
     {
         if (!isCompleted)
-            objectiveSystem.CompleteTask(objectiveIndex, taskIndex);
+            objectiveSystem.RequestCompleteTaskServerRpc(objectiveIndex, taskIndex);
     }
 
     public override void UpdateTask(ObjectiveSystem objectiveSystem, int objectiveIndex, int taskIndex)
@@ -100,7 +103,8 @@ public class LocationTask : Task
             {
                 if (Vector3.Distance(player.transform.position, area.position) <= 2.1f)
                 {
-                    objectiveSystem.CompleteTask(objectiveIndex, taskIndex);
+                    // Send RPC to server to complete the task (works from any client)
+                    objectiveSystem.RequestCompleteTaskServerRpc(objectiveIndex, taskIndex);
                     return;
                 }
             }
@@ -122,6 +126,9 @@ public class LootTask : Task
     public override void UpdateTask(ObjectiveSystem objectiveSystem, int objectiveIndex, int taskIndex)
     {
         if (isCompleted) return;
+        
+        // Server-only: only server should complete the task
+        if (!objectiveSystem.IsServer) return;
 
         int targetPayout = (NetStore.Instance.MaxPayout.Value * maxPayoutPercent) / 100;
 

@@ -36,6 +36,7 @@ public class MapManager : NetworkBehaviour
     private List<(string areaName, RoomTypeTag roomType)> _activatedRooms = new();
 
     public NetworkList<NetRoomData> syncedRooms;
+    public NetworkList<NetString> syncedRandomObjectives;
     #endregion
 
     #region Unity Lifecycle
@@ -47,6 +48,7 @@ public class MapManager : NetworkBehaviour
         Instance = this;
 
         syncedRooms = new NetworkList<NetRoomData>();
+        syncedRandomObjectives = new NetworkList<NetString>();
     }
 
     public override void OnNetworkSpawn()
@@ -77,6 +79,16 @@ public class MapManager : NetworkBehaviour
             }
             // Bake NavMesh AFTER rooms are spawned
             StartCoroutine(BakeNavMeshThenInit());
+        }
+        else
+        {
+            // Non-server clients: sync random objectives from the network list when joining
+            foreach (var objPath in syncedRandomObjectives)
+            {
+                GameObject itemObj = GameObject.Find(objPath);
+                if (itemObj != null)
+                    itemObj.SetActive(true);
+            }
         }
     }
     #endregion
@@ -399,7 +411,7 @@ public class MapManager : NetworkBehaviour
         // Assign world-space transforms and computers to objective tasks
         AssignObjectiveTransforms();
         AssignCorrectComputer();
-        SpawnRandomObjectives();
+        SpawnRandomObjectivesNew();
         SpawnObjectiveHints();
     }
     #endregion
@@ -537,7 +549,7 @@ public class MapManager : NetworkBehaviour
             foreach (var task in objective.tasks)
             {
                 if (task is not MinigameTask minigameTask) continue;
-                if(!minigameTask.setComputer) continue;
+                if (!minigameTask.setComputer) continue;
 
                 List<Computer> computers = GatherComputersForTask(minigameTask);
                 if (computers.Count == 0) continue;
@@ -604,18 +616,33 @@ public class MapManager : NetworkBehaviour
 
     private void SpawnRandomObjectives()
     {
+        Debug.Log("[MapManager] SpawnRandomObjectives called");
+        Debug.Log($"[MapManager] RandomObjectives count: {RandomObjectives?.Length ?? 0}");
+
+        if (RandomObjectives == null || RandomObjectives.Length == 0)
+        {
+            Debug.LogWarning("[MapManager] No RandomObjectives defined!");
+            return;
+        }
+
         foreach (RandomObjectiveData data in RandomObjectives)
         {
+            Debug.Log($"[MapManager] Processing RandomObjective with RoomType: {data.RequiredRoomType?.name ?? "NULL"}");
+
             List<NetString> locationPaths = new();
 
             List<Transform> candidateRooms = FindRoomsByTag(data.RequiredRoomType.name);
+            Debug.Log($"[MapManager] Found {candidateRooms.Count} candidate rooms");
 
             foreach (Transform room in candidateRooms)
             {
+                Debug.Log($"[MapManager] Processing room: {room.name}");
                 List<GameObject> items = new();
                 Helper.FindItemsByRoom(room, data.SpawnItemType, ref items);
+                Debug.Log($"[MapManager] Found {items.Count} items in room {room.name}");
 
                 int remaining = data.GetRandomSpawnCount();
+                Debug.Log($"[MapManager] Randomly spawning {remaining} items");
 
                 while (remaining > 0 && items.Count > 0)
                 {
@@ -624,13 +651,68 @@ public class MapManager : NetworkBehaviour
                     items.RemoveAt(index);
 
                     chosen.SetActive(true);
-                    locationPaths.Add((NetString)Helper.GetGameObjectPath(chosen));
+                    string objectPath = Helper.GetGameObjectPath(chosen);
+                    locationPaths.Add((NetString)objectPath);
+                    syncedRandomObjectives.Add((NetString)objectPath);
+                    Debug.Log($"[MapManager] Activated random objective: {objectPath}");
                     remaining--;
                 }
             }
 
+            Debug.Log($"[MapManager] Total location paths for this objective: {locationPaths.Count}");
             if (locationPaths.Count > 0)
+            {
+                Debug.Log($"[MapManager] Broadcasting {locationPaths.Count} items to clients");
                 SpawnRandomObjectivesClientRpc(locationPaths.ToArray());
+            }
+            else
+            {
+                Debug.LogWarning("[MapManager] No items were activated - RPC not called");
+            }
+        }
+
+        Debug.Log("[MapManager] SpawnRandomObjectives completed");
+    }
+
+    private void SpawnRandomObjectivesNew()
+    {
+        if (RandomObjectives == null || RandomObjectives.Length == 0)
+        {
+            Debug.LogWarning("[MapManager] No RandomObjectives defined!");
+            return;
+        }
+
+        foreach (RandomObjectiveData data in RandomObjectives)
+        {
+            List<Transform> candidateRooms = FindRoomsByTag(data.RequiredRoomType.name); // get all rooms of objective
+
+            foreach (Transform room in candidateRooms)
+            {
+                List<GameObject> items = new();
+                Helper.FindItemsByRoom(room, data.SpawnItemType, ref items); // get all possible items
+
+                if (items.Count <= 0) return; // return if none found
+                int rand = data.GetRandomSpawnCount();
+
+                for (int i = 0; i < rand; i++)
+                {
+                    GameObject item = items[i];
+                    if (item.TryGetComponent(out RandomObject objectData))
+                    {
+                        objectData.ChangeStateRpc(true);
+#if UNITY_EDITOR
+                        LoggerEvent.Log(LogPrefix.Environment, $"Set {objectData.name} to spawned", this);
+#endif
+                    }
+                    else
+                    {
+#if UNITY_EDITOR
+                        LoggerEvent.LogWarning(LogPrefix.Environment, $"Couldn't find objectdata for item {item.name}. Continuing", this);
+#endif
+                        continue;
+                    }
+                }
+            }
         }
     }
 
@@ -782,11 +864,15 @@ public class MapManager : NetworkBehaviour
     [Rpc(SendTo.NotServer)]
     public void SpawnRandomObjectivesClientRpc(NetString[] itemsPaths)
     {
+        Debug.Log("Called");
         foreach (NetString path in itemsPaths)
         {
             GameObject itemObj = GameObject.Find(path);
+            Debug.Log(itemObj.transform.name += " has been found. Trying to activate");
             if (itemObj != null)
                 itemObj.SetActive(true);
+
+            Debug.Log(itemObj.transform.name + " set to: " + itemObj.activeInHierarchy);
         }
     }
 

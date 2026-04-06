@@ -42,6 +42,7 @@ public class ObjectiveComputerSetter : MonoBehaviour
         if (newTask is not MinigameTask miniTask) { _hasSet = true; return; }
 
         taskComputer.associatedTask = miniTask;
+        taskComputer.SyncAssociatedTaskClientRpc(data.NextIndex.x, data.NextIndex.y);
         taskComputer.ResetComputerRpc(data.NewHackTime);
 
         _hasSet = true;

@@ -12,6 +12,8 @@ public class CircuitBreakerManager : NetworkBehaviour
     [Header("Configuration")]
     [SerializeField] private List<CircuitBreaker> circuitBreakers;
     [SerializeField] private List<Whiteboard> whiteboards;
+    [SerializeField, Tooltip("A list of objective index's the circuits should be enabled")] private int[] ObjectiveList;
+    [SerializeField, Tooltip("A list of task index's the circuits should be enabled")] private int[] TaskList;
 
     private static readonly char[] LetterPool = "ABCDEFGHJKLMNPQRSTUVWXYZ".ToCharArray();
     private static readonly char[] DigitPool = "23456789".ToCharArray();
@@ -19,6 +21,8 @@ public class CircuitBreakerManager : NetworkBehaviour
     private List<CircuitBreaker> _activeCircuitBreakers = new();
     private List<Whiteboard> _activeWhiteboards = new();
     private List<string> serialNumbers = new();
+
+    private string ScriptTag => "[CircuitBreakerManager]".Color(Color.deepPink);
 
     public override void OnNetworkSpawn()
     {
@@ -34,16 +38,11 @@ public class CircuitBreakerManager : NetworkBehaviour
         _activeWhiteboards.Clear();
         serialNumbers.Clear();
 
-        Debug.Log($"[CircuitBreakerManager] InitializeCircuitBreakers called. IsServer={IsServer}, IsSpawned={IsSpawned}");
-        Debug.Log($"[CircuitBreakerManager] Configured circuit breakers: {circuitBreakers.Count}, whiteboards: {whiteboards.Count}");
-
         string correctSerial = GenerateBaseSerial();
-        Debug.Log($"[CircuitBreakerManager] Correct serial: {correctSerial}");
 
         foreach (var cb in circuitBreakers)
         {
-            bool active = cb != null && cb.gameObject.activeInHierarchy;
-            Debug.Log($"[CircuitBreakerManager] CircuitBreaker '{cb?.name}' activeInHierarchy={active}");
+            bool active = cb != null && cb.transform.parent.GetComponent<RandomObject>().isSpawned.Value;
             if (active)
                 _activeCircuitBreakers.Add(cb);
         }
@@ -51,12 +50,16 @@ public class CircuitBreakerManager : NetworkBehaviour
         foreach (var wb in whiteboards)
         {
             bool active = wb != null && wb.gameObject.activeInHierarchy;
-            Debug.Log($"[CircuitBreakerManager] Whiteboard '{wb?.name}' activeInHierarchy={active}, IsSpawned={wb?.IsSpawned}, IsServer={wb?.IsServer}");
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Whiteboard '{1}' is {2}", ScriptTag, wb.name, active), this);
+#endif
             if (active)
                 _activeWhiteboards.Add(wb);
         }
 
-        Debug.Log($"[CircuitBreakerManager] Active circuit breakers: {_activeCircuitBreakers.Count}, active whiteboards: {_activeWhiteboards.Count}");
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Active circuit breakers: {1}, active whiteboards: {2}", ScriptTag, _activeCircuitBreakers.Count, _activeWhiteboards.Count), this);
+#endif
 
         // Shuffle circuit breakers to randomize which gets the correct serial
         for (int i = 0; i < _activeCircuitBreakers.Count; i++)
@@ -74,30 +77,43 @@ public class CircuitBreakerManager : NetworkBehaviour
                                   : GenerateBaseSerial();
             serialNumbers.Add(serialToAssign);
             _activeCircuitBreakers[i].Initialize(serialToAssign, serialToAssign == correctSerial);
-            Debug.Log($"[CircuitBreakerManager] Assigned serial '{serialToAssign}' to '{_activeCircuitBreakers[i].name}' (isCorrect={serialToAssign == correctSerial})");
         }
 
         // Split the correct serial across active whiteboards
         string[] segments = SplitSerial(correctSerial, _activeWhiteboards.Count);
-        Debug.Log($"[CircuitBreakerManager] Split '{correctSerial}' into {segments.Length} segment(s): [{string.Join(", ", segments)}]");
 
         for (int i = 0; i < _activeWhiteboards.Count; i++)
         {
-            Debug.Log($"[CircuitBreakerManager] Calling SetSerial('{segments[i]}') on whiteboard '{_activeWhiteboards[i].name}'");
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Setting serial of whiteboard {1}, too {2}", ScriptTag, _activeWhiteboards[i].name, segments[i]), this);
+#endif
             _activeWhiteboards[i].SetSerial(segments[i]);
         }
+    }
 
-        // RPC circuit breakers to clients
-        NetString[] serialsArray = new NetString[serialNumbers.Count];
-        NetString[] pathsArray = new NetString[_activeCircuitBreakers.Count];
+    public bool IsObjective()
+    {
+        Vector2 current = Helper.GetCurrentObjectiveAndTaskIndex();
 
-        for (int i = 0; i < serialNumbers.Count; i++)
-            serialsArray[i] = serialNumbers[i];
+        if (current == new Vector2(-1, -1))
+        {
+#if UNITY_EDITOR
+            LoggerEvent.LogError(LogPrefix.Environment, "Cannot find current task objective and index", this);
+#endif
+            return false;
+        }
 
-        for (int i = 0; i < _activeCircuitBreakers.Count; i++)
-            pathsArray[i] = Helper.GetGameObjectPath(_activeCircuitBreakers[i].gameObject);
+        foreach (var x in ObjectiveList)
+        {
+            foreach (var y in TaskList)
+            {
+                Vector2 potentialTask = new(x, y);
+                if (potentialTask == current)
+                    return true;
+            }
+        }
 
-        InitalizeCircuitBreakersRpc(correctSerial, serialsArray, pathsArray);
+        return false;
     }
 
     /// <summary>
@@ -131,20 +147,6 @@ public class CircuitBreakerManager : NetworkBehaviour
     public void SetHackingStateRpc(bool isHacking)
     {
         _isHacking.Value = isHacking;
-    }
-
-    [Rpc(SendTo.NotServer)]
-    private void InitalizeCircuitBreakersRpc(NetString correctSerial, NetString[] serials, NetString[] circuitPaths)
-    {
-        for (int i = 0; i < circuitPaths.Length; i++)
-        {
-            GameObject cbObj = GameObject.Find(circuitPaths[i]);
-            if (cbObj == null) continue;
-
-            CircuitBreaker cb = cbObj.GetComponent<CircuitBreaker>();
-            if (cb != null)
-                cb.Initialize(serials[i], serials[i] == correctSerial);
-        }
     }
 
     #region Serial Generation

@@ -37,7 +37,6 @@ public class Whiteboard : NetworkBehaviour
 
     private void OnSerialChanged(NetString previous, NetString current)
     {
-        Debug.Log($"[Whiteboard] Serial changed from '{previous}' to '{current}'");
         UpdateText(current);
     }
 

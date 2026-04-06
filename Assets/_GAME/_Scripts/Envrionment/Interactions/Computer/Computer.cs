@@ -101,9 +101,25 @@ public class Computer : NetworkBehaviour, IInteractable
     {
         IsHacked.Value = false;
         IsHacking.Value = false;
-        if(time != -1)
+        if (time != -1)
             TimeToHack.Value = time;
     }
+
+    /// <summary>
+    /// Propagates associatedTask rewire to all clients using stable objective/task indices.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    public void SyncAssociatedTaskClientRpc(int objectiveIndex, int taskIndex)
+    {
+        if (ObjectiveSystem.Instance == null) return;
+
+        var objective = ObjectiveSystem.Instance.ObjectiveList[objectiveIndex];
+        if (objective == null || taskIndex < 0 || taskIndex >= objective.tasks.Count) return;
+
+        if (objective.tasks[taskIndex] is MinigameTask miniTask)
+            associatedTask = miniTask;
+    }
+
 
     [ClientRpc]
     private void OnHackCompleteClientRpc()

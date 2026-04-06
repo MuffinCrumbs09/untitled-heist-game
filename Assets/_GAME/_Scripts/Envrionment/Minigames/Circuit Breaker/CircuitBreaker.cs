@@ -10,8 +10,9 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
 
     private const float HackDuration = 30f;
 
-    private string assignedSerial;
-    private bool isCorrectBreaker;
+    public NetworkVariable<NetString> assignedSerial = new("", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private NetworkVariable<bool> correctBreaker = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private bool isCorrectBreaker => correctBreaker.Value;
 
     private bool isReady = false;
 
@@ -23,29 +24,35 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
     public override void OnNetworkSpawn()
     {
         isBeingHacked.OnValueChanged += OnHackingStateChanged;
+        assignedSerial.OnValueChanged += OnSerialNumberChanged;
+
+        if (!string.IsNullOrEmpty(assignedSerial.Value))
+            serialNumberText.text = assignedSerial.Value;
+
         isReady = true;
     }
 
     public override void OnNetworkDespawn()
     {
         isBeingHacked.OnValueChanged -= OnHackingStateChanged;
+        assignedSerial.OnValueChanged -= OnSerialNumberChanged;
     }
 
     #endregion
 
-    public void InitObjects()
-    {
-        transform.parent.gameObject.SetActive(false);
-    }
-
     /// <summary>
-    /// Called by CircuitBreakerManager on both server and clients to assign identity data.
+    /// Called by CircuitBreakerManager on server to assign identity data.
     /// </summary>
     public void Initialize(string serial, bool isCorrect)
     {
-        assignedSerial = serial;
-        isCorrectBreaker = isCorrect;
-        serialNumberText.text = assignedSerial;
+        if (!IsServer) return;
+
+        assignedSerial.Value = serial;
+        correctBreaker.Value = isCorrect;
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Serial: {1} | IsCorrect {2}", "[CircuitBreaker]".Color(Color.deepPink), serial, isCorrect), this);
+#endif
     }
 
     public void Interact()
@@ -65,7 +72,7 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
     /// </summary>
     public bool CanInteract()
     {
-        return !isBeingHacked.Value && !isHackFinished.Value && !CircuitBreakerManager.Instance.IsHacking && enabled;
+        return !isBeingHacked.Value && !isHackFinished.Value && !CircuitBreakerManager.Instance.IsHacking && CircuitBreakerManager.Instance.IsObjective();
     }
 
     // ── Network ──────────────────────────────────────────────────────────────
@@ -112,6 +119,11 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
     private void OnHackingStateChanged(bool previous, bool current)
     {
         computerVisual.SetActive(current);
+    }
+
+    private void OnSerialNumberChanged(NetString previous, NetString current)
+    {
+        serialNumberText.text = current;
     }
 
     public bool IsReady()

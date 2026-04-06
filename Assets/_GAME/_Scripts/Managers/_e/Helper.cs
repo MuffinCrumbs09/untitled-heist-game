@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
 using UnityEngine;
 
 public static class Helper
@@ -99,5 +101,59 @@ public static class Helper
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Shuffles a list of gameobjects. Useful for map generation to ensure randomness
+    /// </summary>
+    public static void ShuffleList(ref List<GameObject> list)
+    {
+        for (int s = 0; s < list.Count - 1; s++)
+        {
+            int newIndex = UnityEngine.Random.Range(s, list.Count);
+
+            var toSwap = list[s];
+            list[s] = list[newIndex];
+            list[newIndex] = toSwap;
+        }
+    }
+
+    /// <summary>
+    /// Get the current objective and taask index
+    /// </summary>
+    /// <returns>Vector2(ObjectiveIndex, TaskIndex)
+    /// Returns default value of (-1, -1) if an error has occured</returns>
+    public static Vector2 GetCurrentObjectiveAndTaskIndex()
+    {
+        ObjectiveSystem system = ObjectiveSystem.Instance;
+
+        if (system == null)
+            return new Vector2(-1, -1);
+
+        int x = system.CurrentObjectiveIndex.Value;
+        int y = system.ObjectiveList[x].GetCurrentTaskIndex();
+        return new Vector2(x, y);
+    }
+
+    public static string ToHex(this Color c)
+    {
+        return string.Format("#{0:X2}{1:X2}{2:X2}", ToByte(c.r), ToByte(c.g), ToByte(c.b));
+    }
+
+    public static byte ToByte(float f)
+    {
+        f = Mathf.Clamp01(f);
+        return (byte)(f * 255);
+    }
+
+    /// <summary>
+    /// Outputs text in desired colour for debug.logs
+    /// </summary>
+    /// <returns>Colour string</returns>
+    public static string Color(this string text, Color color)
+    {
+        string output;
+        output = string.Format("<color={0}>{1}</color>", color.ToHex(), text);
+        return output;
     }
 }
