@@ -10,7 +10,6 @@ public class Rifle : Gun
     private float recoilVelocity = 0f;
     #endregion
 
-
     #region Unity Events
     public override void Update()
     {
@@ -38,7 +37,6 @@ public class Rifle : Gun
 
     private void ResetRecoil()
     {
-        // Reset Recoil
         recoilTimer = 0f;
         currentRecoilRotX = Mathf.SmoothDamp(
             currentRecoilRotX,
@@ -50,13 +48,11 @@ public class Rifle : Gun
 
     private void CalculateGunRecoil()
     {
-        // Gun Anim
         recoilTimer += Time.deltaTime * GunData.RecoilSpeed;
 
         float oscillation = Mathf.Sin(recoilTimer * Mathf.PI * 2f) * 0.5f + 0.5f;
         float amplitude = GunData.maxAnimRot - GunData.defaultAnimRot;
-
-        float targetRot = (GunData.defaultAnimRot + oscillation * amplitude);
+        float targetRot = GunData.defaultAnimRot + oscillation * amplitude;
 
         currentRecoilRotX = Mathf.Lerp(currentRecoilRotX, targetRot, Time.deltaTime * GunData.RecoilSpeed);
     }
@@ -87,7 +83,9 @@ public class Rifle : Gun
     {
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
-        Vector3 rayOrigin = _isAI ? AimTransform.position : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
+        Vector3 rayOrigin = _isAI
+            ? AimTransform.position
+            : Look.Cam.ViewportToWorldPoint(new Vector3(0.5f, 0.5f, 0.0f));
         Vector3 shootDirection = _isAI ? GetAIShootDirection() : Look.Cam.transform.forward;
 
         if (Physics.Raycast(rayOrigin, shootDirection, out hit, GunData.Range, GunData.TargetLayer))
@@ -99,17 +97,17 @@ public class Rifle : Gun
 #if UNITY_EDITOR
                 LoggerEvent.Log(LogPrefix.Enemy, "Hit", this);
 #endif
+                // AI shooting
                 PlayerStats hitHealth = hit.transform.root.GetComponentInChildren<PlayerStats>();
                 if (hitHealth != null)
-                {
                     hitHealth.TakeDamageServerRpc(GunData.Damage, true);
-                }
             }
             else
             {
-                if (hit.transform.TryGetComponent(out Health hitHealth))
+                // Player shooting
+                if (hit.transform.TryGetComponent(out IDamageable damageable))
                 {
-                    hitHealth.ChangeHealth(-GunData.Damage, transform.root.gameObject);
+                    damageable.ChangeHealth(-GunData.Damage, OwnerClientId);
                 }
             }
         }
@@ -132,14 +130,14 @@ public class Rifle : Gun
         recoilTimer = Random.Range(0f, 1f);
     }
 
-    // Returns a shoot direction for the AI with randomised spread.
-    // Spread is scaled by distance to target — the further away, the less accurate.
-    // Tweak AIMinSpread, AIMaxSpread, and AISpreadAtRange on the GunData asset.
+    /// <summary>
+    /// Returns a shoot direction for the AI with randomised spread.
+    /// Spread is scaled by distance to target — the further away, the less accurate.
+    /// </summary>
     private Vector3 GetAIShootDirection()
     {
         Vector3 ideal = AimTransform.forward;
 
-        // Scale spread based on how far away the target is
         float distanceFraction = 0f;
         if (Physics.Raycast(AimTransform.position, ideal, out RaycastHit rangeCheck, GunData.Range, GunData.TargetLayer))
             distanceFraction = rangeCheck.distance / GunData.Range;
@@ -147,7 +145,6 @@ public class Rifle : Gun
         float spreadDegrees = Mathf.Lerp(GunData.AIMinSpread, GunData.AISpreadAtRange, distanceFraction);
         spreadDegrees = Mathf.Min(spreadDegrees, GunData.AIMaxSpread);
 
-        // Apply a random rotation within the spread cone
         float spreadAngle = Random.Range(-spreadDegrees, spreadDegrees);
         Quaternion randomRotation = Quaternion.Euler(
             Random.Range(-spreadAngle, spreadAngle),
@@ -161,11 +158,8 @@ public class Rifle : Gun
     private void SetAllLayers(GameObject obj, int newLayer)
     {
         obj.layer = newLayer;
-
         foreach (Transform child in obj.transform)
-        {
             SetAllLayers(child.gameObject, newLayer);
-        }
     }
 
     [Rpc(SendTo.Server)]
@@ -196,20 +190,12 @@ public class Rifle : Gun
 
     private IEnumerator WaitForLocalPlayer()
     {
-        // Wait until the local player exists
         while (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
-        {
             yield return null;
-        }
 
         if (transform.root.GetComponent<NetworkBehaviour>().IsLocalPlayer)
-        {
             InputReader.Instance.ReloadEvent += TryReload;
-        }
         else
-        {
-            // If we arent the local player, set their weapon layer mask back to default to stop weapon clipping
             SetAllLayers(ArmModel, 0);
-        }
     }
 }

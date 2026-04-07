@@ -1,5 +1,6 @@
 using System;
 using Unity.Behavior;
+using Unity.Netcode;
 using UnityEngine;
 using Action = Unity.Behavior.Action;
 using Unity.Properties;
@@ -33,7 +34,6 @@ public partial class SetTargetOnDamageAction : Action
         }
 
         return Status.Running;
-
     }
 
     protected override void OnEnd()
@@ -41,12 +41,18 @@ public partial class SetTargetOnDamageAction : Action
         healthComponent.OnDamaged.RemoveListener(OnDamagedByAttacker);
     }
 
-    private void OnDamagedByAttacker(GameObject attacker)
+    private void OnDamagedByAttacker(ulong shooterClientId)
     {
-        if (attacker != null && attacker != Self.Value)
+        // AI_KILLER_ID means the shooter was another AI — no player target to set
+        if (shooterClientId == Health.AI_KILLER_ID) return;
+
+        // Resolve the shooter's GameObject from their NetworkClientId
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.ConnectedClients.TryGetValue(shooterClientId, out var client))
         {
-            potentialTarget = attacker;
+            GameObject shooterGO = client.PlayerObject?.gameObject;
+            if (shooterGO != null && shooterGO != Self.Value)
+                potentialTarget = shooterGO;
         }
     }
 }
-

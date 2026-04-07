@@ -77,6 +77,28 @@ public class NetPlayerManager : NetworkBehaviour
             }
         }
     }
+
+    /// <summary>
+    /// Credits a kill to the player with the given clientId. 
+    /// Must only be called server-side (e.g. from EnemyHealth.Die).
+    /// </summary>
+    public void AddKillForPlayer(ulong clientId)
+    {
+        for (int i = 0; i < playerData.Count; i++)
+        {
+            var temp = playerData[i];
+            if (temp.CLIENTID == clientId)
+            {
+                temp.KILLS++;
+                playerData[i] = temp;
+
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Player, $"Kill credited to '{temp.USERNAME}' (id {clientId}).", this);
+#endif
+                return;
+            }
+        }
+    }
     #endregion
 
     #region Read
