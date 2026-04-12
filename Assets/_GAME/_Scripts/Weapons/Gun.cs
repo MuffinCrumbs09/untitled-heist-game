@@ -38,6 +38,7 @@ public abstract class Gun : NetworkBehaviour
         {
             _isAI = true;
             _weaponInput = transform.root.GetComponent<AIWeaponInput>();
+            AimTransform = transform.root.GetComponent<EnemyShootingBrain>().gunAimTransform;
         }
     }
     #endregion

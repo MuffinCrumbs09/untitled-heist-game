@@ -115,6 +115,8 @@ public class EnemyHealth : Health
             // Only credit kills to real players, not AI-on-AI
             if (_killerClientId != AI_KILLER_ID && NetPlayerManager.Instance != null)
                 NetPlayerManager.Instance.AddKillForPlayer(_killerClientId);
+
+            PlayerTargetingManager.Instance.UnregisterTarget(gameObject);
         }
 
         base.HandleDeath();

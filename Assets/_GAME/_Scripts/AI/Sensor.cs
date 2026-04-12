@@ -26,15 +26,18 @@ public class Sensor : MonoBehaviour
                 if (angle > viewDeg * 0.5f)
                     continue;
 
-                if (!Physics.Raycast(transform.position, dirToTarget.normalized, dist, obstacleMask))
-                    return obj;
+                if (Physics.Raycast(transform.position, dirToTarget.normalized, dist, obstacleMask))
+                    continue;
+                    
+                return obj;
             }
         }
 
         return null;
     }
 
-        private void OnDrawGizmosSelected()
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, viewDist);
@@ -44,4 +47,5 @@ public class Sensor : MonoBehaviour
         Gizmos.DrawLine(transform.position, transform.position + left * viewDist);
         Gizmos.DrawLine(transform.position, transform.position + right * viewDist);
     }
+#endif
 }

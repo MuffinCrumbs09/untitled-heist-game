@@ -15,46 +15,55 @@ public class Computer : NetworkBehaviour, IInteractable
     public ComputerType type;
     [TextArea(3, 10)] public string CompleteText;
 
-    // Task
     public MinigameTask associatedTask;
 
     public NetworkVariable<bool> IsHacking = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> IsHacked = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    public NetworkVariable<bool> Interactable = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> TimeToHack = new(0);
     private int timeToHack => TimeToHack.Value;
 
+    private ComputerSettings _settings;
+
+    private void Awake()
+    {
+        _settings = GetComponent<ComputerSettings>();
+    }
+
     public bool CanInteract()
     {
-        if (associatedTask == null) return enabled && !IsHacking.Value;
+        if (IsHacked.Value || IsHacking.Value) return false;
 
-        foreach (var task in ObjectiveSystem.Instance.GetCurObjective().tasks)
+        // Correctly assigned computer on the right objective — always interactable
+        if (associatedTask != null)
         {
-            if (task is MinigameTask minitask)
-                if (minitask == associatedTask)
-                    return true && !IsHacking.Value;
+            Objective curObjective = ObjectiveSystem.Instance.GetCurObjective();
+            foreach (var task in curObjective.tasks)
+            {
+                if (task is MinigameTask minitask && minitask == associatedTask)
+                    return true;
+            }
         }
 
-        return false;
+        // Everything else goes through the network variable
+        if (!Interactable.Value) return false;
+
+        return true;
     }
 
     public void Interact()
     {
         if (!CanInteract()) return;
-
         minigame.StartHacking(this);
     }
 
     public string InteractText()
     {
         if (!CanInteract()) return string.Empty;
-
         return "Press [E] to Hack Computer";
     }
 
-    public bool IsCorrectComputer()
-    {
-        return associatedTask != null;
-    }
+    public bool IsCorrectComputer() => associatedTask != null;
 
     public void OnHackComplete()
     {
@@ -90,9 +99,9 @@ public class Computer : NetworkBehaviour, IInteractable
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void OnHackCompleteServerRpc()
     {
-        // Server receives the RPC and broadcasts to all clients
         SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
         IsHacked.Value = true;
+        Interactable.Value = false;
         OnHackCompleteClientRpc();
     }
 
@@ -105,9 +114,6 @@ public class Computer : NetworkBehaviour, IInteractable
             TimeToHack.Value = time;
     }
 
-    /// <summary>
-    /// Propagates associatedTask rewire to all clients using stable objective/task indices.
-    /// </summary>
     [Rpc(SendTo.NotServer)]
     public void SyncAssociatedTaskClientRpc(int objectiveIndex, int taskIndex)
     {
@@ -120,10 +126,13 @@ public class Computer : NetworkBehaviour, IInteractable
             associatedTask = miniTask;
     }
 
-
     [ClientRpc]
     private void OnHackCompleteClientRpc()
     {
-        associatedTask?.CompleteTask(ObjectiveSystem.Instance, ObjectiveSystem.Instance.CurrentObjectiveIndex.Value, ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask));
+        associatedTask?.CompleteTask(
+            ObjectiveSystem.Instance,
+            ObjectiveSystem.Instance.CurrentObjectiveIndex.Value,
+            ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask)
+        );
     }
 }

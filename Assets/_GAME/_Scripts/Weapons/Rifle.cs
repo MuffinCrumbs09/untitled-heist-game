@@ -59,7 +59,7 @@ public class Rifle : Gun
 
     public override void OnNetworkSpawn()
     {
-        base.OnNetworkDespawn();
+        base.OnNetworkSpawn(); // Fixed: was incorrectly calling base.OnNetworkDespawn()
 
         if (_isAI) return;
 
@@ -81,6 +81,13 @@ public class Rifle : Gun
 
     public override void Shoot()
     {
+        // Notify shooting brain a shot was fired
+        if (_isAI)
+        {
+            EnemyShootingBrain brain = transform.root.GetComponent<EnemyShootingBrain>();
+            if (brain != null) brain.OnShotFired();
+        }
+
         RaycastHit hit;
         Vector3 targetPos = Vector3.zero;
         Vector3 rayOrigin = _isAI
@@ -97,14 +104,12 @@ public class Rifle : Gun
 #if UNITY_EDITOR
                 LoggerEvent.Log(LogPrefix.Enemy, "Hit", this);
 #endif
-                // AI shooting
                 PlayerStats hitHealth = hit.transform.root.GetComponentInChildren<PlayerStats>();
                 if (hitHealth != null)
                     hitHealth.TakeDamageServerRpc(GunData.Damage, true);
             }
             else
             {
-                // Player shooting
                 if (hit.transform.TryGetComponent(out IDamageable damageable))
                 {
                     damageable.ChangeHealth(-GunData.Damage, OwnerClientId);
@@ -138,6 +143,11 @@ public class Rifle : Gun
     {
         Vector3 ideal = AimTransform.forward;
 
+        // 60% of shots are pixel perfect
+        if (Random.value <= 0.6f)
+            return ideal;
+
+        // 40% apply spread scaled by distance
         float distanceFraction = 0f;
         if (Physics.Raycast(AimTransform.position, ideal, out RaycastHit rangeCheck, GunData.Range, GunData.TargetLayer))
             distanceFraction = rangeCheck.distance / GunData.Range;
@@ -145,10 +155,9 @@ public class Rifle : Gun
         float spreadDegrees = Mathf.Lerp(GunData.AIMinSpread, GunData.AISpreadAtRange, distanceFraction);
         spreadDegrees = Mathf.Min(spreadDegrees, GunData.AIMaxSpread);
 
-        float spreadAngle = Random.Range(-spreadDegrees, spreadDegrees);
         Quaternion randomRotation = Quaternion.Euler(
-            Random.Range(-spreadAngle, spreadAngle),
-            Random.Range(-spreadAngle, spreadAngle),
+            Random.Range(-spreadDegrees, spreadDegrees),
+            Random.Range(-spreadDegrees, spreadDegrees),
             0f
         );
 

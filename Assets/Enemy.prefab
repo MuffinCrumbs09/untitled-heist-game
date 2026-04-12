@@ -683,6 +683,9 @@ GameObject:
   - component: {fileID: 8155640040982874021}
   - component: {fileID: 528010476178979668}
   - component: {fileID: 3281575527701323486}
+  - component: {fileID: 4238733715744070667}
+  - component: {fileID: 1716076433471998139}
+  - component: {fileID: 8105790579086319670}
   m_Layer: 6
   m_Name: Enemy
   m_TagString: Untagged
@@ -769,12 +772,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  m_Graph: {fileID: -2331132790567747816, guid: 03bb9c5274814c24cac95b2c722d5508, type: 2}
+  m_Graph: {fileID: 2700786746933032315, guid: 9aa762cb9b2f81c49bc42dc5425b13c8, type: 2}
   m_BlackboardVariableOverridesList:
   - rid: 2239482453283308413
-  - rid: 2826757689214239025
-  - rid: 3958162843390706516
-  m_OriginalGraph: {fileID: 0}
+  - rid: 7382468777603760269
+  - rid: 7382468777603760270
+  - rid: 7382468777603760271
+  - rid: 7382468799181619578
+  m_OriginalGraph: {fileID: 2700786746933032315, guid: 9aa762cb9b2f81c49bc42dc5425b13c8, type: 2}
   m_IsInitialised: 0
   m_IsStarted: 0
   NetcodeRunOnlyOnOwner: 1
@@ -789,22 +794,38 @@ MonoBehaviour:
           m_Value1: 0
         Name: Self
         m_Value: {fileID: 0}
-    - rid: 2826757689214239025
+    - rid: 7382468777603760269
+      type: {class: 'BlackboardVariable`1[[EnemyTargetingBrain, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 6221726086151922066
+          m_Value1: 5894136548497874344
+        Name: TargetBrain
+        m_Value: {fileID: 4238733715744070667}
+    - rid: 7382468777603760270
       type: {class: 'BlackboardVariable`1[[UnityEngine.AI.NavMeshAgent, UnityEngine.AIModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
-          m_Value0: 5690103431261030965
-          m_Value1: 14964413635963057605
+          m_Value0: 16377192440447169214
+          m_Value1: 16525191698759254317
         Name: Agent
         m_Value: {fileID: 3408307189082495343}
-    - rid: 3958162843390706516
-      type: {class: 'BlackboardVariable`1[[LoudState, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+    - rid: 7382468777603760271
+      type: {class: 'BlackboardVariable`1[[EnemyMovementBrain, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
-          m_Value0: 927769025906746447
-          m_Value1: 16143944712948325106
-        Name: LoudState
-        m_Value: 0
+          m_Value0: 16215017548311609814
+          m_Value1: 2051461686611435548
+        Name: MovementBrain
+        m_Value: {fileID: 1716076433471998139}
+    - rid: 7382468799181619578
+      type: {class: 'BlackboardVariable`1[[EnemyShootingBrain, Assembly-CSharp]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 11988549019129677636
+          m_Value1: 12870417145236564796
+        Name: ShootingBrain
+        m_Value: {fileID: 8105790579086319670}
 --- !u!114 &4867795893986989259
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1035,6 +1056,60 @@ MonoBehaviour:
   - MaxAP: 90
     CurrentAP: 0
     DamageReduction: 0.1
+--- !u!114 &4238733715744070667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2202312591368076134}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edb9224cd09c9042a475774467f7d9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyTargetingBrain
+--- !u!114 &1716076433471998139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2202312591368076134}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 337c150c6c3472e459401bd02777730c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementBrain
+  farMinDist: 25
+  farMaxDist: 35
+  midMinDist: 15
+  midMaxDist: 25
+  closeMinDist: 5
+  closeMaxDist: 15
+  strafeMinDist: 10
+  strafeMaxDist: 15
+  strafeSpeed: 3
+  desiredFarDist: 0
+  desiredMidDist: 0
+  desiredCloseDist: 0
+  desiredStrafeDist: 0
+  currentDistanceState: 0
+--- !u!114 &8105790579086319670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2202312591368076134}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94ce21a9947e7f845b00ca94ded49d98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyShootingBrain
+  burstMinShots: 3
+  burstMaxShots: 5
+  burstCooldown: 1
+  gunAimTransform: {fileID: 3484302265963004494}
 --- !u!1 &2488749949358559656
 GameObject:
   m_ObjectHideFlags: 0
