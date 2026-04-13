@@ -254,6 +254,8 @@ public class ObjectiveSystem : NetworkBehaviour
             NetPlayerManager.Instance.GetLocalPlayersKills()
         );
 
+        ShutdownClientRpc();
+
         StartCoroutine(ShutdownAfterDelay());
     }
 
@@ -279,6 +281,21 @@ public class ObjectiveSystem : NetworkBehaviour
         NetworkManager.Singleton.Shutdown();
         Destroy(NetPlayerManager.Instance.gameObject);
         Destroy(NetworkManager.Singleton.gameObject);
+
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+    }
+
+    [Rpc(SendTo.NotServer)]
+    private void ShutdownClientRpc()
+    {
+        StartCoroutine(ClientShutdownRoutine());
+    }
+
+    private System.Collections.IEnumerator ClientShutdownRoutine()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        NetworkManager.Singleton.Shutdown();
 
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }

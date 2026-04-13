@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
+using Unity.VisualScripting;
 
 public enum ComputerType
 {
@@ -38,12 +39,16 @@ public class Computer : NetworkBehaviour, IInteractable
         if (associatedTask != null)
         {
             Objective curObjective = ObjectiveSystem.Instance.GetCurObjective();
-            foreach (var task in curObjective.tasks)
+            int currentTaskIndex = curObjective.GetCurrentTaskIndex();
+
+            if (currentTaskIndex >= 0)
             {
-                if (task is MinigameTask minitask && minitask == associatedTask)
+                Task currentTask = curObjective.tasks[currentTaskIndex];
+
+                if (currentTask is MinigameTask minigameTask && minigameTask == associatedTask)
                     return true;
             }
-        }
+        }  
 
         // Everything else goes through the network variable
         if (!Interactable.Value) return false;
@@ -99,7 +104,6 @@ public class Computer : NetworkBehaviour, IInteractable
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void OnHackCompleteServerRpc()
     {
-        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
         IsHacked.Value = true;
         Interactable.Value = false;
         OnHackCompleteClientRpc();
@@ -110,6 +114,7 @@ public class Computer : NetworkBehaviour, IInteractable
     {
         IsHacked.Value = false;
         IsHacking.Value = false;
+        Interactable.Value = true;
         if (time != -1)
             TimeToHack.Value = time;
     }
@@ -129,10 +134,14 @@ public class Computer : NetworkBehaviour, IInteractable
     [ClientRpc]
     private void OnHackCompleteClientRpc()
     {
-        associatedTask?.CompleteTask(
+        if (associatedTask == null) return;
+
+        associatedTask.CompleteTask(
             ObjectiveSystem.Instance,
             ObjectiveSystem.Instance.CurrentObjectiveIndex.Value,
             ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask)
         );
+
+        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
     }
 }

@@ -10,8 +10,32 @@ public class MapManager : NetworkBehaviour
 {
     public static MapManager Instance;
 
-    #region Inspector Fields
-    [Header("Map Settings")]
+    #region STATE MACHINE
+    public enum MapState
+    {
+        None,
+        GeneratingRooms,
+        SyncingRooms,
+        BakingNavMesh,
+        SpawningWorld,
+        AssigningObjectives,
+        Completed
+    }
+
+    public MapState CurrentState { get; private set; } = MapState.None;
+    public event System.Action<MapState> OnStateChanged;
+
+    private void SetState(MapState newState)
+    {
+        CurrentState = newState;
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] State -> {newState}", this);
+#endif
+        OnStateChanged?.Invoke(newState);
+    }
+    #endregion
+
+    #region Inspector
     public M_Settings Map;
     public M_Areas[] Areas;
     public RandomObjectiveData[] RandomObjectives;
@@ -19,18 +43,24 @@ public class MapManager : NetworkBehaviour
     public M_RandomDialouge MapRandomDialouge;
     public ObjectiveSystem ObjectiveSystem;
 
-    [SerializeField] private UnityEvent OnMapGenerated; // Optional event that fires after map generation is complete, for hooking up custom logic in the inspector
-
-    [Header("Room Tags")]
+    [SerializeField] private UnityEvent OnMapGenerated;
     [SerializeField] private RoomTypeTag _hallTag;
-
-    [Header("NavMesh")]
     [SerializeField] private NavMeshSurface _navMeshSurface;
+
+    [System.Serializable]
+    public class AlwaysSpawnedRoom
+    {
+        [Tooltip("The area name this room belongs to (e.g. the parent GameObject name)")]
+        public string areaName;
+        [Tooltip("The RoomTypeTag of this room")]
+        public RoomTypeTag roomType;
+    }
+    [Header("Always Spawned Rooms")]
+    [Tooltip("Rooms that are always present in the scene and should be treated as activated")]
+    [SerializeField] private List<AlwaysSpawnedRoom> _alwaysSpawnedRooms = new();
     #endregion
 
-    #region State
-    public event System.Action OnNavMeshReady;
-
+    #region Data
     private Dictionary<RoomTypeTag, (int min, int max)> _roomLimits = new();
     private Dictionary<RoomTypeTag, int> _currentCount = new();
     private List<(string areaName, RoomTypeTag roomType)> _activatedRooms = new();
@@ -39,7 +69,7 @@ public class MapManager : NetworkBehaviour
     public NetworkList<NetString> syncedRandomObjectives;
     #endregion
 
-    #region Unity Lifecycle
+    #region Unity
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -53,370 +83,352 @@ public class MapManager : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        // Disable all rooms
-        foreach (M_Areas area in Areas)
-        {
-            GameObject areaObj = GameObject.Find(area.Area);
-
-            for (int i = 0; i < areaObj.transform.childCount; i++)
-            {
-                Transform child = areaObj.transform.GetChild(i);
-                child.gameObject.SetActive(false);
-            }
-        }
-
-        if (IsServer)
-        {
-            OnNavMeshReady += OnNavMeshBaked;
-
-            // Generate rooms
-            AllocateRooms();
-
-            // Send results to clients
-            foreach (var (area, room) in _activatedRooms)
-            {
-                syncedRooms.Add(new NetRoomData(area, room.name));
-            }
-            // Bake NavMesh AFTER rooms are spawned
-            StartCoroutine(BakeNavMeshThenInit());
-        }
-        else
-        {
-            // Non-server clients: sync random objectives from the network list when joining
-            foreach (var objPath in syncedRandomObjectives)
-            {
-                GameObject itemObj = GameObject.Find(objPath);
-                if (itemObj != null)
-                    itemObj.SetActive(true);
-            }
-        }
+        if (!IsServer) return;
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] OnNetworkSpawn — server starting MapFlow.", this);
+#endif
+        StartCoroutine(MapFlow());
     }
     #endregion
 
-    #region Map Generation (Server Only)
-    /// <summary>
-    /// Core room allocation logic (host only).
-    /// Iterates over every room type, picks random areas, respects min/max limits,
-    /// processes dependencies, then fills remaining areas with hallways.
-    /// </summary>
-    private void AllocateRooms()
+    #region FLOW
+    private IEnumerator MapFlow()
     {
-        M_Rooms rooms = Map.MapRooms;
-        List<M_Areas> availableAreas = new List<M_Areas>(Areas);
-        SetRoomLimits(rooms);
+        SetState(MapState.GeneratingRooms);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Beginning room allocation.", this);
+#endif
+        AllocateRooms();
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Room allocation complete. {_activatedRooms.Count} room(s) activated.", this);
+#endif
+        yield return null;
 
-        // --- Pass 1: Place all non-hall room types ---
-        foreach (var kvp in _roomLimits)
+        SetState(MapState.SyncingRooms);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Syncing {_activatedRooms.Count} room(s) to NetworkList.", this);
+#endif
+        foreach (var (area, room) in _activatedRooms)
+            syncedRooms.Add(new NetRoomData(area, room.name));
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] syncedRooms now contains {syncedRooms.Count} entries.", this);
+#endif
+        yield return null;
+
+        SetState(MapState.BakingNavMesh);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Starting NavMesh bake.", this);
+#endif
+        yield return _navMeshSurface.UpdateNavMesh(_navMeshSurface.navMeshData);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] NavMesh bake complete.", this);
+#endif
+
+        SetState(MapState.SpawningWorld);
+        yield return null;
+        yield return new WaitForSeconds(0.1f);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Spawning random objectives.", this);
+#endif
+        SpawnRandomObjectivesNew();
+
+        SetState(MapState.AssigningObjectives);
+
+        int max = 0;
+
+        foreach (Loot loot in GameObject.FindObjectsByType<Loot>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
-            RoomTypeTag roomTag = kvp.Key;
-            if (roomTag == _hallTag) continue; // Halls are handled separately
-
-            int min = kvp.Value.min;
-            int max = kvp.Value.max;
-            // If there's a minimum, pick a random count between min and max; otherwise skip this type
-            int roomCount = min > 0 ? Random.Range(min, max + 1) : 0;
-
-            for (int i = 0; i < roomCount; i++)
+            if (loot.TryGetComponent<MeshRenderer>(out var renderer) && renderer.enabled)
             {
-                int areaRef = -1;
-                GameObject room = PickRandomArea(roomTag, availableAreas, ref areaRef);
-                if (room == null) continue; // No valid area found after max attempts
-
-                RoomTypeTag roomType = GetRoomType(room.transform);
-                // Skip if this room type has already hit its cap
-                if (roomType == null || _currentCount[roomType] >= _roomLimits[roomType].max) continue;
-
-                _currentCount[roomType]++;
-                availableAreas.RemoveAt(areaRef); // Mark this area as used
-                room.SetActive(true);
-
-                string parentAreaName = room.transform.parent.name;
-                _activatedRooms.Add((parentAreaName, roomType));
-
-                // Check and process any dependencies this room may have
-                ProcessDependencies(parentAreaName, roomType, availableAreas);
-            }
-        }
-
-        // --- Pass 2: Fill any areas that couldn't be halls but got no room ---
-        CheckNonHallAreas(availableAreas);
-
-        // --- Pass 3: Fill remaining areas with hallways ---
-        var hallAreas = availableAreas.Where(a => a.CanBeHall).ToList();
-
-        foreach (M_Areas area in hallAreas)
-        {
-            GameObject areaObj = GameObject.Find(area.Area);
-            for (int i = 0; i < areaObj.transform.childCount; i++)
-            {
-                Transform child = areaObj.transform.GetChild(i);
-                if (IsRoomType(child, _hallTag))
-                {
-                    child.gameObject.SetActive(true);
-                    _activatedRooms.Add((area.Area, _hallTag));
-                    break; // Found the hall gameobject
-                }
+                max += loot.LootValue;
             }
         }
 
 #if UNITY_EDITOR
-        // Debug output — logs every activated room and its type
-        string s = "";
-        s += "--- Activated Roooms ---\n";
-        foreach (var kvp in _activatedRooms)
-        {
-            s += kvp.areaName + ": " + kvp.roomType.name + "\n";
-        }
-        LoggerEvent.Log(LogPrefix.Environment, s, this);
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Total max payout calculated (visible meshes only): {max}.", this);
 #endif
+
+        NetStore.Instance.SetMaxPayoutServerRpc(max);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Assigning objective transforms.", this);
+#endif
+        AssignObjectiveTransforms();
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Assigning correct computers.", this);
+#endif
+        AssignCorrectComputer();
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Spawning objective hints.", this);
+#endif
+        SpawnObjectiveHints();
+
+        SetState(MapState.Completed);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, "[MapManager] Map generation fully complete. Invoking OnMapGenerated.", this);
+#endif
+        OnMapGenerated?.Invoke();
+    }
+    #endregion
+
+    #region MAP GENERATION
+    private void AllocateRooms()
+    {
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Registering {_alwaysSpawnedRooms.Count} always-spawned room(s).", this);
+#endif
+        foreach (var entry in _alwaysSpawnedRooms)
+        {
+            if (entry.roomType == null) continue;
+            _activatedRooms.Add((entry.areaName, entry.roomType));
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Always-spawned room registered: area='{entry.areaName}', type='{entry.roomType.name}'.", this);
+#endif
+        }
+
+        M_Rooms rooms = Map.MapRooms;
+        List<M_Areas> availableAreas = new List<M_Areas>(Areas);
+        SetRoomLimits(rooms);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Starting room allocation loop. {_roomLimits.Count} room type limit(s) configured. {availableAreas.Count} area(s) available.", this);
+#endif
+
+        foreach (var kvp in _roomLimits)
+        {
+            RoomTypeTag roomTag = kvp.Key;
+            if (roomTag == _hallTag) continue;
+
+            int min = kvp.Value.min;
+            int max = kvp.Value.max;
+            int count = min >= 0 ? Random.Range(min, max + 1) : 0;
+
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] RoomType '{roomTag.name}': min={min}, max={max}, rolling count={count}.", this);
+#endif
+
+            for (int i = 0; i < count; i++)
+            {
+                int idx = -1;
+                GameObject room = PickRandomArea(roomTag, availableAreas, ref idx);
+                if (room == null)
+                {
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] No available area found for room type '{roomTag.name}' on iteration {i}. Skipping.", this);
+#endif
+                    continue;
+                }
+
+                RoomTypeTag type = GetRoomType(room.transform);
+                if (type == null || _currentCount[type] >= _roomLimits[type].max)
+                {
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Room '{room.name}' skipped — type null or count at max for '{type?.name}'.", this);
+#endif
+                    continue;
+                }
+
+                _currentCount[type]++;
+                availableAreas.RemoveAt(idx);
+                ShowRoom(room.transform);
+
+                string area = room.transform.parent.name;
+                _activatedRooms.Add((area, type));
+
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Activated room '{room.name}' (type='{type.name}') in area '{area}'. Count for type: {_currentCount[type]}.", this);
+#endif
+
+                ProcessDependencies(area, type, availableAreas);
+            }
+        }
+
+        CheckNonHallAreas(availableAreas);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Filling remaining {availableAreas.Count(a => a.CanBeHall)} hall-eligible area(s).", this);
+#endif
+
+        foreach (var area in availableAreas.Where(a => a.CanBeHall))
+        {
+            GameObject obj = GameObject.Find(area.Area);
+            foreach (Transform child in obj.transform)
+            {
+                if (IsRoomType(child, _hallTag))
+                {
+                    ShowRoom(child);
+                    _activatedRooms.Add((area.Area, _hallTag));
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Hall room '{child.name}' activated in area '{area.Area}'.", this);
+#endif
+                    break;
+                }
+            }
+        }
     }
 
-    /// <summary>
-    /// Reads the room type limits from the map settings and populates the working dictionaries.
-    /// A max of 0 in the settings is treated as unlimited (99).
-    /// </summary>
     private void SetRoomLimits(M_Rooms rooms)
     {
         foreach (RoomTypeLimit limit in rooms.Limits)
         {
             int min = (int)limit.MinMax.x;
             int max = limit.MinMax.y == 0 ? 99 : (int)limit.MinMax.y;
-
             _roomLimits[limit.RoomType] = (min, max);
             _currentCount[limit.RoomType] = 0;
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Room limit set: type='{limit.RoomType.name}', min={min}, max={max}.", this);
+#endif
         }
     }
 
-    /// <summary>
-    /// Randomly picks an available area that contains a room matching the requested type.
-    /// Tries up to 20 times before giving up to avoid infinite loops.
-    /// </summary>
-    /// <param name="selectedRoom">The room type we're looking for.</param>
-    /// <param name="availableAreas">The pool of areas not yet assigned a room.</param>
-    /// <param name="areaIndex">Output: the index in availableAreas of the chosen area.</param>
-    /// <returns>The matching child GameObject, or null if none found.</returns>
-    private GameObject PickRandomArea(RoomTypeTag selectedRoom, List<M_Areas> availableAreas, ref int areaIndex)
+    private GameObject PickRandomArea(RoomTypeTag tag, List<M_Areas> areas, ref int index)
     {
-        const int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        for (int i = 0; i < 20; i++)
         {
-            int index = Random.Range(0, availableAreas.Count);
-            GameObject area = GameObject.Find(availableAreas[index].Area);
+            int idx = Random.Range(0, areas.Count);
+            GameObject area = GameObject.Find(areas[idx].Area);
 
-            for (int i = 0; i < area.transform.childCount; i++)
+            foreach (Transform child in area.transform)
             {
-                Transform child = area.transform.GetChild(i);
-                if (IsRoomType(child, selectedRoom))
+                if (IsRoomType(child, tag))
                 {
-                    areaIndex = index;
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] PickRandomArea found '{child.name}' for tag '{tag.name}' in area '{areas[idx].Area}' on attempt {i + 1}.", this);
+#endif
+                    index = idx;
                     return child.gameObject;
                 }
             }
         }
 
 #if UNITY_EDITOR
-        LoggerEvent.LogWarning(LogPrefix.Environment, $"Failed to find area for room type '{selectedRoom.name}' after {maxAttempts} attempts.", this);
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] PickRandomArea failed to find a room for tag '{tag.name}' after 20 attempts.", this);
 #endif
-
         return null;
     }
 
-    /// <summary>
-    /// After placing a room, checks whether that placement triggers any dependency rules.
-    /// For example: placing a "Vault" room may require a specific "SecurityDesk" room to also exist.
-    /// If the target area already has the wrong room type, it's swapped out.
-    /// If the required room type is already at its cap, an existing one is freed first.
-    /// </summary>
     private void ProcessDependencies(string areaName, RoomTypeTag roomType, List<M_Areas> availableAreas)
     {
-        // --- Step 1: Look up the config for the area that was just assigned a room ---
-        M_Areas areaConfig = Areas.FirstOrDefault(a => a.Area == areaName);
+        var area = Areas.FirstOrDefault(a => a.Area == areaName);
+        if (area?.Dependencies == null) return;
 
-        if (areaConfig.Dependencies == null || areaConfig.Dependencies.Length == 0)
-            return;
-
-        foreach (M_Dependency dependency in areaConfig.Dependencies)
+        foreach (var dep in area.Dependencies)
         {
-            // Only act if this dependency is triggered by the room type we just placed
-            if (dependency.TriggerRoomType != roomType)
-                continue;
+            if (dep.TriggerRoomType != roomType) continue;
 
-            GameObject targetArea = GameObject.Find(dependency.TargetAreaName);
-            GameObject existingRoom = null;
-            RoomTypeTag existingRoomType = null;
-
-            // --- Step 2: Check what room (if any) is already active in the target area ---
-            for (int i = 0; i < targetArea.transform.childCount; i++)
-            {
-                Transform child = targetArea.transform.GetChild(i);
-                if (child.gameObject.activeSelf)
-                {
-                    existingRoom = child.gameObject;
-                    existingRoomType = GetRoomType(child);
-                    break;
-                }
-            }
-
-            // --- Step 3: If the target area already has the correct room type, nothing to do ---
-            if (existingRoom != null && existingRoomType == dependency.RequiredRoomType)
-                continue;
-
-            // --- Step 4: Remove whatever wrong room was in the target area ---
-            if (existingRoom != null)
-            {
-                existingRoom.SetActive(false);
-                _currentCount[existingRoomType]--;
-                _activatedRooms.Remove((dependency.TargetAreaName, existingRoomType));
-            }
-
-            // --- Step 5: If the required room type is at its global cap, free up one instance elsewhere ---
-            if (_currentCount[dependency.RequiredRoomType] >= _roomLimits[dependency.RequiredRoomType].max)
-            {
 #if UNITY_EDITOR
-                LoggerEvent.LogWarning(LogPrefix.Environment, $"Room type '{dependency.RequiredRoomType.name}' is at its cap. Attempting to free one up for dependency.", this);
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Processing dependency in area '{areaName}': trigger='{roomType.name}', required='{dep.RequiredRoomType.name}', target='{dep.TargetAreaName}'.", this);
 #endif
 
-                // Prefer freeing a room in the exact target area; fall back to any area with that type
-                var oldEntry = _activatedRooms.FirstOrDefault(t =>
-                    t.roomType == dependency.RequiredRoomType && t.areaName == dependency.TargetAreaName);
+            GameObject target = GameObject.Find(dep.TargetAreaName);
 
-                if (oldEntry == default)
-                    oldEntry = _activatedRooms.FirstOrDefault(t => t.roomType == dependency.RequiredRoomType);
-
-                GameObject removeAreaObj = GameObject.Find(oldEntry.areaName);
-                for (int i = 0; i < removeAreaObj.transform.childCount; i++)
-                {
-                    Transform child = removeAreaObj.transform.GetChild(i);
-                    if (IsRoomType(child, dependency.RequiredRoomType) && child.gameObject.activeSelf)
-                    {
-                        child.gameObject.SetActive(false);
-                        _currentCount[dependency.RequiredRoomType]--;
-                        _activatedRooms.RemoveAll(t => t.areaName == oldEntry.areaName && t.roomType == oldEntry.roomType);
-
-                        // The freed area is now available again for future allocation
-                        M_Areas oldArea = Areas.FirstOrDefault(a => a.Area == oldEntry.areaName);
-                        if (oldArea != null && !availableAreas.Contains(oldArea))
-                            availableAreas.Add(oldArea);
-
-                        break;
-                    }
-                }
-            }
-
-            // --- Step 6: Activate the required room type in the target area ---
-            for (int i = 0; i < targetArea.transform.childCount; i++)
+            foreach (Transform child in target.transform)
             {
-                Transform child = targetArea.transform.GetChild(i);
-                if (IsRoomType(child, dependency.RequiredRoomType))
+                if (IsRoomType(child, dep.RequiredRoomType))
                 {
-                    child.gameObject.SetActive(true);
-                    _currentCount[dependency.RequiredRoomType]++;
-                    _activatedRooms.Add((dependency.TargetAreaName, dependency.RequiredRoomType));
-
-                    // Remove the target area from the available pool so it won't be overwritten
-                    M_Areas trgArea = availableAreas.FirstOrDefault(a => a.Area == dependency.TargetAreaName);
-                    if (trgArea != null)
-                        availableAreas.Remove(trgArea);
+                    ShowRoom(child);
+                    _currentCount[dep.RequiredRoomType]++;
+                    _activatedRooms.Add((dep.TargetAreaName, dep.RequiredRoomType));
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Dependency satisfied: activated '{child.name}' (type='{dep.RequiredRoomType.name}') in '{dep.TargetAreaName}'.", this);
+#endif
+                    break;
                 }
             }
         }
     }
 
-    /// <summary>
-    /// Ensures every area marked as "cannot be a hall" has at least one active room.
-    /// If an area is still empty, a random valid room type from that area's allowed list is placed.
-    /// </summary>
-    private void CheckNonHallAreas(List<M_Areas> availableAreas)
+    private void CheckNonHallAreas(List<M_Areas> areas)
     {
-        var emptyNonHallAreas = availableAreas.Where(a => !a.CanBeHall).ToList();
+        var nonHallAreas = areas.Where(a => !a.CanBeHall).ToList();
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] CheckNonHallAreas: processing {nonHallAreas.Count} non-hall area(s).", this);
+#endif
 
-        foreach (M_Areas area in emptyNonHallAreas)
+        foreach (var area in nonHallAreas)
         {
-            GameObject areaObj = GameObject.Find(area.Area);
-            bool hasActiveRoom = false;
+            GameObject obj = GameObject.Find(area.Area);
+            RoomTypeTag type = area.Rooms[Random.Range(0, area.Rooms.Length)];
 
-            // Check if any child is already active
-            for (int i = 0; i < areaObj.transform.childCount; i++)
+            foreach (Transform child in obj.transform)
             {
-                if (areaObj.transform.GetChild(i).gameObject.activeSelf)
+                if (IsRoomType(child, type))
                 {
-                    hasActiveRoom = true;
+                    ShowRoom(child);
+                    _currentCount[type]++;
+                    _activatedRooms.Add((area.Area, type));
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Non-hall area '{area.Area}' filled with room '{child.name}' (type='{type.name}').", this);
+#endif
                     break;
-                }
-            }
-
-            if (!hasActiveRoom)
-            {
-                // Pick a random room type from this area's allowed types
-                RoomTypeTag selectedRoomType = area.Rooms[Random.Range(0, area.Rooms.Length)];
-
-                for (int i = 0; i < areaObj.transform.childCount; i++)
-                {
-                    Transform child = areaObj.transform.GetChild(i);
-                    if (IsRoomType(child, selectedRoomType))
-                    {
-                        // Only place if we haven't exceeded this room type's global cap
-                        if (_currentCount.ContainsKey(selectedRoomType) &&
-                            _currentCount[selectedRoomType] < _roomLimits[selectedRoomType].max)
-                        {
-                            child.gameObject.SetActive(true);
-                            _currentCount[selectedRoomType]++;
-                            _activatedRooms.Add((area.Area, selectedRoomType));
-                            availableAreas.Remove(area);
-                            break;
-                        }
-                    }
                 }
             }
         }
     }
     #endregion
 
-    #region NavMesh
-    /// <summary>
-    /// Coroutine that asynchronously rebuilds the NavMesh using the current scene geometry,
-    /// then fires the OnNavMeshReady event once complete.
-    /// </summary>
-    private IEnumerator BakeNavMeshThenInit()
+    #region OBJECTIVES
+    private void SpawnRandomObjectivesNew()
     {
-        AsyncOperation bake = _navMeshSurface.UpdateNavMesh(_navMeshSurface.navMeshData);
-        yield return bake; // Wait until the bake finishes before continuing
-
 #if UNITY_EDITOR
-        LoggerEvent.Log(LogPrefix.Environment, "NavMesh baking complete.", this);
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] SpawnRandomObjectivesNew: processing {RandomObjectives.Length} objective data entry(s).", this);
 #endif
 
-        OnNavMeshReady?.Invoke();
-        OnMapGenerated?.Invoke();
-    }
-
-    /// <summary>
-    /// Called on the server once the NavMesh has finished baking.
-    /// Calculates max loot payout, syncs rooms to clients, and sets up objectives.
-    /// </summary>
-    private void OnNavMeshBaked()
-    {
-        // Sum the total of all active loot value
-        int max = 0;
-        foreach (Loot loot in GameObject.FindObjectsByType<Loot>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+        foreach (var data in RandomObjectives)
         {
-            max += loot.LootValue;
+            var rooms = FindRoomsByTag(data.RequiredRoomType.name);
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Objective type '{data.SpawnItemType}' requires room '{data.RequiredRoomType.name}': {rooms.Count} matching room(s) found.", this);
+#endif
+
+            foreach (var room in rooms)
+            {
+                List<GameObject> items = new();
+                Helper.FindItemsByRoom(room, data.SpawnItemType, ref items);
+
+                int count = Mathf.Min(data.GetRandomSpawnCount(), items.Count);
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Room '{room.name}': {items.Count} candidate(s) found, spawning {count} objective(s) of type '{data.SpawnItemType}'.", this);
+#endif
+
+                for (int i = 0; i < count; i++)
+                    if (items[i].TryGetComponent(out RandomObject obj))
+                        obj.ChangeStateRpc(true);
+            }
         }
-        // Share with clients
-        NetStore.Instance.SetMaxPayoutServerRpc(max);
-
-        // Tell clients which rooms to enable
-        SyncRoomsClientRpc();
-
-        // Assign world-space transforms and computers to objective tasks
-        AssignObjectiveTransforms();
-        AssignCorrectComputer();
-        SpawnRandomObjectivesNew();
-        SpawnObjectiveHints();
     }
-    #endregion
 
-    #region Objective Assignment (Server Only)
+    private void SpawnObjectiveHints()
+    {
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] SpawnObjectiveHints: processing {ObjectiveHints.Length} hint entry(s).", this);
+#endif
+
+        foreach (var data in ObjectiveHints)
+        {
+            Transform room = Helper.GoToTaskRoom(data.Index.x, data.Index.y);
+            if (room == null)
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Hint index ({data.Index.x},{data.Index.y}): room not found, skipping.", this);
+#endif
+                continue;
+            }
+
+            List<GameObject> items = new();
+            Helper.FindItemsByRoom(room, data.SpawnItemType, ref items);
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Hint in room '{room.name}': activating {items.Count} hint item(s) of type '{data.SpawnItemType}'.", this);
+#endif
+
+            foreach (var item in items)
+                if (item.TryGetComponent(out RandomObject obj))
+                    obj.ChangeStateRpc(true);
+        }
+    }
+
     /// <summary>
     /// Server-side: finds world transforms for LocationTask objectives by matching room names
     /// to entries in the map's location data, then sends the paths to all clients.
@@ -551,26 +563,56 @@ public class MapManager : NetworkBehaviour
                 if (task is not MinigameTask minigameTask) continue;
                 if (!minigameTask.setComputer) continue;
 
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] AssignCorrectComputer: processing MinigameTask '{minigameTask.taskName}'.", this);
+#endif
+
                 List<Computer> computers = GatherComputersForTask(minigameTask);
-                if (computers.Count == 0) continue;
+                if (computers.Count == 0)
+                {
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] No computers found for task '{minigameTask.taskName}'. Skipping.", this);
+#endif
+                    continue;
+                }
+
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Found {computers.Count} computer(s) for task '{minigameTask.taskName}'.", this);
+#endif
 
                 Computer selected = SelectAndActivateComputers(minigameTask, computers);
-                if (selected == null) continue;
+                if (selected == null)
+                {
+#if UNITY_EDITOR
+                    LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] SelectAndActivateComputers returned null for task '{minigameTask.taskName}'. Skipping.", this);
+#endif
+                    continue;
+                }
 
                 selected.associatedTask = minigameTask;
                 computerPaths.Add((NetString)Helper.GetGameObjectPath(selected.gameObject));
                 taskNames.Add((NetString)minigameTask.taskName);
 
 #if UNITY_EDITOR
-                LoggerEvent.Log(LogPrefix.Environment,
-                    $"Assigned computer '{computerPaths[^1]}' to task '{minigameTask.taskName}'.", this);
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Assigned computer '{computerPaths[^1]}' to task '{minigameTask.taskName}'.", this);
 #endif
             }
         }
 
         // Single batched RPC for all computers
         if (computerPaths.Count > 0)
+        {
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Sending {computerPaths.Count} computer assignment(s) to clients via RPC.", this);
+#endif
             AssignComputersClientRpc(computerPaths.ToArray(), taskNames.ToArray());
+        }
+        else
+        {
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, "[MapManager] No computer assignments were made — RPC will not be sent.", this);
+#endif
+        }
     }
 
     /// <summary>
@@ -580,8 +622,17 @@ public class MapManager : NetworkBehaviour
     {
         List<Computer> computers = new();
 
-        foreach (Transform room in FindRoomsByTag(task.RoomType))
+        var rooms = FindRoomsByTag(task.RoomType);
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] GatherComputersForTask '{task.taskName}': searching {rooms.Count} room(s) for computers.", this);
+#endif
+
+        foreach (Transform room in rooms)
             FindComputersByRoom(room, ref computers);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] GatherComputersForTask '{task.taskName}': {computers.Count} computer(s) gathered.", this);
+#endif
 
         return computers;
     }
@@ -593,11 +644,21 @@ public class MapManager : NetworkBehaviour
     private Computer SelectAndActivateComputers(MinigameTask task, List<Computer> computers)
     {
         if (!task.isRandomComputer)
-            return computers[Random.Range(0, computers.Count)];
+        {
+            Computer pick = computers[Random.Range(0, computers.Count)];
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] SelectAndActivateComputers (non-random): selected '{pick.name}' for task '{task.taskName}'.", this);
+#endif
+            return pick;
+        }
 
         // Shuffle a copy so we don't mutate the original list
         List<Computer> pool = new(computers);
         int activateCount = Random.Range((int)task.MinMax.x, (int)task.MinMax.y);
+
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] SelectAndActivateComputers (random): activating {activateCount} computer(s) from pool of {pool.Count} for task '{task.taskName}'.", this);
+#endif
 
         Computer selected = null;
 
@@ -607,179 +668,19 @@ public class MapManager : NetworkBehaviour
             Computer computer = pool[index];
             pool.RemoveAt(index);
 
-            computer.GetComponent<ComputerSettings>().SetIsOnRpc(true);
+            computer.GetComponent<ComputerSettings>().IsOn.Value = true;
             selected ??= computer; // First activated computer becomes the task target
+
+#if UNITY_EDITOR
+            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Activated computer '{computer.name}' (slot {i + 1}/{activateCount}) for task '{task.taskName}'.", this);
+#endif
         }
 
         return selected;
     }
-
-    private void SpawnRandomObjectives()
-    {
-        Debug.Log("[MapManager] SpawnRandomObjectives called");
-        Debug.Log($"[MapManager] RandomObjectives count: {RandomObjectives?.Length ?? 0}");
-
-        if (RandomObjectives == null || RandomObjectives.Length == 0)
-        {
-            Debug.LogWarning("[MapManager] No RandomObjectives defined!");
-            return;
-        }
-
-        foreach (RandomObjectiveData data in RandomObjectives)
-        {
-            Debug.Log($"[MapManager] Processing RandomObjective with RoomType: {data.RequiredRoomType?.name ?? "NULL"}");
-
-            List<NetString> locationPaths = new();
-
-            List<Transform> candidateRooms = FindRoomsByTag(data.RequiredRoomType.name);
-            Debug.Log($"[MapManager] Found {candidateRooms.Count} candidate rooms");
-
-            foreach (Transform room in candidateRooms)
-            {
-                Debug.Log($"[MapManager] Processing room: {room.name}");
-                List<GameObject> items = new();
-                Helper.FindItemsByRoom(room, data.SpawnItemType, ref items);
-                Debug.Log($"[MapManager] Found {items.Count} items in room {room.name}");
-
-                int remaining = data.GetRandomSpawnCount();
-                Debug.Log($"[MapManager] Randomly spawning {remaining} items");
-
-                while (remaining > 0 && items.Count > 0)
-                {
-                    int index = Random.Range(0, items.Count);
-                    GameObject chosen = items[index];
-                    items.RemoveAt(index);
-
-                    chosen.SetActive(true);
-                    string objectPath = Helper.GetGameObjectPath(chosen);
-                    locationPaths.Add((NetString)objectPath);
-                    syncedRandomObjectives.Add((NetString)objectPath);
-                    Debug.Log($"[MapManager] Activated random objective: {objectPath}");
-                    remaining--;
-                }
-            }
-
-            Debug.Log($"[MapManager] Total location paths for this objective: {locationPaths.Count}");
-            if (locationPaths.Count > 0)
-            {
-                Debug.Log($"[MapManager] Broadcasting {locationPaths.Count} items to clients");
-                SpawnRandomObjectivesClientRpc(locationPaths.ToArray());
-            }
-            else
-            {
-                Debug.LogWarning("[MapManager] No items were activated - RPC not called");
-            }
-        }
-
-        Debug.Log("[MapManager] SpawnRandomObjectives completed");
-    }
-
-    private void SpawnRandomObjectivesNew()
-    {
-        if (RandomObjectives == null || RandomObjectives.Length == 0)
-        {
-            Debug.LogWarning("[MapManager] No RandomObjectives defined!");
-            return;
-        }
-
-        foreach (RandomObjectiveData data in RandomObjectives)
-        {
-            List<Transform> candidateRooms = FindRoomsByTag(data.RequiredRoomType.name); // get all rooms of objective
-
-            foreach (Transform room in candidateRooms)
-            {
-                List<GameObject> items = new();
-                Helper.FindItemsByRoom(room, data.SpawnItemType, ref items); // get all possible items
-
-                if (items.Count <= 0) return; // return if none found
-                int rand = data.GetRandomSpawnCount();
-
-                for (int i = 0; i < rand; i++)
-                {
-                    GameObject item = items[i];
-                    if (item.TryGetComponent(out RandomObject objectData))
-                    {
-                        objectData.ChangeStateRpc(true);
-#if UNITY_EDITOR
-                        LoggerEvent.Log(LogPrefix.Environment, $"Set {objectData.name} to spawned", this);
-#endif
-                    }
-                    else
-                    {
-#if UNITY_EDITOR
-                        LoggerEvent.LogWarning(LogPrefix.Environment, $"Couldn't find objectdata for item {item.name}. Continuing", this);
-#endif
-                        continue;
-                    }
-                }
-            }
-        }
-    }
-
-    private void SpawnObjectiveHints()
-    {
-        foreach (ObjectiveHintData data in ObjectiveHints)
-        {
-            Transform targetRoom = Helper.GoToTaskRoom(data.Index.x, data.Index.y);
-
-            if (targetRoom == null)
-            {
-#if UNITY_EDITOR
-                LoggerEvent.LogWarning(LogPrefix.Environment, $"Couldn't find room for Objective and Task: {data.Index}. Continuing", this);
-#endif
-                continue;
-            }
-
-            List<GameObject> items = new();
-            Helper.FindItemsByRoom(targetRoom, data.SpawnItemType, ref items);
-
-            foreach (GameObject item in items)
-            {
-                if (item.TryGetComponent(out RandomObject objectData))
-                {
-                    objectData.ChangeStateRpc(true);
-                }
-                else
-                {
-#if UNITY_EDITOR
-                    LoggerEvent.Log(LogPrefix.Environment, $"{item.name} has no ObjectData. Continuing", this);
-#endif
-                    continue;
-                }
-            }
-        }
-    }
     #endregion
 
-    #region Client RPCs
-    /// <summary>
-    /// Tells non-host clients which rooms to activate, using the NetworkList that the host populated.
-    /// The host skips this because it already activated its rooms during AllocateRooms().
-    /// </summary>
-    [ClientRpc]
-    private void SyncRoomsClientRpc()
-    {
-        if (IsHost) return;
-
-        foreach (var room in syncedRooms)
-        {
-            GameObject areaObj = GameObject.Find(room.AreaName);
-            if (areaObj == null) continue;
-
-            // Find the child that matches both the area and the room type name, then enable it
-            for (int i = 0; i < areaObj.transform.childCount; i++)
-            {
-                Transform child = areaObj.transform.GetChild(i);
-                RoomType rt = child.GetComponent<RoomType>();
-                if (rt != null && rt.Tag != null && rt.Tag.name == (string)room.RoomType)
-                {
-                    child.gameObject.SetActive(true);
-                    break;
-                }
-            }
-        }
-    }
-
+    #region ClientRPCs
     /// <summary>
     /// ClientRpc that receives location assignment data and populates each LocationTask's
     /// possibleAreas list with the correct scene transforms.
@@ -787,13 +688,23 @@ public class MapManager : NetworkBehaviour
     [ClientRpc]
     private void AssignObjectiveTransformsClientRpc(NetString[] taskNames, NetString[] locationPaths)
     {
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] AssignObjectiveTransformsClientRpc received {taskNames.Length} assignment(s).", this);
+#endif
+
         for (int i = 0; i < taskNames.Length; i++)
         {
             string taskName = taskNames[i];
             string locationPath = locationPaths[i];
 
             GameObject locationObj = GameObject.Find(locationPath);
-            if (locationObj == null) continue;
+            if (locationObj == null)
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client RPC: could not find GameObject at path '{locationPath}' for task '{taskName}'. Skipping.", this);
+#endif
+                continue;
+            }
 
             // Fall back to the singleton if the serialized reference is missing
             if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
@@ -810,10 +721,19 @@ public class MapManager : NetworkBehaviour
                         if (t is LocationTask lt && lt.taskName == taskName)
                         {
                             lt.possibleAreas.Add(locationObj.transform);
+#if UNITY_EDITOR
+                            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client: assigned location '{locationPath}' to LocationTask '{taskName}'.", this);
+#endif
                             break;
                         }
                     }
                 }
+            }
+            else
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client RPC: ObjectiveSystem is null, cannot assign task '{taskName}'.", this);
+#endif
             }
         }
     }
@@ -825,15 +745,31 @@ public class MapManager : NetworkBehaviour
     [ClientRpc]
     private void AssignComputersClientRpc(NetString[] computerPaths, NetString[] taskNames)
     {
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] AssignComputersClientRpc received {computerPaths.Length} assignment(s).", this);
+#endif
+
         for (int i = 0; i < computerPaths.Length; i++)
         {
             string compPath = computerPaths[i];
             string taskName = taskNames[i];
 
             GameObject compObj = GameObject.Find(compPath);
-            if (compObj == null) continue;
+            if (compObj == null)
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client RPC: could not find computer GameObject at path '{compPath}' for task '{taskName}'. Skipping.", this);
+#endif
+                continue;
+            }
 
-            if (!compObj.TryGetComponent(out Computer computer)) continue;
+            if (!compObj.TryGetComponent(out Computer computer))
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client RPC: GameObject at '{compPath}' has no Computer component. Skipping.", this);
+#endif
+                continue;
+            }
 
             // Fall back to the singleton if the serialized reference is missing
             if (ObjectiveSystem == null && ObjectiveSystem.Instance != null)
@@ -851,6 +787,9 @@ public class MapManager : NetworkBehaviour
                         if (t is MinigameTask mt && mt.taskName == taskName)
                         {
                             computer.associatedTask = mt;
+#if UNITY_EDITOR
+                            LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client: assigned MinigameTask '{taskName}' to computer '{compPath}'.", this);
+#endif
                             break;
                         }
                     }
@@ -858,27 +797,36 @@ public class MapManager : NetworkBehaviour
                     if (computer.associatedTask != null) break;
                 }
             }
+            else
+            {
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] Client RPC: ObjectiveSystem is null, cannot assign computer for task '{taskName}'.", this);
+#endif
+            }
         }
     }
-
-    [Rpc(SendTo.NotServer)]
-    public void SpawnRandomObjectivesClientRpc(NetString[] itemsPaths)
-    {
-        Debug.Log("Called");
-        foreach (NetString path in itemsPaths)
-        {
-            GameObject itemObj = GameObject.Find(path);
-            Debug.Log(itemObj.transform.name += " has been found. Trying to activate");
-            if (itemObj != null)
-                itemObj.SetActive(true);
-
-            Debug.Log(itemObj.transform.name + " set to: " + itemObj.activeInHierarchy);
-        }
-    }
-
     #endregion
 
-    #region Helpers
+    #region HELPERS
+    private static void ShowRoom(Transform t)
+    {
+        if (t.TryGetComponent(out RoomVisibility vis))
+            vis.Show();
+    }
+
+    /// <summary>
+    /// A room with no RoomVisibility component is always-present in the scene (no script needed).
+    /// A room WITH the component must have IsVisible = true to be considered active.
+    /// </summary>
+    private static bool IsRoomVisible(Transform t) =>
+        !t.TryGetComponent(out RoomVisibility vis) || vis.IsVisible.Value;
+
+    private static bool IsRoomType(Transform t, RoomTypeTag tag) =>
+        t.TryGetComponent<RoomType>(out RoomType rt) && rt.Tag == tag;
+
+    private static RoomTypeTag GetRoomType(Transform t) =>
+        t.TryGetComponent<RoomType>(out RoomType rt) ? rt.Tag : null;
+
     /// <summary>
     /// Attempts to derive a room type name from a task's display name.
     /// Does a case-insensitive substring match against all currently activated room type names.
@@ -894,33 +842,39 @@ public class MapManager : NetworkBehaviour
                 return roomData.roomType.name;
         }
 
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] ExtractRoomTagFromTaskName: no matching room type found in task name '{taskName}'.", this);
+#endif
         return null;
     }
 
-    /// <summary>
-    /// Finds all currently active room transforms whose type tag matches the given name.
-    /// </summary>
-    private List<Transform> FindRoomsByTag(string roomTagName)
+    private List<Transform> FindRoomsByTag(string tag)
     {
-        List<Transform> foundRooms = new List<Transform>();
+        List<Transform> result = new();
 
-        foreach (var roomData in _activatedRooms)
+        foreach (var r in _activatedRooms)
         {
-            if (!roomData.roomType.name.Equals(roomTagName, System.StringComparison.OrdinalIgnoreCase))
+            if (!r.roomType.name.Equals(tag, System.StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            GameObject areaObj = GameObject.Find(roomData.areaName);
-            if (areaObj == null) continue;
-
-            for (int i = 0; i < areaObj.transform.childCount; i++)
+            GameObject area = GameObject.Find(r.areaName);
+            if (area == null)
             {
-                Transform child = areaObj.transform.GetChild(i);
-                if (IsRoomType(child, roomData.roomType) && child.gameObject.activeSelf)
-                    foundRooms.Add(child);
+#if UNITY_EDITOR
+                LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] FindRoomsByTag: area GameObject '{r.areaName}' not found in scene.", this);
+#endif
+                continue;
             }
+
+            foreach (Transform child in area.transform)
+                if (IsRoomType(child, r.roomType) && IsRoomVisible(child))
+                    result.Add(child);
         }
 
-        return foundRooms;
+#if UNITY_EDITOR
+        LoggerEvent.Log(LogPrefix.Environment, $"[MapManager] FindRoomsByTag('{tag}'): {result.Count} visible room(s) found.", this);
+#endif
+        return result;
     }
 
     /// <summary>
@@ -936,31 +890,5 @@ public class MapManager : NetworkBehaviour
             FindComputersByRoom(child, ref computers); // Recurse into nested children
         }
     }
-    /// <summary>
-    /// Searches the immediate children of a room transform for a DoorTimer component.
-    /// Returns the first one found, or null.
-    /// </summary>
-    private DoorTimer FindTimerByRoom(Transform room)
-    {
-        foreach (Transform child in room)
-        {
-            if (child.TryGetComponent(out DoorTimer timer))
-                return timer;
-        }
-
-        return null;
-    }
-    /// <summary>
-    /// Returns true if the given Transform has a RoomType component whose Tag matches the provided tag.
-    /// </summary>
-    private static bool IsRoomType(Transform t, RoomTypeTag tag) =>
-        t.TryGetComponent<RoomType>(out RoomType rt) && rt.Tag == tag;
-
-    /// <summary>
-    /// Returns the RoomTypeTag from a Transform's RoomType component, or null if it doesn't have one.
-    /// </summary>
-    private static RoomTypeTag GetRoomType(Transform t) =>
-        t.TryGetComponent<RoomType>(out RoomType rt) ? rt.Tag : null;
     #endregion
-
 }

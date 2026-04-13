@@ -68,6 +68,9 @@ public class ComputerInteractabilityManager : NetworkBehaviour
     {
         if (ObjectiveSystem.Instance == null) return;
 
+        Objective currentObjective = ObjectiveSystem.Instance.GetCurObjective();
+        int currentTaskIndex = currentObjective.GetCurrentTaskIndex();
+
         foreach (var entry in entries)
         {
             if (entry.computer == null) continue;
@@ -76,10 +79,12 @@ public class ComputerInteractabilityManager : NetworkBehaviour
             ComputerSettings settings = entry.computer.GetComponent<ComputerSettings>();
             if (settings != null && !settings.IsOn.Value) continue;
 
-            bool taskIsActive = entry.objectiveIndex == currentObjectiveIndex
-                && !ObjectiveSystem.Instance.IsTaskCompleted(entry.objectiveIndex, entry.taskIndex);
+            bool isCorrectObjective = entry.objectiveIndex == currentObjectiveIndex;
+            bool isCorrectTask = entry.taskIndex == currentTaskIndex;
+            bool isTaskIncomplete = !ObjectiveSystem.Instance.IsTaskCompleted(entry.objectiveIndex, entry.taskIndex);
 
-            entry.computer.Interactable.Value = taskIsActive;
+            entry.computer.Interactable.Value =
+                isCorrectObjective && isCorrectTask && isTaskIncomplete;
         }
     }
 
