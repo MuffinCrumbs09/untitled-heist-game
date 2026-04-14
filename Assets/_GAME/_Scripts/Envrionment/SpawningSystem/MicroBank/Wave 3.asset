@@ -17,8 +17,8 @@ MonoBehaviour:
   isEndlessWave: 0
   enemyPrefabs:
   - {fileID: 2202312591368076134, guid: c935d139ce6a4b84b80d718ba5b069ed, type: 3}
-  baseEnemiesPerSpawn: 5
+  baseEnemiesPerSpawn: 10
   additionalEnemiesPerPlayerPerSpawn: 3
-  spawnInterval: 15
-  maxSimultaneousEnemies: 15
-  maxEnemiesPerSpawn: 9
+  spawnInterval: 8.5
+  maxSimultaneousEnemies: 55
+  maxEnemiesPerSpawn: 20

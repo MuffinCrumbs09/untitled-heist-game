@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Light
   m_EditorClassIdentifier: 
   walkSpeed: 4
-  sprintSpeed: 6
+  sprintSpeed: 7
   crouchSpeed: 0
   staminaDrainSpeed: 0.25
   maxStamina: 110

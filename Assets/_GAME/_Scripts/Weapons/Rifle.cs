@@ -143,11 +143,11 @@ public class Rifle : Gun
     {
         Vector3 ideal = AimTransform.forward;
 
-        // 60% of shots are pixel perfect
-        if (Random.value <= 0.6f)
+        // 1% of shots are pixel perfect
+        if (Random.value <= 0.01f)
             return ideal;
 
-        // 40% apply spread scaled by distance
+        // 99% apply spread scaled by distance
         float distanceFraction = 0f;
         if (Physics.Raycast(AimTransform.position, ideal, out RaycastHit rangeCheck, GunData.Range, GunData.TargetLayer))
             distanceFraction = rangeCheck.distance / GunData.Range;

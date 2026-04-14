@@ -17,18 +17,21 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   Range: 100
-  FireRate: 5
+  FireRate: 10
   Damage: 75
   maxAnimRot: 6
   defaultAnimRot: 10
   MagazineSize: 30
-  ReloadTime: 2.5
+  ReloadTime: 1.8
   AimPosition: {x: -0.5, y: -0.15, z: -0.25}
   AimRotation: {x: -10, y: 0, z: 0}
-  RecoilAmount: 1
-  hipMaxRecoil: {x: 2.5, y: 2.5}
-  aimMaxRecoil: {x: 1.5, y: 1.5}
-  RecoilSpeed: 4
-  ResetRecoilSpeed: 4
+  RecoilAmount: 0.8
+  hipMaxRecoil: {x: 1.5, y: 2.5}
+  aimMaxRecoil: {x: 0.5, y: 1}
+  RecoilSpeed: 8
+  ResetRecoilSpeed: 5
   BulletTrailPrefab: {fileID: 8645289296226527373, guid: 81d3ebfc691409948842bcffd81e9b69, type: 3}
-  BulletSpeed: 100
+  BulletSpeed: 80
+  AIMaxSpread: 5
+  AIMinSpread: 0.5
+  AISpreadAtRange: 23

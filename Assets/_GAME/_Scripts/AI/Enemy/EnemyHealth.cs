@@ -116,6 +116,16 @@ public class EnemyHealth : Health
             if (_killerClientId != AI_KILLER_ID && NetPlayerManager.Instance != null)
                 NetPlayerManager.Instance.AddKillForPlayer(_killerClientId);
 
+            // Before unregistering, check if this enemy was close range — if so,
+            // promote the farthest remaining enemy one tier in to fill the gap.
+            var brain = GetComponent<EnemyMovementBrain>();
+            if (brain != null && (brain.currentDistanceState == DistanceState.Close))
+            {
+                ulong targetId = PlayerTargetingManager.Instance.GetCurrentTarget(gameObject);
+                if (targetId != ulong.MaxValue)
+                    PlayerTargetingManager.Instance.PromoteOneEnemyForPlayer(targetId);
+            }
+
             PlayerTargetingManager.Instance.UnregisterTarget(gameObject);
         }
 

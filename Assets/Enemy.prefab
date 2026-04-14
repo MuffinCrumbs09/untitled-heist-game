@@ -724,7 +724,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1060239942
+  GlobalObjectIdHash: 1765557685
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 8
@@ -1080,14 +1080,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 337c150c6c3472e459401bd02777730c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementBrain
-  farMinDist: 25
+  farMinDist: 20
   farMaxDist: 35
-  midMinDist: 15
-  midMaxDist: 25
-  closeMinDist: 5
-  closeMaxDist: 15
-  strafeMinDist: 10
-  strafeMaxDist: 15
+  midMinDist: 10
+  midMaxDist: 20
+  closeMinDist: 2.1
+  closeMaxDist: 8
+  strafeMinDist: 8
+  strafeMaxDist: 20
   strafeSpeed: 3
   desiredFarDist: 0
   desiredMidDist: 0

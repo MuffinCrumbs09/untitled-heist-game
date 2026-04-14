@@ -14,18 +14,13 @@ public partial class EvaluateStanceAction : Action
     protected override Status OnStart()
     {
         float distToTarget = Brain.Value.GetNavMeshDistance(Target.Value.position);
-        DistanceState rawStance = Brain.Value.EvaluateStance(distToTarget);
 
-        Brain.Value.RandomiseDesiredDistances();
+        // Invalidate any previously locked stance so AssignStance gets a fresh slot count
+        Brain.Value.InvalidateStance();
 
-        if (rawStance == DistanceState.Mid)
-        {
-            ulong targetId = Brain.Value.targetingBrain.currentTargetClientId;
-            DistanceState assignedStance = EnemyStanceAssigner.Instance.AssignMidStance(Brain.Value, targetId);
-            Brain.Value.currentDistanceState = assignedStance;
-        }
-        else
-            Brain.Value.currentDistanceState = rawStance;
+        ulong targetId = Brain.Value.targetingBrain.currentTargetClientId;
+        DistanceState assignedStance = EnemyStanceAssigner.Instance.AssignStance(Brain.Value, targetId);
+        Brain.Value.currentDistanceState = assignedStance;
 
         return Status.Success;
     }

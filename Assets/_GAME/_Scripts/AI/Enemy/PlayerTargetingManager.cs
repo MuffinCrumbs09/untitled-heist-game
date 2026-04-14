@@ -64,6 +64,45 @@ public class PlayerTargetingManager : MonoBehaviour
         return playerEnemyCountMap.ContainsKey(clientId) ? playerEnemyCountMap[clientId] : -1;
     }
 
+    /// <summary>
+    /// Returns how many enemies targeting the given player are currently in the specified DistanceState.
+    /// </summary>
+    public int CountEnemiesInStateForPlayer(ulong clientId, DistanceState state)
+    {
+        int count = 0;
+        foreach (var kvp in enemyToTargetMap)
+        {
+            if (kvp.Value != clientId) continue;
+            var brain = kvp.Key.GetComponent<EnemyMovementBrain>();
+            if (brain != null && brain.currentDistanceState == state)
+                count++;
+        }
+        return count;
+    }
+
+    /// <summary>
+    /// Finds the farthest-stance enemy targeting the given player that hasn't yet reached Close,
+    /// and promotes it one tier closer. Call this when a close enemy dies.
+    /// Priority: Far → Mid → Close. Strafe enemies are left alone.
+    /// </summary>
+    public void PromoteOneEnemyForPlayer(ulong clientId)
+    {
+        // Try to find a Far enemy first, then Mid
+        foreach (DistanceState targetState in new[] { DistanceState.Far, DistanceState.Mid })
+        {
+            foreach (var kvp in enemyToTargetMap)
+            {
+                if (kvp.Value != clientId) continue;
+                var brain = kvp.Key.GetComponent<EnemyMovementBrain>();
+                if (brain != null && brain.currentDistanceState == targetState)
+                {
+                    brain.PromoteStance();
+                    return;
+                }
+            }
+        }
+    }
+
     public ulong[] GetAllClients()
     {
         ulong[] clients = new ulong[clientIdToTargetMap.Count];
