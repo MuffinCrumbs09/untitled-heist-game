@@ -2770,6 +2770,7 @@ GameObject:
   - component: {fileID: 5924482728533056112}
   - component: {fileID: 4271984452514213633}
   - component: {fileID: 8204400130323243705}
+  - component: {fileID: 866510927051558167}
   m_Layer: 10
   m_Name: Player
   m_TagString: Player
@@ -2858,6 +2859,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
   MovementStats: {fileID: 11400000, guid: 8595a5dab6632814b835685f82805dc5, type: 2}
+  PlayerStats: {fileID: 347323200461174690}
 --- !u!136 &5728318373168140850
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -3045,6 +3047,20 @@ MonoBehaviour:
       Synchronize: 1
       ParameterType: 1
   AnimatorParametersExpanded: 0
+--- !u!114 &866510927051558167
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5054517447293796584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49cddf1b7fc6d3f47961c0ce7a4fcea6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillTree
+  ShowTopMostFoldoutHeaderGroup: 1
+  Config: {fileID: 11400000, guid: 2f08deb2080d8964f8c1803049f28841, type: 2}
 --- !u!1 &5080372836404036005
 GameObject:
   m_ObjectHideFlags: 0
@@ -5925,7 +5941,6 @@ GameObject:
   - component: {fileID: 2213295986720643716}
   - component: {fileID: 498686361857966609}
   - component: {fileID: 6236238978247668293}
-  - component: {fileID: 3176828194770131573}
   - component: {fileID: 6281363040297882973}
   - component: {fileID: 347323200461174690}
   m_Layer: 10
@@ -5977,30 +5992,6 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8654619910456400991}
   m_Enabled: 1
---- !u!114 &3176828194770131573
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8654619910456400991}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 868b2ddb76640bf448e39d67f0e0a7df, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthController
-  ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 100
-  OnDamaged:
-    m_PersistentCalls:
-      m_Calls: []
-  MaxShield: 0
-  ShieldRegenTime: 2.5
-  ShieldRegenAmount: 750
-  PlayerMesh: {fileID: 8919246118060535431}
-  meshRenderers:
-  - {fileID: 5495264035663317287}
-  - {fileID: 2307564532256781345}
 --- !u!114 &6281363040297882973
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6036,6 +6027,10 @@ MonoBehaviour:
   regenCooldown: 5
   shieldRegenRate: 10
   bulletDamageReduction: 0.05
+  PlayerMesh: {fileID: 8919246118060535431}
+  ExtraMeshRenderers:
+  - {fileID: 5495264035663317287}
+  - {fileID: 2307564532256781345}
   CurrentHealth:
     UpdateTraits:
       MinSecondsBetweenUpdates: 0
@@ -6051,6 +6046,7 @@ MonoBehaviour:
       MinSecondsBetweenUpdates: 0
       MaxSecondsBetweenUpdates: 0
     m_InternalValue: 0
+  SkillTree: {fileID: 866510927051558167}
 --- !u!1 &8847330629326763724
 GameObject:
   m_ObjectHideFlags: 0

@@ -2,6 +2,11 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
 
+/// <summary>
+/// Base health component used by generic objects and enemies.
+/// Players use PlayerStats (which implements IDamageable directly) — 
+/// PlayerHealthController has been removed.
+/// </summary>
 public class Health : NetworkBehaviour, IDamageable
 {
     [Header("Settings - Health")]
@@ -16,7 +21,7 @@ public class Health : NetworkBehaviour, IDamageable
         NetworkVariableWritePermission.Server
     );
 
-    // Default killer id
+    // Default killer id (AI hits use this)
     public const ulong AI_KILLER_ID = ulong.MaxValue;
 
     [HideInInspector] public UnityEvent<ulong> OnDamaged;
@@ -25,31 +30,14 @@ public class Health : NetworkBehaviour, IDamageable
     {
         if (isDead.Value) return;
 
-        // Players are handled by their own PlayerHealthController override.
-        // Enemies go through TakeDamageRpc on EnemyHealth — dispatch there.
-        if (this is PlayerHealthController player)
-        {
-            player.ResetTime();
-
-            if (player.HasShield)
-            {
-                player.ChangeShieldServerRpc(toChange);
-                return;
-            }
-
-            // Shield is gone — apply directly to health
-            ChangeHealthServerRpc(toChange, shooterClientId);
-            return;
-        }
-
         if (this is EnemyHealth enemy)
         {
-            // Negative toChange means damage; convert to positive rawDamage
+            // Negative toChange = damage; EnemyHealth.TakeDamageRpc expects positive rawDamage
             enemy.TakeDamageRpc(-toChange, false, shooterClientId);
             return;
         }
 
-        // Fallback for any plain Health component
+        // Fallback for any plain Health component (doors, props, etc.)
         ChangeHealthServerRpc(toChange, shooterClientId);
     }
 
@@ -64,12 +52,10 @@ public class Health : NetworkBehaviour, IDamageable
         }
     }
 
-    public float GetHealth()
-    {
-        return health.Value;
-    }
+    public float GetHealth() => health.Value;
 
     #region Networking
+
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ChangeHealthServerRpc(float amount, ulong shooterClientId)
     {
@@ -87,8 +73,8 @@ public class Health : NetworkBehaviour, IDamageable
     {
         if (IsServer)
         {
-            health.Value = maxHealth;
-            isDead.Value = false;
+            health.Value  = maxHealth;
+            isDead.Value  = false;
         }
 
         isDead.OnValueChanged += OnDeathStateChanged;
@@ -101,16 +87,14 @@ public class Health : NetworkBehaviour, IDamageable
 
     private void OnDeathStateChanged(bool previous, bool current)
     {
-        if (current)
-            HandleDeath();
+        if (current) HandleDeath();
     }
 
     protected virtual void HandleDeath()
     {
-        if (this is PlayerHealthController player)
-            player.HandlePlayerDeathServerRpc();
-        else if (IsServer)
+        if (IsServer)
             NetworkObject.Despawn();
     }
+
     #endregion
 }

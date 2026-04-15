@@ -13,6 +13,7 @@ public class PlayerMovement : NetworkBehaviour
 
     #region Public
     public PlayerMovementStats MovementStats;
+    public PlayerStats PlayerStats;
     #endregion
 
     #region Private
@@ -21,7 +22,9 @@ public class PlayerMovement : NetworkBehaviour
     private bool canMove;
     private bool isGrounded;
     private Vector3 _playerVelocity;
+
     private const float GRAVITY = -9.8f;
+    private float AdrenalineMultipler => PlayerStats.SkillTree.GetAdrenalineSpeedMultiplier();
     #endregion
 
 
@@ -34,7 +37,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void Update()
     {
-        canMove = !GetComponentInChildren<PlayerHealthController>().IsDead;
+        canMove = !PlayerStats.IsDead;
         if (!canMove) return;
 
         HandleStamina();
@@ -60,7 +63,8 @@ public class PlayerMovement : NetworkBehaviour
     private void CalculateMovement(Vector2 input, bool isSprinting)
     {
         Vector3 moveDir = Vector3.zero;
-        float curSpeed = (isSprinting && canSprint) ? MovementStats.sprintSpeed : MovementStats.walkSpeed;
+        float speed = (isSprinting && canSprint) ? MovementStats.sprintSpeed : MovementStats.walkSpeed;
+        float curSpeed = speed * AdrenalineMultipler;
         moveDir.x = input.x;
         moveDir.z = input.y;
         _cc.Move(transform.TransformDirection(curSpeed * Time.deltaTime * moveDir));

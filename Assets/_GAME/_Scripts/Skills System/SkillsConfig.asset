@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b54daa9e390e7e14389296da6eaad7c3, type: 3}
+  m_Name: SkillsConfig
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeConfig
+  TotalPoints: 4
+  FMJ: {fileID: 11400000, guid: 13e850d9fbf815d4c8a7ce26cff13940, type: 2}
+  Overclocked: {fileID: 11400000, guid: e531b513bcc96d54b82e64a5dda3dd42, type: 2}
+  SpeedCola: {fileID: 11400000, guid: a7a68bec464f21049b539057945601e3, type: 2}
+  ExtendedMag: {fileID: 11400000, guid: 29ef3214514c6254ba07aa22e24ef975, type: 2}
+  Tough: {fileID: 11400000, guid: 92255a20b45f0f14785c354f86eb120c, type: 2}
+  Medic: {fileID: 11400000, guid: 8fe2f1df0a7193847abf3af162373d3d, type: 2}
+  LastStand: {fileID: 11400000, guid: a6a7cf54b255e7d49a2f37d872fff8ec, type: 2}
+  Adrenaline: {fileID: 11400000, guid: 5f22fe974ff73d1429a0935689e59f78, type: 2}
+  Bulletproof: {fileID: 11400000, guid: 2874d1951de258f428c78627ba49f1e6, type: 2}
+  RegenerativePlate: {fileID: 11400000, guid: 7530271eb4d24a74cb86185a4bac5694, type: 2}
+  HardenedPlate: {fileID: 11400000, guid: bcc64869fef9fb648a540afe4d7e2402, type: 2}
+  QuickPlate: {fileID: 11400000, guid: 2d60367b164b7f043b2f3a9d17f4d533, type: 2}

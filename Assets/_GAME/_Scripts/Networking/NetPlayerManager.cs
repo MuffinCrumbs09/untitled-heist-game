@@ -159,6 +159,7 @@ public class NetPlayerManager : NetworkBehaviour
                 writer.WriteLine($"  Client ID: {data.CLIENTID}");
                 writer.WriteLine($"  State    : {data.STATE}");
                 writer.WriteLine($"  Kills    : {data.KILLS}");
+                writer.WriteLine($"  Skills    : {data.SKILLS}");
                 writer.WriteLine();
             }
         }
@@ -166,6 +167,23 @@ public class NetPlayerManager : NetworkBehaviour
 #if UNITY_EDITOR
         LoggerEvent.Log(LogPrefix.Player, $"Player data saved to '{filePath}'.", this);
 #endif
+    }
+
+    [Rpc(SendTo.Server)]
+    public void SetPlayerSkillsServerRpc(int skillMask, RpcParams rpc = default)
+    {
+        ulong targetID = rpc.Receive.SenderClientId;
+
+        for (int i = 0; i < playerData.Count; i++)
+        {
+            var temp = playerData[i];
+            if (temp.CLIENTID.Equals(targetID))
+            {
+                temp.SKILLS = skillMask;
+                playerData[i] = temp;
+                return;
+            }
+        }
     }
     #endregion
 }

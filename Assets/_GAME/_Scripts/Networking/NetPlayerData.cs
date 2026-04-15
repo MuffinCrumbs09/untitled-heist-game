@@ -20,6 +20,7 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
     #region Gameplay
     public int KILLS;
     public PlayerState STATE;
+    public int SKILLS;
     #endregion
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -31,6 +32,7 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
             reader.ReadValueSafe(out CLIENTID);
             reader.ReadValueSafe(out KILLS);
             reader.ReadValueSafe(out STATE);
+            reader.ReadValueSafe(out SKILLS);
         }
         else
         {
@@ -39,6 +41,7 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
             writer.WriteValueSafe(CLIENTID);
             writer.WriteValueSafe(KILLS);
             writer.WriteValueSafe(STATE);
+            writer.WriteValueSafe(SKILLS);
         }
     }
 
@@ -47,7 +50,8 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
         return other.CLIENTID == CLIENTID &&
        other.USERNAME.Equals(USERNAME) &&
        other.KILLS == KILLS &&
-       other.STATE == STATE;
+       other.STATE == STATE &&
+         other.SKILLS == SKILLS;
     }
 
     // Constructor
@@ -57,5 +61,6 @@ public struct NetPlayerData : INetworkSerializable, IEquatable<NetPlayerData>
         CLIENTID = id;
         KILLS = 0;
         STATE = PlayerState.MaskOff;
+        SKILLS = 0;
     }
 }

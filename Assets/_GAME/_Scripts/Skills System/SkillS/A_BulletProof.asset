@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 25784c8ba5efab54d81810e9dc9b97a3, type: 3}
+  m_Name: A_BulletProof
+  m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
+  SkillType: 8
+  Category: 2
+  DisplayName: Bulletproof
+  Description: Reduces incoming bullet damage by an additional 15%.
+  Icon: {fileID: 21300000, guid: b39f6b1e23251534db934bd4326ce41b, type: 3}
+  PointCost: 1

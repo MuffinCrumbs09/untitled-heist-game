@@ -24,7 +24,7 @@ public abstract class Gun : NetworkBehaviour
     #endregion
 
     #region Unity Evets
-    private void Start()
+    private void Awake()
     {
         _curAmmo = GunData.MagazineSize;
         Look = transform.root.GetComponent<PlayerLook>();
@@ -32,6 +32,7 @@ public abstract class Gun : NetworkBehaviour
         if (Look != null)
         {
             AimTransform = Look.Cam.transform;
+            GunData = Instantiate(GunData);
             _weaponInput = new PlayerWeaponInput();
         }
         else

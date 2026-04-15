@@ -2,9 +2,9 @@ using System;
 using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerStats : NetworkBehaviour
+public partial class PlayerStats : NetworkBehaviour, IDamageable
 {
-    #region Inspector Configuration
+    #region Inspector
 
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
@@ -17,27 +17,43 @@ public class PlayerStats : NetworkBehaviour
     [SerializeField] private float shieldRegenRate = 10f;
     [SerializeField][Range(0f, 1f)] private float bulletDamageReduction = 0.05f;
 
+    [Header("Renderers")]
+    public SkinnedMeshRenderer PlayerMesh;
+    public MeshRenderer[] ExtraMeshRenderers;
+
     #endregion
 
-    #region Network Variables
+    #region Network State
 
-    public NetworkVariable<float> CurrentHealth = new NetworkVariable<float>(
+    public NetworkVariable<float> CurrentHealth = new(
         0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    public NetworkVariable<float> CurrentShield = new NetworkVariable<float>(
+    public NetworkVariable<float> CurrentShield = new(
         0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    public NetworkVariable<int> SegmentLostMask = new NetworkVariable<int>(
+    public NetworkVariable<int> SegmentLostMask = new(
         0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+    private NetworkVariable<bool> _isDead = new(
+        false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
     #endregion
 
-    #region Server State
+    #region Runtime State (Server Only)
 
     private float[] segmentCurrent;
     private float timeSinceLastHit;
     private bool isShieldRegenerating;
     private bool isHealthRegenerating;
+    private bool _shieldWasBrokenByStats;
+
+    private const float RESPAWN_DELAY = 7.5f;
+
+    #endregion
+
+    #region External References
+
+    public PlayerSkillTree SkillTree;
 
     #endregion
 
@@ -45,12 +61,13 @@ public class PlayerStats : NetworkBehaviour
 
     public float HealthPerSegment => maxHealth / healthSegments;
     public bool ShieldBroken => CurrentShield.Value <= 0f;
-    public bool IsDead => CurrentHealth.Value <= 0f;
+    public bool IsDead => _isDead.Value;
     public float MaxHealth => maxHealth;
     public float MaxShield => maxShield;
     public int HealthSegmentCount => healthSegments;
     public bool IsShieldRegenerating => isShieldRegenerating;
     public bool IsHealthRegenerating => isHealthRegenerating;
+    public bool HasShield => CurrentShield.Value > 0f;
 
     #endregion
 
@@ -61,13 +78,26 @@ public class PlayerStats : NetworkBehaviour
 
     #endregion
 
-    #region NGO Lifecycle
+    #region Unity / NGO Lifecycle
 
     public override void OnNetworkSpawn()
     {
         CurrentHealth.OnValueChanged += HandleHealthChanged;
         CurrentShield.OnValueChanged += HandleShieldChanged;
         SegmentLostMask.OnValueChanged += HandleSegmentMaskChanged;
+        _isDead.OnValueChanged += HandleDeadChanged;
+
+        if (!IsOwner)
+        {
+            if (PlayerMesh != null)
+                PlayerMesh.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+
+            foreach (var r in ExtraMeshRenderers)
+                if (r != null)
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+
+            ToggleRenderers(true);
+        }
 
         if (IsServer)
             ServerInitialise();
@@ -78,10 +108,14 @@ public class PlayerStats : NetworkBehaviour
         CurrentHealth.OnValueChanged -= HandleHealthChanged;
         CurrentShield.OnValueChanged -= HandleShieldChanged;
         SegmentLostMask.OnValueChanged -= HandleSegmentMaskChanged;
+        _isDead.OnValueChanged -= HandleDeadChanged;
     }
 
     private void Update()
     {
+        if (!IsOwner)
+            ToggleRenderers(!IsDead);
+
         if (IsServer)
             HandleRegeneration();
     }
@@ -90,7 +124,6 @@ public class PlayerStats : NetworkBehaviour
 
     #region Initialisation
 
-    /// <summary>Sets all segments and NetworkVariables to their starting values.</summary>
     private void ServerInitialise()
     {
         float hps = maxHealth / healthSegments;
@@ -102,29 +135,26 @@ public class PlayerStats : NetworkBehaviour
         CurrentHealth.Value = maxHealth;
         CurrentShield.Value = maxShield;
         SegmentLostMask.Value = 0;
+        _isDead.Value = false;
         timeSinceLastHit = regenCooldown;
+        _shieldWasBrokenByStats = false;
     }
 
     #endregion
 
-    #region NetworkVariable Callbacks
+    #region Damage Interface
 
-    /// <summary>Fires OnStatsChanged and OnDeath when health changes.</summary>
-    private void HandleHealthChanged(float previous, float current)
+    public void ChangeHealth(float toChange, ulong shooterClientId)
     {
-        OnStatsChanged?.Invoke();
-        if (current <= 0f && previous > 0f)
-            OnDeath?.Invoke();
-    }
+        if (IsDead) return;
 
-    private void HandleShieldChanged(float previous, float current) => OnStatsChanged?.Invoke();
-    private void HandleSegmentMaskChanged(int previous, int current) => OnStatsChanged?.Invoke();
+        TakeDamageServerRpc(-toChange, true, false);
+    }
 
     #endregion
 
-    #region Damage
+    #region Damage Processing
 
-    /// <summary>Applies damage server-side. Hits shield first, then health. Can be called from any client.</summary>
     [Rpc(SendTo.Server)]
     public void TakeDamageServerRpc(float amount, bool isBullet = false, bool bypassShield = false)
     {
@@ -134,23 +164,31 @@ public class PlayerStats : NetworkBehaviour
         isShieldRegenerating = false;
         isHealthRegenerating = false;
 
-        float remaining = amount;
+        float remaining = Mathf.Max(0f, amount);
 
         if (!bypassShield && CurrentShield.Value > 0f)
         {
+            if (SkillTree != null && SkillTree.TryHardenedPlateAbsorb())
+                return;
+
             if (isBullet)
                 remaining *= 1f - bulletDamageReduction;
 
             float absorbed = Mathf.Min(CurrentShield.Value, remaining);
             CurrentShield.Value -= absorbed;
             remaining -= absorbed;
+
+            if (CurrentShield.Value <= 0f && !_shieldWasBrokenByStats)
+            {
+                _shieldWasBrokenByStats = true;
+                SkillTree?.OnShieldBroken();
+            }
         }
 
         if (remaining > 0f)
             ServerApplyHealthDamage(remaining);
     }
 
-    /// <summary>Distributes damage across segments from highest to lowest. Permanently locks any segment emptied.</summary>
     private void ServerApplyHealthDamage(float damage)
     {
         for (int i = healthSegments - 1; i >= 0 && damage > 0f; i--)
@@ -169,22 +207,15 @@ public class PlayerStats : NetworkBehaviour
         }
 
         ServerRecalculateHealth();
-    }
 
-    /// <summary>Sums segmentCurrent and writes the result to the CurrentHealth NetworkVariable.</summary>
-    private void ServerRecalculateHealth()
-    {
-        float total = 0f;
-        foreach (float hp in segmentCurrent)
-            total += hp;
-        CurrentHealth.Value = total;
+        if (CurrentHealth.Value <= 0f && !_isDead.Value)
+            _isDead.Value = true;
     }
 
     #endregion
 
-    #region Regeneration
+    #region Healing & Regeneration
 
-    /// <summary>Ticks shield regen first, then health regen up to the current segment ceiling. Both share regenCooldown.</summary>
     private void HandleRegeneration()
     {
         if (IsDead) return;
@@ -195,13 +226,23 @@ public class PlayerStats : NetworkBehaviour
         if (CurrentShield.Value < maxShield)
         {
             isShieldRegenerating = true;
-            CurrentShield.Value = Mathf.Min(CurrentShield.Value + shieldRegenRate * Time.deltaTime, maxShield);
+
+            float newShield = CurrentShield.Value + shieldRegenRate * Time.deltaTime;
+            CurrentShield.Value = Mathf.Min(newShield, maxShield);
+
+            if (CurrentShield.Value >= maxShield && _shieldWasBrokenByStats)
+            {
+                _shieldWasBrokenByStats = false;
+                SkillTree?.OnShieldFullyRegenerated();
+            }
+
             return;
         }
 
         isShieldRegenerating = false;
 
         float healCeiling = GetHealthHealCeiling();
+
         if (CurrentHealth.Value >= healCeiling)
         {
             isHealthRegenerating = false;
@@ -209,28 +250,12 @@ public class PlayerStats : NetworkBehaviour
         }
 
         isHealthRegenerating = true;
-        float healed = Mathf.Min(CurrentHealth.Value + healthRegenRate * Time.deltaTime, healCeiling);
-        ServerApplyHeal(healed - CurrentHealth.Value);
+
+        float healAmount = healthRegenRate * Time.deltaTime;
+        ServerApplyHeal(healAmount);
         ServerRecalculateHealth();
     }
 
-    /// <summary>Returns the max health the player can regen to — the top of the highest segment that still has HP.</summary>
-    private float GetHealthHealCeiling()
-    {
-        float hps = maxHealth / healthSegments;
-
-        for (int i = healthSegments - 1; i >= 0; i--)
-        {
-            bool lost = (SegmentLostMask.Value & (1 << i)) != 0;
-            if (lost) continue;
-            if (segmentCurrent[i] > 0f)
-                return hps * (i + 1);
-        }
-
-        return 0f;
-    }
-
-    /// <summary>Adds healAmount back into segmentCurrent, filling from the lowest segment upward.</summary>
     private void ServerApplyHeal(float healAmount)
     {
         float hps = maxHealth / healthSegments;
@@ -249,20 +274,100 @@ public class PlayerStats : NetworkBehaviour
         }
     }
 
+    private float GetHealthHealCeiling()
+    {
+        float hps = maxHealth / healthSegments;
+
+        for (int i = healthSegments - 1; i >= 0; i--)
+        {
+            bool lost = (SegmentLostMask.Value & (1 << i)) != 0;
+
+            if (!lost && segmentCurrent[i] > 0f)
+                return hps * (i + 1);
+        }
+
+        return hps;
+    }
+
     #endregion
 
-    #region UI Accessors
+    #region State Recalculation
 
-    /// <returns>Shield as a 0–1 fraction.</returns>
-    public float GetShieldNormalised() => CurrentShield.Value / maxShield;
+    private void ServerRecalculateHealth()
+    {
+        float total = 0f;
 
-    /// <returns>Health as a 0–1 fraction.</returns>
-    public float GetHealthNormalised() => CurrentHealth.Value / maxHealth;
+        for (int i = 0; i < segmentCurrent.Length; i++)
+            total += segmentCurrent[i];
 
-    /// <summary>Returns per-segment fill fractions and permanently-lost flags, reconstructed from NetworkVariables.</summary>
+        CurrentHealth.Value = total;
+    }
+
+    #endregion
+
+    #region Respawn
+
+    private System.Collections.IEnumerator RespawnCoroutine()
+    {
+        yield return new WaitForSeconds(RESPAWN_DELAY);
+
+        if (!IsServer) yield break;
+
+        ServerInitialise();
+    }
+
+    #endregion
+
+    #region Rendering
+
+    private void ToggleRenderers(bool enabled)
+    {
+        if (PlayerMesh != null) PlayerMesh.enabled = enabled;
+
+        foreach (var r in ExtraMeshRenderers)
+            if (r != null)
+                r.enabled = enabled;
+    }
+
+    #endregion
+
+    #region Network Callbacks
+
+    private void HandleHealthChanged(float previous, float current)
+    {
+        OnStatsChanged?.Invoke();
+
+        if (current <= 0f && previous > 0f)
+            OnDeath?.Invoke();
+    }
+
+    private void HandleShieldChanged(float previous, float current)
+    {
+        OnStatsChanged?.Invoke();
+    }
+
+    private void HandleSegmentMaskChanged(int previous, int current)
+    {
+        OnStatsChanged?.Invoke();
+    }
+
+    private void HandleDeadChanged(bool previous, bool current)
+    {
+        if (current)
+            StartCoroutine(RespawnCoroutine());
+    }
+
+    #endregion
+
+    #region UI / Queries
+
+    public float GetShieldNormalised() => maxShield > 0f ? CurrentShield.Value / maxShield : 0f;
+    public float GetHealthNormalised() => maxHealth > 0f ? CurrentHealth.Value / maxHealth : 0f;
+
     public void GetSegmentData(out float[] fillFractions, out bool[] permanentlyLost)
     {
         float hps = maxHealth / healthSegments;
+
         fillFractions = new float[healthSegments];
         permanentlyLost = new bool[healthSegments];
 
