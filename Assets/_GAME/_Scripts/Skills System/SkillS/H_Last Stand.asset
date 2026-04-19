@@ -17,4 +17,4 @@ MonoBehaviour:
   DisplayName: Last Stand
   Description: When your shield breaks, instantly restores 50% of your max health
   Icon: {fileID: 21300000, guid: 8a08cbae2ed911e458ce60f1e879fda9, type: 3}
-  PointCost: 1
+  PointCost: 2

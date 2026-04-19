@@ -11,4 +11,7 @@ public class M_Settings : ScriptableObject
     [TextArea] public string MapDesc;
     public string Contractor;
     public int MaxPayout;
+
+    [Header("Spawn points")]
+    public Transform[] SpawnPoints;
 }

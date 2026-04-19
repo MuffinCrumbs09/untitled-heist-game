@@ -17,4 +17,4 @@ MonoBehaviour:
   DisplayName: Bulletproof
   Description: Reduces incoming bullet damage by an additional 15%.
   Icon: {fileID: 21300000, guid: b39f6b1e23251534db934bd4326ce41b, type: 3}
-  PointCost: 1
+  PointCost: 2

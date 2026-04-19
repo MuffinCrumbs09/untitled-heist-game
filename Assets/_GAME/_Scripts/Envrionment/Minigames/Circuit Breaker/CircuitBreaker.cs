@@ -83,20 +83,29 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
         if (isBeingHacked.Value || isHackFinished.Value) return;
 
         isBeingHacked.Value = true;
-        isHackFinished.Value = true; // Lock immediately so no second interaction can slip through
+        isHackFinished.Value = true;
+        CircuitBreakerManager.Instance.SetHackingStateRpc(true);
+        SetComputerVisualRpc(true);
         StartCoroutine(HackCoroutine());
     }
 
     private IEnumerator HackCoroutine()
     {
         yield return new WaitForSeconds(HackDuration);
+        CircuitBreakerManager.Instance.SetHackingStateRpc(false);
         OnHackCompleteRpc(isCorrectBreaker);
+    }
+
+    [Rpc(SendTo.Everyone)]
+    private void SetComputerVisualRpc(bool active)
+    {
+        computerVisual.SetActive(active);
     }
 
     [Rpc(SendTo.Everyone)]
     private void OnHackCompleteRpc(bool wasCorrect)
     {
-        computerVisual.SetActive(false);
+        SetComputerVisualRpc(false);
 
         if (wasCorrect && ObjectiveSystem.Instance != null)
         {

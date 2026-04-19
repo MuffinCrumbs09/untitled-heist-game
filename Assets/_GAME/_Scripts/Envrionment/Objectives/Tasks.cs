@@ -101,7 +101,7 @@ public class LocationTask : Task
         {
             foreach (Transform area in possibleAreas)
             {
-                if (Vector3.Distance(player.transform.position, area.position) <= 2.1f)
+                if (Vector3.Distance(player.transform.position, area.position) <= 4.1f)
                 {
                     // Send RPC to server to complete the task (works from any client)
                     objectiveSystem.RequestCompleteTaskServerRpc(objectiveIndex, taskIndex);

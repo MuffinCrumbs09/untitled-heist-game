@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b54daa9e390e7e14389296da6eaad7c3, type: 3}
   m_Name: SkillsConfig
   m_EditorClassIdentifier: Assembly-CSharp::SkillTreeConfig
-  TotalPoints: 4
+  TotalPoints: 6
   FMJ: {fileID: 11400000, guid: 13e850d9fbf815d4c8a7ce26cff13940, type: 2}
   Overclocked: {fileID: 11400000, guid: e531b513bcc96d54b82e64a5dda3dd42, type: 2}
   SpeedCola: {fileID: 11400000, guid: a7a68bec464f21049b539057945601e3, type: 2}

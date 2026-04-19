@@ -16,9 +16,9 @@ public class SkillTreeUI : MonoBehaviour
     public List<SkillDefinition> _skillDefinitions = new();
 
     [Header("UI Elements")]
-    public Button confirmButton;
     public TMP_Text hoverNameLabel;
     public TMP_Text hoverDescLabel;
+    public TMP_Text pointsCostLabel;
 
     public LobbySkillSelector _lobbySelector;
 
@@ -62,7 +62,6 @@ public class SkillTreeUI : MonoBehaviour
             slot.SetState(selected, canAfford || selected);
         }
 
-        confirmButton.interactable = true;
     }
 
     private void OnSlotClicked(SkillType type)
@@ -75,11 +74,7 @@ public class SkillTreeUI : MonoBehaviour
         if (def == null) return;
         hoverNameLabel.text = def.DisplayName;
         hoverDescLabel.text = def.Description;
+        pointsCostLabel.text = $"{def.PointCost} pt";
     }
 
-    public void OnConfirmClicked()
-    {
-        _lobbySelector?.ConfirmSkills();
-        Hide();
-    }
 }

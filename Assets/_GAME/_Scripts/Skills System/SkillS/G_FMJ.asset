@@ -17,4 +17,4 @@ MonoBehaviour:
   DisplayName: FMJ
   Description: Increases your weapon damage by 25%.
   Icon: {fileID: 21300000, guid: 7dd5e70d484e52547b08e19248d5c0a4, type: 3}
-  PointCost: 1
+  PointCost: 2

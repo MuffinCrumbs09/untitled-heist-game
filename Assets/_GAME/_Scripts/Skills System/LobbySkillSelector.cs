@@ -26,23 +26,34 @@ public class LobbySkillSelector : NetworkBehaviour
         }
 
         OnPendingMaskChanged?.Invoke(_pendingMask);
+        CommitSkillsServerRpc(NetworkManager.Singleton.LocalClientId, _pendingMask);
     }
 
     public bool HasSkill(SkillType type) => (_pendingMask & (1 << (int)type)) != 0;
 
     public int PointsSpent()
     {
-        int mask = _pendingMask, count = 0;
-        while (mask != 0) { count += mask & 1; mask >>= 1; }
-        return count;
+        int total = 0;
+        int mask = _pendingMask;
+        int index = 0;
+
+        while (mask != 0)
+        {
+            if ((mask & 1) != 0)
+            {
+                SkillType type = (SkillType)index;
+                int cost = Config.Get(type)?.PointCost ?? 1;
+                total += cost;
+            }
+
+            mask >>= 1;
+            index++;
+        }
+
+        return total;
     }
 
     public int PointsRemaining() => Config.TotalPoints - PointsSpent();
-
-    public void ConfirmSkills()
-    {
-        CommitSkillsServerRpc(NetworkManager.Singleton.LocalClientId, _pendingMask);
-    }
 
     [Rpc(SendTo.Server)]
     private void CommitSkillsServerRpc(ulong clientId, int mask)
