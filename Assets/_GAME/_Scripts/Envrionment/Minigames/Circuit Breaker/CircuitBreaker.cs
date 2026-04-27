@@ -107,6 +107,8 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
     {
         SetComputerVisualRpc(false);
 
+        if(!NetworkManager.Singleton.IsServer) return;
+
         if (wasCorrect && ObjectiveSystem.Instance != null)
         {
             Objective cur = ObjectiveSystem.Instance.GetCurObjective();
@@ -121,6 +123,9 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
                     }
             }
         }
+
+        if(!wasCorrect)
+        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Hack complete, but it seems this wasn't the correct breaker. Try another one.");
     }
 
     // ── Visual sync ──────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
   SkillType: 7
   Category: 1
-  DisplayName: Arenaline
+  DisplayName: Adrenaline
   Description: When below 30% health, gain a 25% movement speed boost
   Icon: {fileID: 21300000, guid: b9c8c6ec24072ea46b9c94000e125834, type: 3}
   PointCost: 1

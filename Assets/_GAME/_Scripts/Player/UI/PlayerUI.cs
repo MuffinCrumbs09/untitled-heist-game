@@ -8,6 +8,8 @@ using UnityEngine.UI;
 
 public class PlayerUI : MonoBehaviour
 {
+    public static PlayerUI Instance { get; private set; }
+
     #region Private Serialized
     [Header("UI - Materials")]
     [SerializeField] private Material ShieldSlider;
@@ -15,6 +17,7 @@ public class PlayerUI : MonoBehaviour
     [Header("UI - Text")]
     [SerializeField] private TMP_Text InteractText;
     [SerializeField] private TMP_Text AmmoText;
+    [SerializeField] private TMP_Text MaskText;
     [Header("UI - Misc")]
     [SerializeField] private TabMenuController tabMenu;
     #endregion
@@ -34,6 +37,13 @@ public class PlayerUI : MonoBehaviour
     #endregion
 
     #region Unity Events
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+            Destroy(this);
+
+        Instance = this;
+    }
     private void Start()
     {
         StartCoroutine(WaitForLocalPlayer());
@@ -89,7 +99,7 @@ public class PlayerUI : MonoBehaviour
         else
             InteractText.text = string.Format("Click E to {0}", toAdd);
     }
-    
+
     private void UpdateAmmoText()
     {
         float ammo = _gun._curAmmo; float maxAmmo = _gun.GunData.MagazineSize;
@@ -97,6 +107,11 @@ public class PlayerUI : MonoBehaviour
         string text = string.Format("{0}/{1}", ammo, maxAmmo);
 
         AmmoText.text = text;
+    }
+
+    public void UpdateMask()
+    {
+        MaskText.enabled = false;
     }
     #endregion
 }

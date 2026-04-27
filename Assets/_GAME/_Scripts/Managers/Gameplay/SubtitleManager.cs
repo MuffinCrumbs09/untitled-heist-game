@@ -1,18 +1,29 @@
-using System;
+using System.Collections;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.SocialPlatforms;
 
 public class SubtitleManager : NetworkBehaviour
 {
-    #region Variables
+    #region Singleton
     public static SubtitleManager Instance { get; private set; }
+    #endregion
 
-    [Header("Settings")]
+    #region Serialized Fields
+    [Header("Proximity Settings")]
     [SerializeField] private float ProximityRange = 15f;
+
+    [Header("Display Settings")]
     [SerializeField] private float DefaultDisplayDuration = 3f;
 
+    [Header("NPC Queue Settings")]
+    [SerializeField] private int MaxNpcQueueSize = 10;
+    #endregion
+
+    #region Private Fields
     private SubtitleUIManager uiManager;
+    private Queue<SubtitleData> npcQueue = new Queue<SubtitleData>();
+    private bool isPlayingNpcSubtitle = false;
     #endregion
 
     #region Unity Events
@@ -32,23 +43,33 @@ public class SubtitleManager : NetworkBehaviour
     }
     #endregion
 
+    #region Public Methods
     public void ShowPlayerSubtitle(string message, float duration = -1f)
     {
         duration = duration < 0 ? DefaultDisplayDuration : duration;
         string username = GetLocalUsername();
 
-        ShowSubtitleServerRpc(username, message, false, duration);
+        ShowSubtitleServerRpc(username, message, SubtitleType.Player, duration);
     }
 
     public void ShowNPCSubtitle(string npcName, string message, float duration = -1f)
     {
         duration = duration < 0 ? DefaultDisplayDuration : duration;
 
-        ShowSubtitleServerRpc(npcName, message, true, duration);
+        ShowSubtitleServerRpc(npcName, message, SubtitleType.NPC, duration);
     }
 
-    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-    private void ShowSubtitleServerRpc(string speaker, string message, bool isGlobal, float duration, RpcParams rpc = default)
+    public void ClearNpcQueue()
+    {
+        npcQueue.Clear();
+        StopCoroutine(nameof(PlayNpcQueue));
+        isPlayingNpcSubtitle = false;
+    }
+    #endregion
+
+    #region RPCs
+    [Rpc(SendTo.ClientsAndHost)]
+    private void ShowSubtitleServerRpc(string speaker, string message, SubtitleType type, float duration, RpcParams rpc = default)
     {
         ulong senderClientId = rpc.Receive.SenderClientId;
 
@@ -57,26 +78,32 @@ public class SubtitleManager : NetworkBehaviour
             SenderClientId = senderClientId,
             Username = speaker,
             Message = message,
-            IsGlobal = isGlobal,
+            Type = type,
             DisplayDuration = duration
         };
 
-        if (isGlobal)
-            BroadcastSubtitleClientRpc(data);
+        if (type == SubtitleType.NPC)
+            BroadcastNpcSubtitleClientRpc(data);
         else
             BroadcastProximitySubtitleClientRpc(data);
     }
 
-    [ClientRpc]
-    private void BroadcastSubtitleClientRpc(SubtitleData subtitleData)
+    [Rpc(SendTo.ClientsAndHost)]
+    private void BroadcastNpcSubtitleClientRpc(SubtitleData subtitleData)
     {
-        uiManager?.DisplaySubtitle(subtitleData.Username.ToString(), subtitleData.Message.ToString(), subtitleData.DisplayDuration);
+        if (npcQueue.Count >= MaxNpcQueueSize)
+            return;
+
+        npcQueue.Enqueue(subtitleData);
+
+        if (!isPlayingNpcSubtitle)
+            StartCoroutine(nameof(PlayNpcQueue));
     }
 
-    [ClientRpc]
+    [Rpc(SendTo.ClientsAndHost)]
     private void BroadcastProximitySubtitleClientRpc(SubtitleData subtitleData)
     {
-        if (NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
+        if (NetworkManager.Singleton.LocalClient?.PlayerObject == null)
             return;
 
         GameObject localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject.gameObject;
@@ -88,16 +115,32 @@ public class SubtitleManager : NetworkBehaviour
         float distance = Vector3.Distance(localPlayer.transform.position, senderPlayer.transform.position);
 
         if (distance <= ProximityRange)
-        {
-            uiManager?.DisplaySubtitle(subtitleData.Username.ToString(), subtitleData.Message.ToString(), subtitleData.DisplayDuration);
-        }
+            uiManager?.DisplaySubtitle(subtitleData.Username, subtitleData.Message, subtitleData.DisplayDuration);
     }
+    #endregion
 
+    #region NPC Queue
+    private IEnumerator PlayNpcQueue()
+    {
+        isPlayingNpcSubtitle = true;
+
+        while (npcQueue.Count > 0)
+        {
+            SubtitleData next = npcQueue.Dequeue();
+            uiManager?.DisplaySubtitle(next.Username, next.Message, next.DisplayDuration);
+            yield return new WaitForSeconds(next.DisplayDuration);
+        }
+
+        isPlayingNpcSubtitle = false;
+    }
+    #endregion
+
+    #region Private Methods
     private GameObject GetPlayerByClientId(ulong clientId)
     {
-        if (NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
-            NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject.NetworkObjectId,
-            out NetworkObject networkObject))
+        if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out NetworkClient client) &&
+            NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
+                client.PlayerObject.NetworkObjectId, out NetworkObject networkObject))
         {
             return networkObject.gameObject;
         }
@@ -117,4 +160,5 @@ public class SubtitleManager : NetworkBehaviour
 
         return "Player";
     }
+    #endregion
 }

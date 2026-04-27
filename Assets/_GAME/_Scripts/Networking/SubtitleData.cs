@@ -1,11 +1,17 @@
 using Unity.Netcode;
 
-public class SubtitleData : INetworkSerializable
+public enum SubtitleType
+{
+    Player,
+    NPC
+}
+
+public struct SubtitleData : INetworkSerializable
 {
     public ulong SenderClientId;
-    public NetString Username;
-    public NetString Message;
-    public bool IsGlobal;
+    public string Username;
+    public string Message;
+    public SubtitleType Type;
     public float DisplayDuration;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -13,7 +19,7 @@ public class SubtitleData : INetworkSerializable
         serializer.SerializeValue(ref SenderClientId);
         serializer.SerializeValue(ref Username);
         serializer.SerializeValue(ref Message);
-        serializer.SerializeValue(ref IsGlobal);
+        serializer.SerializeValue(ref Type);
         serializer.SerializeValue(ref DisplayDuration);
     }
 }

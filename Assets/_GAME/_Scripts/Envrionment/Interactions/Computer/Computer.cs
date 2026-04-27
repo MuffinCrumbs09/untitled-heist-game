@@ -48,7 +48,7 @@ public class Computer : NetworkBehaviour, IInteractable
                 if (currentTask is MinigameTask minigameTask && minigameTask == associatedTask)
                     return true;
             }
-        }  
+        }
 
         // Everything else goes through the network variable
         if (!Interactable.Value) return false;
@@ -96,7 +96,8 @@ public class Computer : NetworkBehaviour, IInteractable
 
     private IEnumerator StartHack()
     {
-        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {timeToHack} seconds remaining.");
+        if (timeToHack != 0)
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {timeToHack} seconds remaining.");
         yield return new WaitForSeconds(timeToHack);
         OnHackCompleteServerRpc();
     }
@@ -106,6 +107,8 @@ public class Computer : NetworkBehaviour, IInteractable
     {
         IsHacked.Value = true;
         Interactable.Value = false;
+        if (CompleteText != string.Empty && associatedTask != null)
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
         OnHackCompleteClientRpc();
     }
 
@@ -115,6 +118,7 @@ public class Computer : NetworkBehaviour, IInteractable
         IsHacked.Value = false;
         IsHacking.Value = false;
         Interactable.Value = true;
+        CompleteText = string.Empty;
         if (time != -1)
             TimeToHack.Value = time;
     }
@@ -141,7 +145,5 @@ public class Computer : NetworkBehaviour, IInteractable
             ObjectiveSystem.Instance.CurrentObjectiveIndex.Value,
             ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask)
         );
-
-        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
     }
 }
