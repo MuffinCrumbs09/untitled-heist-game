@@ -1,60 +1,90 @@
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class PlayerSpawner : NetworkBehaviour
 {
-    [SerializeField] private GameObject player;
+    [Header("Player Prefab")]
+    [SerializeField] private GameObject playerPrefab;
 
-    private bool _playersSpawned;
+    private bool playersSpawned = false;
 
-    private void Start()
+    private void Awake()
     {
         DontDestroyOnLoad(gameObject);
     }
 
     public override void OnNetworkSpawn()
     {
-        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneLoaded;
+        if (!IsHost)
+            return;
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnSceneLoaded;
+        }
     }
 
-    private void SceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
+    public override void OnNetworkDespawn()
     {
-        if (!IsHost || sceneName != "MicroBank" || _playersSpawned)
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.SceneManager != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnSceneLoaded;
+        }
+    }
+
+    private void OnSceneLoaded(
+        string sceneName,
+        LoadSceneMode loadSceneMode,
+        List<ulong> clientsCompleted,
+        List<ulong> clientsTimedOut)
+    {
+        if (!IsHost || sceneName != "MicroBank" || playersSpawned)
             return;
 
-        if (NetworkManager.Singleton.ConnectedClients.Count < NetPlayerManager.Instance.playerData.Count)
-            return;
+        Debug.Log($"[Spawner] Scene loaded: {sceneName}");
 
         PlayerSpawnPoint spawnPointsHolder = Object.FindFirstObjectByType<PlayerSpawnPoint>();
+
+        if (spawnPointsHolder == null)
+        {
+            Debug.LogError("[Spawner] No PlayerSpawnPoint found in scene!");
+            return;
+        }
+
         List<Transform> availableSpawnPoints = new List<Transform>(spawnPointsHolder.Points);
 
-        _playersSpawned = true;
+        if (availableSpawnPoints.Count == 0)
+        {
+            Debug.LogError("[Spawner] No spawn points assigned!");
+            return;
+        }
 
-        foreach (ulong id in clientsCompleted)
+        playersSpawned = true;
+
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             if (availableSpawnPoints.Count == 0)
                 availableSpawnPoints = new List<Transform>(spawnPointsHolder.Points);
 
             int randomIndex = Random.Range(0, availableSpawnPoints.Count);
-            Transform spawnTransform = availableSpawnPoints[randomIndex];
+            Transform spawnPoint = availableSpawnPoints[randomIndex];
             availableSpawnPoints.RemoveAt(randomIndex);
 
-            GameObject spawnedPlayer = Instantiate(player, spawnTransform.position, spawnTransform.rotation);
-            NetworkObject netObj = spawnedPlayer.GetComponent<NetworkObject>();
-            netObj.SpawnAsPlayerObject(id, true);
-            
-            TeleportClientRpc(spawnTransform.position, spawnTransform.rotation);
-        }
-    }
+            GameObject playerInstance = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
 
-    [Rpc(SendTo.NotServer)]
-    private void TeleportClientRpc(Vector3 position, Quaternion rotation)
-    {
-        if (NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject() is NetworkObject playerObj)
-        {
-            playerObj.transform.SetPositionAndRotation(position, rotation);
+            NetworkObject netObj = playerInstance.GetComponent<NetworkObject>();
+            if (netObj == null)
+            {
+                Debug.LogError("[Spawner] Player prefab is missing NetworkObject!");
+                return;
+            }
+
+            // Spawn first, then tell the client to warp to the position
+            netObj.SpawnAsPlayerObject(clientId, true);
         }
     }
 }

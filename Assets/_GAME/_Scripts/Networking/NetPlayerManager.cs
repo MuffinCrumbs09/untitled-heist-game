@@ -58,10 +58,6 @@ public class NetPlayerManager : NetworkBehaviour
 #if UNITY_EDITOR
                 LoggerEvent.Log(LogPrefix.Player, $"Player '{temp.USERNAME}' changed state to '{newState}'.", this);
 #endif
-                if (newState == PlayerState.MaskOn)
-                {
-                    PlayerUI.Instance.UpdateMask();
-                }
             }
         }
     }

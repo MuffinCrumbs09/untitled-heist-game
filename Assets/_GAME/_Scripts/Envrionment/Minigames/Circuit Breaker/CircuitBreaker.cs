@@ -85,6 +85,7 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
         isBeingHacked.Value = true;
         isHackFinished.Value = true;
         CircuitBreakerManager.Instance.SetHackingStateRpc(true);
+        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Hack Started. 30 seconds");
         SetComputerVisualRpc(true);
         StartCoroutine(HackCoroutine());
     }
@@ -125,7 +126,9 @@ public class CircuitBreaker : NetworkBehaviour, IInteractable, IReady
         }
 
         if(!wasCorrect)
-        SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Hack complete, but it seems this wasn't the correct breaker. Try another one.");
+        {
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", "Wrong breaker. Try another.");
+        }
     }
 
     // ── Visual sync ──────────────────────────────────────────────────────────

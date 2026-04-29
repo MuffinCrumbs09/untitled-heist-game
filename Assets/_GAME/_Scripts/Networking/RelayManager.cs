@@ -94,10 +94,12 @@ public class RelayManager : MonoBehaviour
     //Loads the game scene
     public void StartGame()
     {
+        StartGameB.interactable = false;
         NetworkManager.Singleton.SceneManager.LoadScene("MicroBank", LoadSceneMode.Single);
     }
     private void QuitLobby()
     {
+        QuitLobbyB.interactable = false;
         // Quits the lobby
         NetworkManager.Singleton.Shutdown();
 
@@ -111,6 +113,7 @@ public class RelayManager : MonoBehaviour
 
     private void QuitGame()
     {
+        QuitGameB.interactable = false;
         // Leave the server then quit the game
         NetworkManager.Singleton.Shutdown();
         Application.Quit();
@@ -120,6 +123,7 @@ public class RelayManager : MonoBehaviour
     #region Relay
     private async void StartRelay()
     {
+        CreateLobby.interactable = false;
         Allocation allocation = await RelayService.Instance.CreateAllocationAsync(3); // 3 peers, 1 host
 
         joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId); // get the join code
@@ -140,6 +144,10 @@ public class RelayManager : MonoBehaviour
 
     private async void JoinRelay(string joinCode)
     {
+        if (string.IsNullOrEmpty(joinCode))
+            return;
+            
+        JoinLobby.interactable = false;
         // Grab the lobby allocation from join code and set relay 
         var allocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
         var relayServerData = AllocationUtils.ToRelayServerData(allocation, "dtls");

@@ -121,6 +121,7 @@ public class PlayerInteraction : NetworkBehaviour
             return;
 
         NetPlayerManager.Instance.SetPlayerStateServerRpc(PlayerState.MaskOn);
+        PlayerUI.Instance.UpdateMask();
         SetArmModelVisibility(true);
     }
 

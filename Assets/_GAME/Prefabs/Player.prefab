@@ -2771,6 +2771,7 @@ GameObject:
   - component: {fileID: 4271984452514213633}
   - component: {fileID: 8204400130323243705}
   - component: {fileID: 866510927051558167}
+  - component: {fileID: 9128067604487943555}
   m_Layer: 10
   m_Name: Player
   m_TagString: Player
@@ -2807,7 +2808,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2142278117
+  GlobalObjectIdHash: 2506562637
   InScenePlacedSourceGlobalObjectIdHash: 3869913985
   DeferredDespawnTick: 0
   Ownership: 1
@@ -2852,7 +2853,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5054517447293796584}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0e11d568a6f90254b8568ba9bc793fcc, type: 3}
   m_Name: 
@@ -2992,7 +2993,7 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   NetworkTransformExpanded: 1
   AutoOwnerAuthorityTickOffset: 1
-  PositionInterpolationType: 0
+  PositionInterpolationType: 1
   RotationInterpolationType: 0
   ScaleInterpolationType: 0
   PositionLerpSmoothing: 1
@@ -3001,15 +3002,15 @@ MonoBehaviour:
   RotationMaxInterpolationTime: 0.1
   ScaleLerpSmoothing: 1
   ScaleMaxInterpolationTime: 0.1
-  AuthorityMode: 1
+  AuthorityMode: 0
   TickSyncChildren: 0
   UseUnreliableDeltas: 0
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
-  SyncRotAngleX: 1
+  SyncRotAngleX: 0
   SyncRotAngleY: 1
-  SyncRotAngleZ: 1
+  SyncRotAngleZ: 0
   SyncScaleX: 0
   SyncScaleY: 0
   SyncScaleZ: 0
@@ -3061,6 +3062,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkillTree
   ShowTopMostFoldoutHeaderGroup: 1
   Config: {fileID: 11400000, guid: 2f08deb2080d8964f8c1803049f28841, type: 2}
+--- !u!114 &9128067604487943555
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5054517447293796584}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb064daee628c224495d49a1bc0d7b20, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerGrenade
+  ShowTopMostFoldoutHeaderGroup: 1
+  grenadeCooldown: 30
+  throwForce: 10
+  throwUpwardAngle: 10
+  throwOrigin: {fileID: 1735988427176288463}
+  grenadePrefab: {fileID: 2610735176620443836, guid: 00e3ea2ba39534c49affdeca90085c12, type: 3}
 --- !u!1 &5080372836404036005
 GameObject:
   m_ObjectHideFlags: 0

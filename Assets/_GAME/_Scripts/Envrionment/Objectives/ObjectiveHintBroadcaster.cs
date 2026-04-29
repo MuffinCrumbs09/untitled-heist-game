@@ -17,6 +17,8 @@ public class ObjectiveHintDialogue
 
     [Tooltip("Hint lines — one will be picked at random, reshuffled when exhausted")]
     public List<string> HintLines = new();
+    [Tooltip("Initial delay before the first hint fires after a matching task becomes active")]
+    public float InitialDelaySeconds = 5f;
 }
 
 public class ObjectiveHintBroadcaster : NetworkBehaviour
@@ -32,10 +34,6 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
     [SerializeField]
     [Tooltip("Seconds between hint broadcasts")]
     private float _hintInterval = 30f;
-
-    [SerializeField]
-    [Tooltip("Initial delay before the first hint fires after a matching task becomes active")]
-    private float _initialDelay = 5f;
 
     [SerializeField]
     [Tooltip("Subtitle display duration passed to SubtitleManager")]
@@ -74,7 +72,7 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
 
         if (ObjectiveSystem.Instance != null)
         {
-            ObjectiveSystem.Instance.OnObjectiveProgressed  -= OnObjectiveProgressed;
+            ObjectiveSystem.Instance.OnObjectiveProgressed -= OnObjectiveProgressed;
             ObjectiveSystem.Instance.OnTaskFlagsChangedPublic -= OnTaskChanged;
         }
     }
@@ -89,8 +87,8 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
         yield return new WaitUntil(() =>
             ObjectiveSystem.Instance != null && ObjectiveSystem.Instance.IsReady);
 
-        ObjectiveSystem.Instance.OnObjectiveProgressed   += OnObjectiveProgressed;
-        ObjectiveSystem.Instance.OnTaskFlagsChangedPublic  += OnTaskChanged;
+        ObjectiveSystem.Instance.OnObjectiveProgressed += OnObjectiveProgressed;
+        ObjectiveSystem.Instance.OnTaskFlagsChangedPublic += OnTaskChanged;
 
         // Evaluate immediately in case a hint should fire right now
         EvaluateCurrentState();
@@ -119,7 +117,7 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
         if (ObjectiveSystem.Instance == null) return;
 
         int objectiveIdx = ObjectiveSystem.Instance.CurrentObjectiveIndex.Value;
-        int taskIdx      = FindFirstIncompleteTask(objectiveIdx);
+        int taskIdx = FindFirstIncompleteTask(objectiveIdx);
 
         ObjectiveHintDialogue matched = FindHintEntry(objectiveIdx, taskIdx);
 
@@ -160,8 +158,8 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
         foreach (ObjectiveHintDialogue entry in _hintDialogues)
         {
             if (entry.ObjectiveIndex == objectiveIdx &&
-                entry.TaskIndex      == taskIdx       &&
-                entry.HintLines      != null          &&
+                entry.TaskIndex == taskIdx &&
+                entry.HintLines != null &&
                 entry.HintLines.Count > 0)
             {
                 return entry;
@@ -177,7 +175,7 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
 
     private IEnumerator HintLoop()
     {
-        yield return new WaitForSeconds(_initialDelay);
+        yield return new WaitForSeconds(_activeHint.InitialDelaySeconds);
 
         while (true)
         {
@@ -193,7 +191,7 @@ public class ObjectiveHintBroadcaster : NetworkBehaviour
         if (_bag.Count == 0)
             RefillBag(_activeHint);
 
-        int pick  = Random.Range(0, _bag.Count);
+        int pick = Random.Range(0, _bag.Count);
         string line = _bag[pick];
         _bag.RemoveAt(pick);
 

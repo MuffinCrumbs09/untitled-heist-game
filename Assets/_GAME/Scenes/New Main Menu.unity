@@ -17656,7 +17656,7 @@ MonoBehaviour:
   GlobalObjectIdHash: 2585840736
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
-  Ownership: 0
+  Ownership: 8
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 0
   ActiveSceneSynchronization: 0
@@ -17711,7 +17711,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  player: {fileID: 5054517447293796584, guid: 23250933826adba469dab91870b8ef00, type: 3}
+  playerPrefab: {fileID: 5054517447293796584, guid: 23250933826adba469dab91870b8ef00, type: 3}
 --- !u!1001 &1811963510
 PrefabInstance:
   m_ObjectHideFlags: 0

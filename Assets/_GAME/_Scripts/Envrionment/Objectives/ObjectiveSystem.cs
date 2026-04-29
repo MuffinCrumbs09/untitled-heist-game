@@ -186,7 +186,7 @@ public class ObjectiveSystem : NetworkBehaviour
         for (int o = 0; o < ObjectiveList.Count; o++)
         {
             int offset = _objectiveOffsets[o];
-            int count  = ObjectiveList[o].tasks.Count;
+            int count = ObjectiveList[o].tasks.Count;
 
             if (flatIndex >= offset && flatIndex < offset + count)
             {
@@ -207,7 +207,7 @@ public class ObjectiveSystem : NetworkBehaviour
         _heistEnded = true;
 
         _stats.TotalMoneyStole += NetStore.Instance.Payout.Value;
-        _stats.TotalKills      += NetPlayerManager.Instance.GetLocalPlayersKills();
+        _stats.TotalKills += NetPlayerManager.Instance.GetLocalPlayersKills();
         _stats.TotalHeists++;
         SaveManager.Instance.SaveGame(_stats);
 
@@ -222,7 +222,7 @@ public class ObjectiveSystem : NetworkBehaviour
     {
         var clientStats = SaveManager.Instance.LoadGame();
         clientStats.TotalMoneyStole += payout;
-        clientStats.TotalKills      += NetPlayerManager.Instance.GetLocalPlayersKills();
+        clientStats.TotalKills += NetPlayerManager.Instance.GetLocalPlayersKills();
         clientStats.TotalHeists++;
         SaveManager.Instance.SaveGame(clientStats);
     }
@@ -251,5 +251,46 @@ public class ObjectiveSystem : NetworkBehaviour
         UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
+    #endregion
+
+    #region Debug
+#if UNITY_EDITOR
+    [ContextMenu("Complete Current Task")]
+    private void Debug_CompleteCurrentTask()
+    {
+        if (!IsServer)
+        {
+            Debug.LogWarning("[ObjectiveSystem] Must be the server to complete tasks.");
+            return;
+        }
+
+        if (!IsReady)
+        {
+            Debug.LogWarning("[ObjectiveSystem] ObjectiveSystem is not ready yet.");
+            return;
+        }
+
+        int objIdx = CurrentObjectiveIndex.Value;
+        if (objIdx >= ObjectiveList.Count)
+        {
+            Debug.LogWarning("[ObjectiveSystem] No active objective — heist may already be complete.");
+            return;
+        }
+
+        Objective current = ObjectiveList[objIdx];
+
+        for (int t = 0; t < current.tasks.Count; t++)
+        {
+            if (!IsTaskCompleted(objIdx, t))
+            {
+                CompleteTask(objIdx, t);
+                Debug.Log($"[ObjectiveSystem] Completed task {t} ('{current.tasks[t]}') of objective {objIdx} ('{current.objectiveName}').");
+                return;
+            }
+        }
+
+        Debug.LogWarning($"[ObjectiveSystem] All tasks in objective {objIdx} ('{current.objectiveName}') are already completed.");
+    }
+#endif
     #endregion
 }

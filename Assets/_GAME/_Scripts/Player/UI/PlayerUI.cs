@@ -14,10 +14,17 @@ public class PlayerUI : MonoBehaviour
     [Header("UI - Materials")]
     [SerializeField] private Material ShieldSlider;
     [SerializeField] private Material[] HealthSliders;
+
     [Header("UI - Text")]
     [SerializeField] private TMP_Text InteractText;
     [SerializeField] private TMP_Text AmmoText;
     [SerializeField] private TMP_Text MaskText;
+
+    [Header("UI - Grenade")]
+    [SerializeField] private Image GrenadeCooldownFill;    // Image Type: Filled, Fill Method: Radial 360
+    [SerializeField] private TMP_Text GrenadeCooldownText; // Shows seconds remaining, or "G" when ready
+    [SerializeField] private GameObject GrenadeIconRoot;
+
     [Header("UI - Misc")]
     [SerializeField] private TabMenuController tabMenu;
     #endregion
@@ -27,6 +34,7 @@ public class PlayerUI : MonoBehaviour
     private PlayerMovement _playerMovement;
     private PlayerInteraction _playerInteract;
     private PlayerStats _playerStats;
+    private PlayerGrenade _playerGrenade;
     private Camera _playerCamera;
     private Gun _gun;
 
@@ -57,6 +65,7 @@ public class PlayerUI : MonoBehaviour
         UpdateSliders();
         UpdateInteractText();
         UpdateAmmoText();
+        UpdateGrenadeUI();
         tabMenu.SetPanelsVisible(InputReader.Instance.IsTabbing);
     }
     #endregion
@@ -77,6 +86,7 @@ public class PlayerUI : MonoBehaviour
         _playerMovement = _player.GetComponent<PlayerMovement>();
         _playerInteract = _player.GetComponentInChildren<PlayerInteraction>();
         _playerStats = _player.GetComponentInChildren<PlayerStats>();
+        _playerGrenade = _player.GetComponentInChildren<PlayerGrenade>();
         _playerCamera = _player.GetComponent<PlayerLook>().Cam.transform.GetChild(2).GetComponent<Camera>();
         _gun = _playerInteract.ArmModel.transform.GetComponentInChildren<Gun>();
 
@@ -107,6 +117,31 @@ public class PlayerUI : MonoBehaviour
         string text = string.Format("{0}/{1}", ammo, maxAmmo);
 
         AmmoText.text = text;
+    }
+
+    private void UpdateGrenadeUI()
+    {
+        if (_playerGrenade == null) return;
+
+        // Only show icon if mask is on
+        if (GrenadeIconRoot != null)
+        {
+            PlayerState state = NetPlayerManager.Instance.GetCurrentPlayerState(
+                NetworkManager.Singleton.LocalClientId);
+
+            GrenadeIconRoot.SetActive(state == PlayerState.MaskOn);
+        }
+
+        // Fill drains as cooldown counts down, fills back up when ready
+        float t = Mathf.Clamp01(_playerGrenade.CooldownRemaining / _playerGrenade.GrenadeCooldown);
+
+        if (GrenadeCooldownFill != null)
+            GrenadeCooldownFill.fillAmount = 1f - t;
+
+        if (GrenadeCooldownText != null)
+            GrenadeCooldownText.text = _playerGrenade.IsReady
+                ? "G"
+                : Mathf.CeilToInt(_playerGrenade.CooldownRemaining).ToString();
     }
 
     public void UpdateMask()

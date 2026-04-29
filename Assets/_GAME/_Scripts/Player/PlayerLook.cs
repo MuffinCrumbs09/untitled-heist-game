@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -96,6 +97,13 @@ public class PlayerLook : NetworkBehaviour
         {
             // Disable the player model for the local.
             transform.GetComponentInChildren<SkinnedMeshRenderer>().enabled = false;
+            StartCoroutine(AllowMovement());
         }
+    }
+
+    private IEnumerator AllowMovement()
+    {
+        yield return new WaitForSeconds(1f);
+        GetComponent<PlayerMovement>().enabled = true;
     }
 }

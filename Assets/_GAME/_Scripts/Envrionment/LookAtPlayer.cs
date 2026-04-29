@@ -5,16 +5,21 @@ public class LookAtPlayer : MonoBehaviour
 {
     Transform player;
 
-    void Start()
-    {
-        player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<Transform>();
-    }
+    bool _hasSet = false;
 
     void Update()
     {
-        if (player != null)
-        {
-            transform.LookAt(player);
-        }
+        if (!_hasSet)
+            if (NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClient != null && NetworkManager.Singleton.LocalClient.PlayerObject != null)
+            {
+                player = NetworkManager.Singleton.LocalClient.PlayerObject.transform;
+                _hasSet = true;
+            }
+            else
+                return;
+
+
+        transform.LookAt(player);
+
     }
 }

@@ -4,167 +4,205 @@ using UnityEngine.UI;
 
 public class ObjectiveWaypointMarker : NetworkBehaviour
 {
-    #region Inspector Fields
-
+    #region Inspector
     [Header("Objective Reference")]
-    [Tooltip("X = Objective index, Y = Task index (both zero-based)")]
     public Vector2Int ObjectiveIndex;
 
     [Header("UI")]
     public Image WaypointMarker;
 
     [Header("Settings")]
-    [Tooltip("Seconds after this task becomes active before the waypoint hint appears. Set 0 to show immediately.")]
     public float WaypointDelaySeconds = 120f;
-
     #endregion
 
-    #region State
+    private readonly NetworkVariable<bool> _markerVisible = new(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
 
+    private ObjectiveSystem _system;
     private RoomVisibility _room;
+
     private bool _subscribed;
-    private float _taskActivatedTime = -1f;
-    private bool _markerVisible;
+    private float _activationTime = -1f;
 
-    #endregion
-
-    #region Unity Lifecycle
-
+    #region Lifecycle
     private void Awake()
     {
-        if (WaypointMarker != null)
-            WaypointMarker.enabled = false;
+        _room = GetComponent<RoomVisibility>();
+        SetMarkerUI(false);
     }
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        _room = GetComponent<RoomVisibility>();
+        _markerVisible.OnValueChanged += OnMarkerChanged;
+
+        if (_room?.IsVisible != null)
+            _room.IsVisible.OnValueChanged += OnRoomVisibilityChanged;
+
+        SetMarkerUI(_markerVisible.Value);
+
+        if (IsServer)
+            TryInitialize();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _markerVisible.OnValueChanged -= OnMarkerChanged;
+
+        if (_room?.IsVisible != null)
+            _room.IsVisible.OnValueChanged -= OnRoomVisibilityChanged;
+
+        if (IsServer)
+            Unsubscribe();
     }
 
     private void Update()
     {
-        if (_taskActivatedTime >= 0f && !_markerVisible)
-        {
-            if (Time.time - _taskActivatedTime >= WaypointDelaySeconds)
-                SetMarker(true);
-        }
+        if (!IsServer) return;
+
+        if (!_subscribed)
+            TryInitialize();
+
+        // Only used for delay ticking
+        if (_activationTime >= 0f)
+            Evaluate();
     }
-
-    public override void OnNetworkDespawn() => Unsubscribe();
-    public override void OnDestroy() => Unsubscribe();
-
     #endregion
 
-    #region Public API
-
-    public void Setup()
+    #region Setup
+    private void TryInitialize()
     {
-        bool roomOk = _room == null || (_room.IsVisible != null && _room.IsVisible.Value);
-        if (!roomOk) return;
+        _system = ObjectiveSystem.Instance;
+
+        if (_system == null || !_system.IsReady)
+            return;
 
         Subscribe();
-        RefreshMarker();
+        Evaluate();
     }
-
     #endregion
 
-    #region Event Subscription
-
+    #region Subscription
     private void Subscribe()
     {
         if (_subscribed) return;
-        var sys = ObjectiveSystem.Instance;
-        if (sys == null) return;
 
-        sys.OnTaskFlagsChangedPublic += OnTaskCompleted;
-        sys.OnObjectiveProgressed += OnObjectiveProgressed;
+        _system.OnTaskFlagsChangedPublic += OnTaskChanged;
+        _system.OnObjectiveProgressed += OnObjectiveChanged;
+
         _subscribed = true;
     }
 
     private void Unsubscribe()
     {
-        if (!_subscribed) return;
-        var sys = ObjectiveSystem.Instance;
-        if (sys != null)
-        {
-            sys.OnTaskFlagsChangedPublic -= OnTaskCompleted;
-            sys.OnObjectiveProgressed -= OnObjectiveProgressed;
-        }
+        if (!_subscribed || _system == null) return;
+
+        _system.OnTaskFlagsChangedPublic -= OnTaskChanged;
+        _system.OnObjectiveProgressed -= OnObjectiveChanged;
+
         _subscribed = false;
     }
-
     #endregion
 
-    #region Marker Logic
-
-    private void RefreshMarker()
+    #region Core Logic (Single Source of Truth)
+    private void Evaluate()
     {
-        var sys = ObjectiveSystem.Instance;
-        if (sys == null || !sys.IsReady) return;
-
-        int curObjective = sys.CurrentObjectiveIndex.Value;
-        bool isMyObjective = curObjective == ObjectiveIndex.x;
-        bool isCompleted = sys.IsTaskCompleted(ObjectiveIndex.x, ObjectiveIndex.y);
-
-        if (!isMyObjective || isCompleted)
+        if (_system == null || !_system.IsReady)
         {
-            _taskActivatedTime = -1f;
             SetMarker(false);
             return;
         }
 
-        if (!ArePreviousTasksCompleted(sys))
+        if (!IsRoomVisible())
         {
-            _taskActivatedTime = -1f;
+            ResetActivation();
             SetMarker(false);
             return;
         }
 
-        if (_taskActivatedTime < 0f)
-            _taskActivatedTime = Time.time;
+        bool isCurrentObjective = _system.CurrentObjectiveIndex.Value == ObjectiveIndex.x;
+        bool isCompleted = _system.IsTaskCompleted(ObjectiveIndex.x, ObjectiveIndex.y);
 
-        SetMarker((Time.time - _taskActivatedTime) >= WaypointDelaySeconds);
+        if (!isCurrentObjective || isCompleted || !PreviousTasksDone())
+        {
+            ResetActivation();
+            SetMarker(false);
+            return;
+        }
+
+        // Start delay timer if not started
+        if (_activationTime < 0f)
+            _activationTime = Time.time;
+
+        bool shouldShow = Time.time - _activationTime >= WaypointDelaySeconds;
+        SetMarker(shouldShow);
     }
 
-    private bool ArePreviousTasksCompleted(ObjectiveSystem sys)
+    private bool IsRoomVisible()
     {
-        for (int t = 0; t < ObjectiveIndex.y; t++)
+        // No room system → always visible
+        if (_room == null)
+            return true;
+
+        // Room exists but visibility not initialized → treat as hidden (safer)
+        if (_room.IsVisible == null)
+            return false;
+
+        return _room.IsVisible.Value;
+    }
+
+    private void ResetActivation()
+    {
+        _activationTime = -1f;
+    }
+
+    private bool PreviousTasksDone()
+    {
+        for (int i = 0; i < ObjectiveIndex.y; i++)
         {
-            if (!sys.IsTaskCompleted(ObjectiveIndex.x, t))
+            if (!_system.IsTaskCompleted(ObjectiveIndex.x, i))
                 return false;
         }
         return true;
     }
 
-    private void SetMarker(bool visible)
+    private void SetMarker(bool value)
     {
-        _markerVisible = visible;
+        if (_markerVisible.Value != value)
+            _markerVisible.Value = value;
+    }
+    #endregion
+
+    #region Events → just trigger Evaluate()
+    private void OnTaskChanged(int objIdx, int taskIdx)
+    {
+        if (objIdx != ObjectiveIndex.x) return;
+        Evaluate();
+    }
+
+    private void OnObjectiveChanged(int newIdx, int _)
+    {
+        Evaluate();
+    }
+
+    private void OnRoomVisibilityChanged(bool _, bool __)
+    {
+        if (!IsServer) return;
+        Evaluate();
+    }
+    #endregion
+
+    #region Client UI
+    private void OnMarkerChanged(bool _, bool current)
+    {
+        SetMarkerUI(current);
+    }
+
+    private void SetMarkerUI(bool visible)
+    {
         if (WaypointMarker != null)
             WaypointMarker.enabled = visible;
     }
-
-    private void OnTaskCompleted(int objectiveIdx, int taskIdx)
-    {
-        if (objectiveIdx != ObjectiveIndex.x) return;
-
-        if (taskIdx == ObjectiveIndex.y)
-        {
-            _taskActivatedTime = -1f;
-            SetMarker(false);
-        }
-        else if (taskIdx < ObjectiveIndex.y)
-        {
-            RefreshMarker();
-        }
-    }
-
-    private void OnObjectiveProgressed(int newObjectiveIndex, int _)
-    {
-        if (newObjectiveIndex == ObjectiveIndex.x)
-            _taskActivatedTime = -1f;
-
-        RefreshMarker();
-    }
-
     #endregion
 }
