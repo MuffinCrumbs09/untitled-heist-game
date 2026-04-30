@@ -13,6 +13,7 @@ public struct SubtitleData : INetworkSerializable
     public string Message;
     public SubtitleType Type;
     public float DisplayDuration;
+     public float EnqueueTime;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
@@ -21,5 +22,6 @@ public struct SubtitleData : INetworkSerializable
         serializer.SerializeValue(ref Message);
         serializer.SerializeValue(ref Type);
         serializer.SerializeValue(ref DisplayDuration);
+        serializer.SerializeValue(ref EnqueueTime);
     }
 }

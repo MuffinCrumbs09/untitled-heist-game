@@ -23,7 +23,11 @@ public class SubtitleManager : NetworkBehaviour
     #region Private Fields
     private SubtitleUIManager uiManager;
     private Queue<SubtitleData> npcQueue = new Queue<SubtitleData>();
+    private Coroutine npcCoroutine;
     private bool isPlayingNpcSubtitle = false;
+
+    [Header("NPC Queue Settings")]
+    [SerializeField] private float MaxSubtitleAge = 8f; // Discard if waiting longer than this
     #endregion
 
     #region Unity Events
@@ -62,7 +66,11 @@ public class SubtitleManager : NetworkBehaviour
     public void ClearNpcQueue()
     {
         npcQueue.Clear();
-        StopCoroutine(nameof(PlayNpcQueue));
+        if (npcCoroutine != null)
+        {
+            StopCoroutine(npcCoroutine);
+            npcCoroutine = null;
+        }
         isPlayingNpcSubtitle = false;
     }
     #endregion
@@ -94,10 +102,14 @@ public class SubtitleManager : NetworkBehaviour
         if (npcQueue.Count >= MaxNpcQueueSize)
             return;
 
+        subtitleData.EnqueueTime = Time.time;
         npcQueue.Enqueue(subtitleData);
 
         if (!isPlayingNpcSubtitle)
-            StartCoroutine(nameof(PlayNpcQueue));
+        {
+            if (npcCoroutine != null) StopCoroutine(npcCoroutine);
+            npcCoroutine = StartCoroutine(PlayNpcQueue());
+        }
     }
 
     [Rpc(SendTo.ClientsAndHost)]
@@ -127,11 +139,22 @@ public class SubtitleManager : NetworkBehaviour
         while (npcQueue.Count > 0)
         {
             SubtitleData next = npcQueue.Dequeue();
-            uiManager?.DisplaySubtitle(next.Username, next.Message, next.DisplayDuration);
-            yield return new WaitForSeconds(next.DisplayDuration);
+
+            // Skip if this subtitle has been waiting too long
+            float age = Time.time - next.EnqueueTime;
+            if (age > MaxSubtitleAge)
+                continue;
+
+            float remainingBudget = next.DisplayDuration - age;
+            if (remainingBudget <= 0.5f)
+                continue;
+
+            uiManager?.DisplaySubtitle(next.Username, next.Message, remainingBudget);
+            yield return new WaitForSeconds(remainingBudget);
         }
 
         isPlayingNpcSubtitle = false;
+        npcCoroutine = null;
     }
     #endregion
 

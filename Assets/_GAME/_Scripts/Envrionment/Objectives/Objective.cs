@@ -60,6 +60,6 @@ public class Objective
     {
         _hasStarted = true;
         if (string.IsNullOrEmpty(speakerName) || string.IsNullOrEmpty(speech)) return;
-        SubtitleManager.Instance.ShowNPCSubtitle(speakerName, speech, 6.5f);
+        SubtitleManager.Instance.ShowNPCSubtitle(speakerName, speech, 3.75f);
     }
 }

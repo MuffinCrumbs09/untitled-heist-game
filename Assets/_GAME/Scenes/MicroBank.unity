@@ -335746,8 +335746,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SubtitleManager
   ShowTopMostFoldoutHeaderGroup: 1
   ProximityRange: 15
-  DefaultDisplayDuration: 2.5
+  DefaultDisplayDuration: 2
   MaxNpcQueueSize: 10
+  MaxSubtitleAge: 10
 --- !u!114 &1443333733
 MonoBehaviour:
   m_ObjectHideFlags: 0
