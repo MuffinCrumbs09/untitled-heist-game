@@ -3,22 +3,22 @@ using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
+/// <summary>
+/// Server-side manager that automatically enables or disables computers 
+/// based on the current active mission objective and task.
+/// </summary>
 public class ComputerInteractabilityManager : NetworkBehaviour
 {
     [System.Serializable]
     public class ComputerEntry
     {
-        [Tooltip("The computer to control")]
         public Computer computer;
-
-        [Tooltip("Objective index this computer belongs to")]
         public int objectiveIndex;
-
-        [Tooltip("Task index within that objective")]
         public int taskIndex;
     }
 
-    [Header("Entries")]
+    [Header("Registry")]
+    [Tooltip("List of all computers and their corresponding mission logic indices.")]
     public List<ComputerEntry> entries = new();
 
     public override void OnNetworkSpawn()
@@ -29,73 +29,40 @@ public class ComputerInteractabilityManager : NetworkBehaviour
         {
             ObjectiveSystem.Instance.CurrentObjectiveIndex.OnValueChanged += OnObjectiveChanged;
             ObjectiveSystem.Instance.OnTaskFlagsChangedPublic += OnTaskCompleted;
-            StartCoroutine(ApplyOnNextFrame());
-        }
-        else
-        {
-            Debug.LogWarning("[ComputerInteractabilityManager] ObjectiveSystem not found on spawn.");
+            StartCoroutine(InitialSetupRoutine());
         }
     }
 
-    public override void OnNetworkDespawn()
+    private IEnumerator InitialSetupRoutine()
     {
-        if (!IsServer) return;
-
-        if (ObjectiveSystem.Instance != null)
-        {
-            ObjectiveSystem.Instance.CurrentObjectiveIndex.OnValueChanged -= OnObjectiveChanged;
-            ObjectiveSystem.Instance.OnTaskFlagsChangedPublic -= OnTaskCompleted;
-        }
-    }
-
-    private IEnumerator ApplyOnNextFrame()
-    {
-        yield return null;
+        yield return null; // Wait for NetworkVariables to settle
         ApplyInteractability(ObjectiveSystem.Instance.CurrentObjectiveIndex.Value);
     }
 
-    private void OnObjectiveChanged(int oldIndex, int newIndex)
-    {
-        ApplyInteractability(newIndex);
-    }
+    private void OnObjectiveChanged(int oldIndex, int newIndex) => ApplyInteractability(newIndex);
+    private void OnTaskCompleted(int objIdx, int taskIdx) => ApplyInteractability(ObjectiveSystem.Instance.CurrentObjectiveIndex.Value);
 
-    private void OnTaskCompleted(int objectiveIndex, int taskIndex)
-    {
-        ApplyInteractability(ObjectiveSystem.Instance.CurrentObjectiveIndex.Value);
-    }
-
+    /// <summary>
+    /// Iterates through registry and toggles 'Interactable' state based on mission progress.
+    /// </summary>
     private void ApplyInteractability(int currentObjectiveIndex)
     {
         if (ObjectiveSystem.Instance == null) return;
 
-        Objective currentObjective = ObjectiveSystem.Instance.GetCurObjective();
-        int currentTaskIndex = currentObjective.GetCurrentTaskIndex();
+        int currentTaskIndex = ObjectiveSystem.Instance.GetCurObjective().GetCurrentTaskIndex();
 
         foreach (var entry in entries)
         {
             if (entry.computer == null) continue;
 
-            // Computer is off in inspector (ComputerSettings.IsOn) — skip entirely
+            // Only allow interaction if computer is on
             ComputerSettings settings = entry.computer.GetComponent<ComputerSettings>();
             if (settings != null && !settings.IsOn.Value) continue;
 
-            bool isCorrectObjective = entry.objectiveIndex == currentObjectiveIndex;
-            bool isCorrectTask = entry.taskIndex == currentTaskIndex;
-            bool isTaskIncomplete = !ObjectiveSystem.Instance.IsTaskCompleted(entry.objectiveIndex, entry.taskIndex);
+            bool isMatch = entry.objectiveIndex == currentObjectiveIndex && entry.taskIndex == currentTaskIndex;
+            bool isIncomplete = !ObjectiveSystem.Instance.IsTaskCompleted(entry.objectiveIndex, entry.taskIndex);
 
-            entry.computer.Interactable.Value =
-                isCorrectObjective && isCorrectTask && isTaskIncomplete;
+            entry.computer.Interactable.Value = isMatch && isIncomplete;
         }
     }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        for (int i = 0; i < entries.Count; i++)
-        {
-            if (entries[i].computer == null)
-                Debug.LogWarning($"[ComputerInteractabilityManager] Entry {i} has no computer assigned.");
-        }
-    }
-#endif
 }

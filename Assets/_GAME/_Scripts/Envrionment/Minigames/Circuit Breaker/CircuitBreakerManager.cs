@@ -2,18 +2,34 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
+/// <summary>
+/// Server-side manager that assigns serial numbers to circuit breakers and distributes parts of the correct serial to whiteboards.
+/// </summary>
 public class CircuitBreakerManager : NetworkBehaviour
 {
+    #region Variables
+
     public static CircuitBreakerManager Instance;
 
     private NetworkVariable<bool> _isHacking = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public bool IsHacking => _isHacking.Value;
 
     [Header("Configuration")]
-    [SerializeField] private List<CircuitBreaker> circuitBreakers;
-    [SerializeField] private List<Whiteboard> whiteboards;
-    [SerializeField, Tooltip("A list of objective index's the circuits should be enabled")] private int[] ObjectiveList;
-    [SerializeField, Tooltip("A list of task index's the circuits should be enabled")] private int[] TaskList;
+    [SerializeField]
+    [Tooltip("List of all possible circuit breaker components in the level.")]
+    private List<CircuitBreaker> circuitBreakers;
+
+    [SerializeField]
+    [Tooltip("List of whiteboard objects used to display parts of the serial.")]
+    private List<Whiteboard> whiteboards;
+
+    [SerializeField]
+    [Tooltip("A list of objective indices where these circuits should be active.")]
+    private int[] ObjectiveList;
+
+    [SerializeField]
+    [Tooltip("A list of task indices where these circuits should be active.")]
+    private int[] TaskList;
 
     private static readonly char[] LetterPool = "ABCDEFGHJKLMNPQRSTUVWXYZ".ToCharArray();
     private static readonly char[] DigitPool = "23456789".ToCharArray();
@@ -22,16 +38,19 @@ public class CircuitBreakerManager : NetworkBehaviour
     private List<Whiteboard> _activeWhiteboards = new();
     private List<string> serialNumbers = new();
 
-    private string ScriptTag => "[CircuitBreakerManager]".Color(Color.deepPink);
+    #endregion
 
     public override void OnNetworkSpawn()
     {
-        if (Instance != null)
-            Destroy(this);
-
+        if (Instance != null) Destroy(this);
         Instance = this;
     }
 
+    #region Initialization Logic
+
+    /// <summary>
+    /// Scans for active breakers/whiteboards, generates a correct serial and decoy serials, and initializes the components.
+    /// </summary>
     public void InitializeCircuitBreakers()
     {
         _activeCircuitBreakers.Clear();
@@ -40,87 +59,59 @@ public class CircuitBreakerManager : NetworkBehaviour
 
         string correctSerial = GenerateBaseSerial();
 
+        // Detect active components
         foreach (var cb in circuitBreakers)
-        {
-            bool active = cb != null && cb.transform.parent.GetComponent<RandomObject>().isSpawned.Value;
-            if (active)
+            if (cb != null && cb.transform.parent.GetComponent<RandomObject>().isSpawned.Value)
                 _activeCircuitBreakers.Add(cb);
-        }
 
         foreach (var wb in whiteboards)
-        {
-            bool active = wb != null && wb.gameObject.activeInHierarchy;
-#if UNITY_EDITOR
-            LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Whiteboard '{1}' is {2}", ScriptTag, wb.name, active), this);
-#endif
-            if (active)
+            if (wb != null && wb.gameObject.activeInHierarchy)
                 _activeWhiteboards.Add(wb);
-        }
 
-#if UNITY_EDITOR
-        LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Active circuit breakers: {1}, active whiteboards: {2}", ScriptTag, _activeCircuitBreakers.Count, _activeWhiteboards.Count), this);
-#endif
-
-        // Shuffle circuit breakers to randomize which gets the correct serial
+        // Shuffle for randomness
         for (int i = 0; i < _activeCircuitBreakers.Count; i++)
         {
             int swapIdx = Random.Range(i, _activeCircuitBreakers.Count);
-            (_activeCircuitBreakers[i], _activeCircuitBreakers[swapIdx]) =
-                (_activeCircuitBreakers[swapIdx], _activeCircuitBreakers[i]);
+            (_activeCircuitBreakers[i], _activeCircuitBreakers[swapIdx]) = (_activeCircuitBreakers[swapIdx], _activeCircuitBreakers[i]);
         }
 
-        // Assign serials to circuit breakers
+        // Assign serials
         for (int i = 0; i < _activeCircuitBreakers.Count; i++)
         {
-            string serialToAssign = i == 0 ? correctSerial
-                                  : i == 1 ? GenerateDecoySerial(correctSerial)
-                                  : GenerateBaseSerial();
+            string serialToAssign = (i == 0) ? correctSerial : (i == 1) ? GenerateDecoySerial(correctSerial) : GenerateBaseSerial();
             serialNumbers.Add(serialToAssign);
             _activeCircuitBreakers[i].Initialize(serialToAssign, serialToAssign == correctSerial);
         }
 
-        // Split the correct serial across active whiteboards
+        // Distribute serial across whiteboards
         string[] segments = SplitSerial(correctSerial, _activeWhiteboards.Count);
-
         for (int i = 0; i < _activeWhiteboards.Count; i++)
         {
-#if UNITY_EDITOR
-            LoggerEvent.Log(LogPrefix.Environment, string.Format("{0} : Setting serial of whiteboard {1}, too {2}", ScriptTag, _activeWhiteboards[i].name, segments[i]), this);
-#endif
             _activeWhiteboards[i].SetSerial(segments[i]);
         }
     }
 
+    #endregion
+
+    #region Utility Methods
+
+    /// <summary>
+    /// Checks if the current game objective and task match the requirements for circuit interaction.
+    /// </summary>
     public bool IsObjective()
     {
         Vector2 current = Helper.GetCurrentObjectiveAndTaskIndex();
-
-        if (current == new Vector2(-1, -1))
-        {
-#if UNITY_EDITOR
-            LoggerEvent.LogError(LogPrefix.Environment, "Cannot find current task objective and index", this);
-#endif
-            return false;
-        }
+        if (current == new Vector2(-1, -1)) return false;
 
         foreach (var x in ObjectiveList)
-        {
             foreach (var y in TaskList)
-            {
-                Vector2 potentialTask = new(x, y);
-                if (potentialTask == current)
-                    return true;
-            }
-        }
+                if (new Vector2(x, y) == current) return true;
 
         return false;
     }
 
     /// <summary>
-    /// Splits a serial as evenly as possible across <paramref name="partCount"/> parts.
-    /// e.g. "ABC-47" with 3 parts → ["AB", "C-", "47"]
-    ///      "ABC-47" with 2 parts → ["ABC", "-47"]
-    ///      "ABC-47" with 1 part  → ["ABC-47"]
+    /// Splits a string into several segments to be displayed across multiple whiteboards.
     /// </summary>
     private string[] SplitSerial(string serial, int partCount)
     {
@@ -132,24 +123,21 @@ public class CircuitBreakerManager : NetworkBehaviour
 
         for (int i = 0; i < partCount; i++)
         {
-            // Distribute leftover characters one-by-one to the first segments
             int len = baseLen + (i < remainder ? 1 : 0);
             parts[i] = serial.Substring(cursor, len);
             cursor += len;
         }
-
         return parts;
     }
 
-    /// <summary> Set wether a a hack is currently in progress. This can be used by circuit breakers to disable interaction during hacking. </summary>
-    /// <param name="isHacking">Is the hack in progress</param> 
+    /// <summary> Sets the network hacking state. </summary>
     [Rpc(SendTo.Server)]
-    public void SetHackingStateRpc(bool isHacking)
-    {
-        _isHacking.Value = isHacking;
-    }
+    public void SetHackingStateRpc(bool isHacking) => _isHacking.Value = isHacking;
+
+    #endregion
 
     #region Serial Generation
+
     private string GenerateBaseSerial()
     {
         char l0 = LetterPool[Random.Range(0, LetterPool.Length)];
@@ -167,32 +155,24 @@ public class CircuitBreakerManager : NetworkBehaviour
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            int swapLetterIdx = Random.Range(0, 3);
             char[] decoyLetters = (char[])letters.Clone();
-            decoyLetters[swapLetterIdx] = RandomDifferentChar(LetterPool, decoyLetters[swapLetterIdx]);
+            decoyLetters[Random.Range(0, 3)] = RandomDifferentChar(LetterPool, decoyLetters[Random.Range(0, 3)]);
 
-            int swapDigitIdx = Random.Range(0, 2);
             char[] decoyDigits = (char[])digits.Clone();
-            decoyDigits[swapDigitIdx] = RandomDifferentChar(DigitPool, decoyDigits[swapDigitIdx]);
+            decoyDigits[Random.Range(0, 2)] = RandomDifferentChar(DigitPool, decoyDigits[Random.Range(0, 2)]);
 
             string candidate = $"{decoyLetters[0]}{decoyLetters[1]}{decoyLetters[2]}-{decoyDigits[0]}{decoyDigits[1]}";
-
-            if (candidate != correct && !serialNumbers.Contains(candidate))
-                return candidate;
+            if (candidate != correct && !serialNumbers.Contains(candidate)) return candidate;
         }
 
-        string fallback;
-        do { fallback = GenerateBaseSerial(); }
-        while (fallback == correct || serialNumbers.Contains(fallback));
-        return fallback;
+        return GenerateBaseSerial();
     }
 
     private char RandomDifferentChar(char[] pool, char exclude)
     {
         var candidates = System.Array.FindAll(pool, c => c != exclude);
-        return candidates.Length > 0
-            ? candidates[Random.Range(0, candidates.Length)]
-            : exclude;
+        return candidates.Length > 0 ? candidates[Random.Range(0, candidates.Length)] : exclude;
     }
+
     #endregion
 }

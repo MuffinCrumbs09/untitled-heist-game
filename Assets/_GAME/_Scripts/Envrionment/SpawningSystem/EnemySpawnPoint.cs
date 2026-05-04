@@ -1,21 +1,32 @@
 using UnityEngine;
 using Unity.Netcode;
 
+/// <summary>
+/// Represents a physical location in the world where enemies can be instantiated.
+/// </summary>
 public class EnemySpawnPoint : NetworkBehaviour
 {
+    #region Variables
+
     [Header("Spawn Point Settings")]
-    [SerializeField] private bool isUnlockedAtStart = true;
-    [SerializeField] private float spawnRadius = 1f;
+    [SerializeField] 
+    [Tooltip("Is this spawn point available as soon as the game starts?")]
+    private bool isUnlockedAtStart = true;
+
+    [SerializeField] 
+    [Tooltip("The radius around this point where enemies can appear.")]
+    private float spawnRadius = 1f;
 
     private NetworkVariable<bool> isUnlocked = new NetworkVariable<bool>(
-    false,
-    NetworkVariableReadPermission.Everyone,
-    NetworkVariableWritePermission.Server
-);
+        false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public bool IsUnlocked => isUnlocked.Value;
 
-    #region Functions
+    #endregion
+
+    #region Utility Functions
+
+    /// <summary> Calculates a random position within the defined spawn radius. </summary>
     public Vector3 GetSpawnPosition()
     {
         Vector3 randomOffset = Random.insideUnitSphere * spawnRadius;
@@ -23,32 +34,30 @@ public class EnemySpawnPoint : NetworkBehaviour
         return transform.position + randomOffset;
     }
 
-    public Quaternion GetSpawnRotation()
-    {
-        return transform.rotation;
-    }
+    /// <summary> Returns the rotation of the spawn point. </summary>
+    public Quaternion GetSpawnRotation() => transform.rotation;
+
     #endregion
 
     #region Networking
+
+    /// <summary> Initializes the unlocked state on the server. </summary>
     public override void OnNetworkSpawn()
     {
-        if (IsServer)
-        {
-            isUnlocked.Value = isUnlockedAtStart;
-        }
+        if (IsServer) isUnlocked.Value = isUnlockedAtStart;
     }
 
+    /// <summary> Server RPC to unlock this spawn point for future waves. </summary>
     [Rpc(SendTo.Server)]
     public void UnlockSpawnPointServerRpc()
     {
-        if (IsServer)
-        {
-            isUnlocked.Value = true;
-        }
+        if (IsServer) isUnlocked.Value = true;
     }
+
     #endregion
 
-    #region Gizmos
+    #region Editor Visualization
+
 #if UNITY_EDITOR
     private void OnDrawGizmos()
     {
@@ -63,6 +72,6 @@ public class EnemySpawnPoint : NetworkBehaviour
         Gizmos.DrawWireSphere(transform.position, spawnRadius);
     }
 #endif
-    #endregion
 
+    #endregion
 }

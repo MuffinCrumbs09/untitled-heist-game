@@ -1,47 +1,37 @@
 using UnityEngine;
 using Unity.Netcode;
 
+/// <summary>
+/// A button located outside an elevator used to call it to a specific floor.
+/// </summary>
 public class ElevatorCallButton : NetworkBehaviour, IInteractable
 {
     [Header("References")]
     public Elevator elevator;
-
-    [Tooltip("Which floor this button belongs to")]
-    public int floorIndex;
+    [Tooltip("The floor index this button represents.")] public int floorIndex;
 
     public bool CanInteract()
     {
         if (elevator == null) return false;
-
+        // Cannot interact if moving or if the elevator is already here
         return !elevator.IsMoving.Value && elevator.CurrentFloor.Value != floorIndex;
     }
 
     public void Interact()
     {
-        if (!CanInteract()) return;
-
-        CallElevatorServerRpc(floorIndex);
+        if (CanInteract()) CallElevatorServerRpc(floorIndex);
     }
 
     public string InteractText()
     {
-        if (elevator == null) return "No Elevator";
-
-        if (elevator.CurrentFloor.Value == floorIndex || elevator.IsMoving.Value)
-            return string.Empty;
-
-        return "Call Elevator";
+        if (elevator == null) return "No Elevator Link";
+        return CanInteract() ? "Call Elevator" : string.Empty;
     }
 
     [Rpc(SendTo.Server)]
     private void CallElevatorServerRpc(int floor)
     {
-        if (elevator == null) return;
-
-        // Prevent spam / invalid calls
-        if (elevator.IsMoving.Value) return;
-        if (elevator.CurrentFloor.Value == floor) return;
-
-        elevator.MoveToFloorServerRpc(floor);
+        if (elevator != null && !elevator.IsMoving.Value && elevator.CurrentFloor.Value != floor)
+            elevator.MoveToFloorServerRpc(floor);
     }
 }
