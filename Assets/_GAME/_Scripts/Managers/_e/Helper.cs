@@ -1,15 +1,17 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Collection of reusable utility functions used across the project.
+/// Includes hierarchy searching, objective helpers, list utilities, and formatting.
+/// </summary>
 public static class Helper
 {
-    /// <summary> Recursively searches a room's hierarchy for ItemType components that match the given tag and adds their GameObjects to the list. </summary>
-    /// <param name="room">The room transform to search within.</param>
-    /// <param name="itemType">The type of item to search for.</param>
-    /// <param name="items">The list to add found items to.</param>
+    #region Item Search
+
+    /// <summary>
+    /// Recursively searches a room hierarchy for items matching a specific tag.
+    /// </summary>
     public static void FindItemsByRoom(Transform room, ItemTypeTag itemType, ref List<GameObject> items)
     {
         foreach (Transform child in room)
@@ -17,31 +19,40 @@ public static class Helper
             if (child.TryGetComponent(out ItemType item) && item.Tag == itemType)
                 items.Add(child.gameObject);
 
-            FindItemsByRoom(child, itemType, ref items); // Recurse into nested children
+            FindItemsByRoom(child, itemType, ref items);
         }
     }
 
+    #endregion
+
+    #region Scene / Hierarchy Helpers
+
     /// <summary>
-    /// Builds a full scene hierarchy path for a GameObject (e.g. "Root/Parent/Child/Object").
-    /// Used for passing object references across the network, since NetworkObject paths are stable.
+    /// Builds a full hierarchy path for a GameObject.
+    /// Useful for networking or debugging.
     /// </summary>
     public static string GetGameObjectPath(GameObject obj)
     {
         if (obj == null) return string.Empty;
+
         string path = obj.name;
         Transform current = obj.transform.parent;
+
         while (current != null)
         {
             path = current.name + "/" + path;
             current = current.parent;
         }
+
         return path;
     }
 
+    #endregion
+
+    #region Objective & Task Helpers
+
     /// <summary>
-    /// Finds the room transform that contains the Computer associated with the given minigame task.
-    /// Starts by locating the task in the objective list (by index), then finds the matching Computer
-    /// and walks up the hierarchy until it finds a GameObject with a RoomType component.
+    /// Finds the room that contains the computer for a given task.
     /// </summary>
     public static Transform GoToTaskRoom(int objectiveIndex, int taskIndex = 0)
     {
@@ -53,9 +64,8 @@ public static class Helper
 
         if (objective.tasks[taskIndex] is not MinigameTask minigameTask) return null;
 
-        // Find the computer that is currently associated with this task (assigned in MapManager).
-        // Use FindObjectsByType so we don't rely on deprecated APIs.
         Computer computer = null;
+
         foreach (var c in GameObject.FindObjectsByType<Computer>(FindObjectsSortMode.None))
         {
             if (c.associatedTask == minigameTask)
@@ -64,10 +74,11 @@ public static class Helper
                 break;
             }
         }
+
         if (computer == null) return null;
 
-        // Walk up the hierarchy until we find a room (identified by a RoomType component).
         Transform current = computer.transform;
+
         while (current != null)
         {
             if (current.TryGetComponent<RoomType>(out var roomType) && roomType.Tag != null)
@@ -80,8 +91,7 @@ public static class Helper
     }
 
     /// <summary>
-    /// Retrieves the Computer component associated with a specific MinigameTask.
-    /// Looks up the task by objective index and task index, then finds its assigned Computer.
+    /// Gets the computer linked to a task.
     /// </summary>
     public static Computer GetComputerFromTask(int objectiveIndex, int taskIndex = 0)
     {
@@ -93,7 +103,6 @@ public static class Helper
 
         if (objective.tasks[taskIndex] is not MinigameTask minigameTask) return null;
 
-        // Find the computer that is currently associated with this task (assigned in MapManager).
         foreach (var computer in GameObject.FindObjectsByType<Computer>(FindObjectsSortMode.None))
         {
             if (computer.associatedTask == minigameTask)
@@ -104,25 +113,8 @@ public static class Helper
     }
 
     /// <summary>
-    /// Shuffles a list of gameobjects. Useful for map generation to ensure randomness
+    /// Returns current objective and task index.
     /// </summary>
-    public static void ShuffleList(ref List<GameObject> list)
-    {
-        for (int s = 0; s < list.Count - 1; s++)
-        {
-            int newIndex = UnityEngine.Random.Range(s, list.Count);
-
-            var toSwap = list[s];
-            list[s] = list[newIndex];
-            list[newIndex] = toSwap;
-        }
-    }
-
-    /// <summary>
-    /// Get the current objective and taask index
-    /// </summary>
-    /// <returns>Vector2(ObjectiveIndex, TaskIndex)
-    /// Returns default value of (-1, -1) if an error has occured</returns>
     public static Vector2 GetCurrentObjectiveAndTaskIndex()
     {
         ObjectiveSystem system = ObjectiveSystem.Instance;
@@ -132,28 +124,53 @@ public static class Helper
 
         int x = system.CurrentObjectiveIndex.Value;
         int y = system.ObjectiveList[x].GetCurrentTaskIndex();
+
         return new Vector2(x, y);
     }
 
-    public static string ToHex(this Color c)
+    #endregion
+
+    #region List Utilities
+
+    /// <summary>
+    /// Randomly shuffles a list.
+    /// </summary>
+    public static void ShuffleList(ref List<GameObject> list)
     {
-        return string.Format("#{0:X2}{1:X2}{2:X2}", ToByte(c.r), ToByte(c.g), ToByte(c.b));
+        for (int i = 0; i < list.Count - 1; i++)
+        {
+            int randomIndex = UnityEngine.Random.Range(i, list.Count);
+
+            var temp = list[i];
+            list[i] = list[randomIndex];
+            list[randomIndex] = temp;
+        }
     }
 
-    public static byte ToByte(float f)
+    #endregion
+
+    #region Color & Formatting
+
+    /// <summary>
+    /// Converts a Color to HEX string.
+    /// </summary>
+    public static string ToHex(this Color c)
     {
-        f = Mathf.Clamp01(f);
-        return (byte)(f * 255);
+        return $"#{ToByte(c.r):X2}{ToByte(c.g):X2}{ToByte(c.b):X2}";
+    }
+
+    private static byte ToByte(float f)
+    {
+        return (byte)(Mathf.Clamp01(f) * 255);
     }
 
     /// <summary>
-    /// Outputs text in desired colour for debug.logs
+    /// Wraps text in color tags for Debug logs.
     /// </summary>
-    /// <returns>Colour string</returns>
     public static string Color(this string text, Color color)
     {
-        string output;
-        output = string.Format("<color={0}>{1}</color>", color.ToHex(), text);
-        return output;
+        return $"<color={color.ToHex()}>{text}</color>";
     }
+
+    #endregion
 }

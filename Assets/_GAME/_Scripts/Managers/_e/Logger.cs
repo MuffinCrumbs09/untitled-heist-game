@@ -4,6 +4,10 @@ using UnityEngine;
 
 public enum LogPrefix { NULL, Audio, Environment, Player, Enemy, Networking }
 
+/// <summary>
+/// Central logging event system.
+/// Allows filtered logs with prefixes.
+/// </summary>
 public static class LoggerEvent
 {
     public static event Action<LogPrefix, object, UnityEngine.Object> OnLog;
@@ -11,42 +15,51 @@ public static class LoggerEvent
     public static event Action<LogPrefix, object, UnityEngine.Object> OnLogError;
 
     public static void Log(LogPrefix prefix, object message, UnityEngine.Object sender)
-    {
-        OnLog?.Invoke(prefix, message, sender);
-    }
+        => OnLog?.Invoke(prefix, message, sender);
 
     public static void LogWarning(LogPrefix prefix, object message, UnityEngine.Object sender)
-    {
-        OnLogWarning?.Invoke(prefix, message, sender);
-    }
+        => OnLogWarning?.Invoke(prefix, message, sender);
 
     public static void LogError(LogPrefix prefix, object message, UnityEngine.Object sender)
-    {
-        OnLogError?.Invoke(prefix, message, sender);
-    }
+        => OnLogError?.Invoke(prefix, message, sender);
 }
 
+/// <summary>
+/// Component that listens for logs and displays them conditionally.
+/// </summary>
 public class Logger : MonoBehaviour
 {
+    #region Inspector
 
     [Header("Settings")]
-    [SerializeField] bool _showLogs = false;
-    [SerializeField] LogPrefix _prefix = LogPrefix.NULL;
-    [SerializeField] Color _prefixColor = Color.white;
+    [Tooltip("Enable or disable logging.")]
+    [SerializeField] private bool showLogs = false;
 
-    private string _hexColor;
+    [Tooltip("Which log prefix this logger listens to.")]
+    [SerializeField] private LogPrefix prefix = LogPrefix.NULL;
+
+    [Tooltip("Color used for prefix display.")]
+    [SerializeField] private Color prefixColor = Color.white;
+
+    #endregion
+
+    #region Private Fields
+    private string hexColor;
+    #endregion
 
     #region Unity Events
     private void Awake()
     {
-        _hexColor = ColorUtility.ToHtmlStringRGB(_prefixColor);
+        hexColor = ColorUtility.ToHtmlStringRGB(prefixColor);
     }
+
     private void OnEnable()
     {
         LoggerEvent.OnLog += HandleLog;
         LoggerEvent.OnLogWarning += HandleLogWarning;
         LoggerEvent.OnLogError += HandleLogError;
     }
+
     private void OnDisable()
     {
         LoggerEvent.OnLog -= HandleLog;
@@ -55,37 +68,44 @@ public class Logger : MonoBehaviour
     }
     #endregion
 
-    #region Logging Functions
-    private void HandleLog(LogPrefix prefix, object message, UnityEngine.Object sender)
+    #region Handlers
+
+    private void HandleLog(LogPrefix logPrefix, object message, UnityEngine.Object sender)
     {
-        if (!_showLogs || (prefix != _prefix)) return;
+        if (!showLogs || logPrefix != prefix) return;
 
         Debug.Log(FormatMessage(message), sender);
     }
 
-    private void HandleLogWarning(LogPrefix prefix, object message, UnityEngine.Object sender)
+    private void HandleLogWarning(LogPrefix logPrefix, object message, UnityEngine.Object sender)
     {
-        if (!_showLogs || (prefix != _prefix)) return;
+        if (!showLogs || logPrefix != prefix) return;
 
         Debug.LogWarning(FormatMessage(message), sender);
     }
 
-    private void HandleLogError(LogPrefix prefix, object message, UnityEngine.Object sender)
+    private void HandleLogError(LogPrefix logPrefix, object message, UnityEngine.Object sender)
     {
-        if (!_showLogs || (prefix != _prefix)) return;
+        if (!showLogs || logPrefix != prefix) return;
 
         Debug.LogError(FormatMessage(message), sender);
     }
+
     #endregion
 
-    #region Helper
+    #region Helpers
+
+    /// <summary>
+    /// Formats log message with colored prefix.
+    /// </summary>
     private string FormatMessage(object message)
     {
-        if (_prefix == LogPrefix.NULL)
+        if (prefix == LogPrefix.NULL)
             return message.ToString();
 
-        return $"<color=#{_hexColor}>[{_prefix}]</color> {message}";
+        return $"<color=#{hexColor}>[{prefix}]</color> {message}";
     }
+
     #endregion
 }
 #endif

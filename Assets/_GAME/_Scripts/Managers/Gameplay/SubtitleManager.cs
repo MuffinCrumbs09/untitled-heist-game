@@ -3,31 +3,41 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
+/// <summary>
+/// Manages all subtitle display in the game (player + NPC).
+/// Handles networking, proximity filtering, and NPC subtitle queuing.
+/// </summary>
 public class SubtitleManager : NetworkBehaviour
 {
     #region Singleton
     public static SubtitleManager Instance { get; private set; }
     #endregion
 
-    #region Serialized Fields
+    #region Inspector Settings
+
     [Header("Proximity Settings")]
-    [SerializeField] private float ProximityRange = 15f;
+    [Tooltip("Maximum distance at which player subtitles can be heard.")]
+    [SerializeField] private float proximityRange = 15f;
 
     [Header("Display Settings")]
-    [SerializeField] private float DefaultDisplayDuration = 3f;
+    [Tooltip("Default duration subtitles stay on screen.")]
+    [SerializeField] private float defaultDisplayDuration = 3f;
 
     [Header("NPC Queue Settings")]
-    [SerializeField] private int MaxNpcQueueSize = 10;
+    [Tooltip("Maximum number of NPC subtitles that can be queued.")]
+    [SerializeField] private int maxNpcQueueSize = 10;
+
+    [Tooltip("How long a subtitle can wait before being discarded.")]
+    [SerializeField] private float maxSubtitleAge = 8f;
+
     #endregion
 
     #region Private Fields
     private SubtitleUIManager uiManager;
-    private Queue<SubtitleData> npcQueue = new Queue<SubtitleData>();
+
+    private Queue<SubtitleData> npcQueue = new();
     private Coroutine npcCoroutine;
     private bool isPlayingNpcSubtitle = false;
-
-    [Header("NPC Queue Settings")]
-    [SerializeField] private float MaxSubtitleAge = 8f; // Discard if waiting longer than this
     #endregion
 
     #region Unity Events
@@ -38,52 +48,67 @@ public class SubtitleManager : NetworkBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
     }
 
     private void Start()
     {
+        // Finds UI handler in scene
         uiManager = FindFirstObjectByType<SubtitleUIManager>();
     }
     #endregion
 
-    #region Public Methods
+    #region Public API
+
+    /// <summary>
+    /// Displays a subtitle from the local player.
+    /// </summary>
     public void ShowPlayerSubtitle(string message, float duration = -1f)
     {
-        duration = duration < 0 ? DefaultDisplayDuration : duration;
-        string username = GetLocalUsername();
+        duration = duration < 0 ? defaultDisplayDuration : duration;
 
-        ShowSubtitleServerRpc(username, message, SubtitleType.Player, duration);
+        ShowSubtitleServerRpc(GetLocalUsername(), message, SubtitleType.Player, duration);
     }
 
+    /// <summary>
+    /// Displays a subtitle from an NPC.
+    /// </summary>
     public void ShowNPCSubtitle(string npcName, string message, float duration = -1f)
     {
-        duration = duration < 0 ? DefaultDisplayDuration : duration;
+        duration = duration < 0 ? defaultDisplayDuration : duration;
 
         ShowSubtitleServerRpc(npcName, message, SubtitleType.NPC, duration);
     }
 
+    /// <summary>
+    /// Clears all queued NPC subtitles.
+    /// </summary>
     public void ClearNpcQueue()
     {
         npcQueue.Clear();
+
         if (npcCoroutine != null)
-        {
             StopCoroutine(npcCoroutine);
-            npcCoroutine = null;
-        }
+
+        npcCoroutine = null;
         isPlayingNpcSubtitle = false;
     }
+
     #endregion
 
-    #region RPCs
+    #region Networking
+
+    /// <summary>
+    /// Sends subtitle data to all clients.
+    /// Routes to correct handling method based on type.
+    /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
     private void ShowSubtitleServerRpc(string speaker, string message, SubtitleType type, float duration, RpcParams rpc = default)
     {
-        ulong senderClientId = rpc.Receive.SenderClientId;
-
         SubtitleData data = new SubtitleData
         {
-            SenderClientId = senderClientId,
+            SenderClientId = rpc.Receive.SenderClientId,
             Username = speaker,
             Message = message,
             Type = type,
@@ -96,22 +121,25 @@ public class SubtitleManager : NetworkBehaviour
             BroadcastProximitySubtitleClientRpc(data);
     }
 
+    /// <summary>
+    /// Adds NPC subtitles to a queue and plays them sequentially.
+    /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
     private void BroadcastNpcSubtitleClientRpc(SubtitleData subtitleData)
     {
-        if (npcQueue.Count >= MaxNpcQueueSize)
+        if (npcQueue.Count >= maxNpcQueueSize)
             return;
 
         subtitleData.EnqueueTime = Time.time;
         npcQueue.Enqueue(subtitleData);
 
         if (!isPlayingNpcSubtitle)
-        {
-            if (npcCoroutine != null) StopCoroutine(npcCoroutine);
             npcCoroutine = StartCoroutine(PlayNpcQueue());
-        }
     }
 
+    /// <summary>
+    /// Displays subtitles only if the local player is within range.
+    /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
     private void BroadcastProximitySubtitleClientRpc(SubtitleData subtitleData)
     {
@@ -119,69 +147,86 @@ public class SubtitleManager : NetworkBehaviour
             return;
 
         GameObject localPlayer = NetworkManager.Singleton.LocalClient.PlayerObject.gameObject;
-        GameObject senderPlayer = GetPlayerByClientId(subtitleData.SenderClientId);
+        GameObject sender = GetPlayerByClientId(subtitleData.SenderClientId);
 
-        if (senderPlayer == null)
+        if (sender == null)
             return;
 
-        float distance = Vector3.Distance(localPlayer.transform.position, senderPlayer.transform.position);
+        float distance = Vector3.Distance(localPlayer.transform.position, sender.transform.position);
 
-        if (distance <= ProximityRange)
+        if (distance <= proximityRange)
             uiManager?.DisplaySubtitle(subtitleData.Username, subtitleData.Message, subtitleData.DisplayDuration);
     }
+
     #endregion
 
-    #region NPC Queue
+    #region NPC Queue System
+
+    /// <summary>
+    /// Plays NPC subtitles one at a time in order.
+    /// </summary>
     private IEnumerator PlayNpcQueue()
     {
         isPlayingNpcSubtitle = true;
 
         while (npcQueue.Count > 0)
         {
-            SubtitleData next = npcQueue.Dequeue();
+            var next = npcQueue.Dequeue();
 
-            // Skip if this subtitle has been waiting too long
             float age = Time.time - next.EnqueueTime;
-            if (age > MaxSubtitleAge)
+
+            // Skip expired subtitles
+            if (age > maxSubtitleAge)
                 continue;
 
-            float remainingBudget = next.DisplayDuration - age;
-            if (remainingBudget <= 0.5f)
+            float remainingTime = next.DisplayDuration - age;
+
+            if (remainingTime <= 0.5f)
                 continue;
 
-            uiManager?.DisplaySubtitle(next.Username, next.Message, remainingBudget);
-            yield return new WaitForSeconds(remainingBudget);
+            uiManager?.DisplaySubtitle(next.Username, next.Message, remainingTime);
+
+            yield return new WaitForSeconds(remainingTime);
         }
 
         isPlayingNpcSubtitle = false;
         npcCoroutine = null;
     }
+
     #endregion
 
-    #region Private Methods
+    #region Helpers
+
+    /// <summary>
+    /// Finds a player GameObject using their client ID.
+    /// </summary>
     private GameObject GetPlayerByClientId(ulong clientId)
     {
         if (NetworkManager.Singleton.ConnectedClients.TryGetValue(clientId, out NetworkClient client) &&
-            NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(
-                client.PlayerObject.NetworkObjectId, out NetworkObject networkObject))
+            NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(client.PlayerObject.NetworkObjectId, out NetworkObject obj))
         {
-            return networkObject.gameObject;
+            return obj.gameObject;
         }
+
         return null;
     }
 
+    /// <summary>
+    /// Gets the local player's username.
+    /// </summary>
     private string GetLocalUsername()
     {
         ulong localID = NetworkManager.Singleton.LocalClientId;
-        NetPlayerManager manager = NetPlayerManager.Instance;
+        var manager = NetPlayerManager.Instance;
 
-        for (int i = 0; i < manager.playerData.Count; i++)
+        foreach (var player in manager.playerData)
         {
-            if (manager.playerData[i].CLIENTID.Equals(localID))
-                return manager.playerData[i].USERNAME;
+            if (player.CLIENTID == localID)
+                return player.USERNAME;
         }
 
         return "Player";
     }
+
     #endregion
 }

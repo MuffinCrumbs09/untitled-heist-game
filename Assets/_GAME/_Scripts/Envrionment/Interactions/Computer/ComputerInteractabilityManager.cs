@@ -55,7 +55,7 @@ public class ComputerInteractabilityManager : NetworkBehaviour
         {
             if (entry.computer == null) continue;
 
-            // Only allow interaction if computer is on
+            // Only allow interaction if computer is powered on
             ComputerSettings settings = entry.computer.GetComponent<ComputerSettings>();
             if (settings != null && !settings.IsOn.Value) continue;
 
