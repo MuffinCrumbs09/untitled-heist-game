@@ -1,42 +1,41 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
+using Unity.VisualScripting;
 
-public enum ComputerType { TIMER, CODE }
+public enum ComputerType
+{
+    TIMER,
+    CODE
+}
 
-/// <summary>
-/// Manages the hacking logic for computers, linking them to mission objectives 
-/// and handling networked hacking states.
-/// </summary>
 public class Computer : NetworkBehaviour, IInteractable
 {
     [Header("Settings")]
-    [Tooltip("The hacking minigame UI script.")] public HackingMinigame minigame;
-    [Tooltip("Determines if the hack is instant (CODE) or takes time (TIMER).")] public ComputerType type;
+    public HackingMinigame minigame;
+    public ComputerType type;
     [TextArea(3, 10)] public string CompleteText;
 
-    [Header("Mission Logic")]
-    [Tooltip("The specific task this computer completes.")] public MinigameTask associatedTask;
+    public MinigameTask associatedTask;
 
-    [Header("Network States")]
     public NetworkVariable<bool> IsHacking = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> IsHacked = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<bool> Interactable = new(false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     public NetworkVariable<int> TimeToHack = new(0);
+    private int timeToHack => TimeToHack.Value;
 
     private ComputerSettings _settings;
 
-    private void Awake() => _settings = GetComponent<ComputerSettings>();
+    private void Awake()
+    {
+        _settings = GetComponent<ComputerSettings>();
+    }
 
-    #region Interface
-
-    /// <summary>
-    /// Checks if the computer is currently available to be hacked based on objective progress.
-    /// </summary>
     public bool CanInteract()
     {
         if (IsHacked.Value || IsHacking.Value) return false;
 
+        // Correctly assigned computer on the right objective — always interactable
         if (associatedTask != null)
         {
             Objective curObjective = ObjectiveSystem.Instance.GetCurObjective();
@@ -45,88 +44,97 @@ public class Computer : NetworkBehaviour, IInteractable
             if (currentTaskIndex >= 0)
             {
                 Task currentTask = curObjective.tasks[currentTaskIndex];
+
                 if (currentTask is MinigameTask minigameTask && minigameTask == associatedTask)
                     return true;
             }
         }
 
-        return Interactable.Value;
+        // Everything else goes through the network variable
+        if (!Interactable.Value) return false;
+
+        return true;
     }
 
-    /// <summary>
-    /// Opens the hacking minigame interface.
-    /// </summary>
     public void Interact()
     {
         if (!CanInteract()) return;
         minigame.StartHacking(this);
     }
 
-    /// <summary>
-    /// Returns the prompt text for the player's interaction HUD.
-    /// </summary>
-    public string InteractText() => CanInteract() ? "Press [E] to Hack Computer" : string.Empty;
+    public string InteractText()
+    {
+        if (!CanInteract()) return string.Empty;
+        return "Press [E] to Hack Computer";
+    }
 
-    #endregion
+    public bool IsCorrectComputer() => associatedTask != null;
 
-    /// <summary>
-    /// Logic triggered when the player successfully completes the hacking minigame.
-    /// </summary>
     public void OnHackComplete()
     {
-        if (associatedTask == null)
+        if (!IsCorrectComputer())
         {
-            // Play flavor dialogue if this isn't a mission-critical computer
             int index = Random.Range(0, MapManager.Instance.MapRandomDialouge.ComputerDialouge.Count);
             SubtitleManager.Instance.ShowNPCSubtitle("Contractor", MapManager.Instance.MapRandomDialouge.ComputerDialouge[index], 5);
             OnHackCompleteServerRpc();
         }
         else
         {
-            if (type == ComputerType.CODE) OnHackCompleteServerRpc();
-            else if (type == ComputerType.TIMER) StartHackRpc();
+            if (type == ComputerType.CODE)
+                OnHackCompleteServerRpc();
+            else if (type == ComputerType.TIMER)
+                StartHackRpc();
         }
     }
 
-    #region RPCs & Coroutines
-
-    /// <summary>
-    /// Starts a timed background hack on the server.
-    /// </summary>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void StartHackRpc()
     {
         IsHacking.Value = true;
-        StartCoroutine(StartHackRoutine());
+        StartCoroutine(StartHack());
     }
 
-    private IEnumerator StartHackRoutine()
+    private IEnumerator StartHack()
     {
-        if (TimeToHack.Value != 0)
-            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {TimeToHack.Value} seconds remaining.");
-        
-        yield return new WaitForSeconds(TimeToHack.Value);
+        if (timeToHack != 0)
+            SubtitleManager.Instance.ShowNPCSubtitle("Contractor", $"Hack Starting. {timeToHack} seconds remaining.");
+        yield return new WaitForSeconds(timeToHack);
         OnHackCompleteServerRpc();
     }
 
-    /// <summary>
-    /// Finalizes the hack on the server and notifies clients to update objective progress.
-    /// </summary>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void OnHackCompleteServerRpc()
     {
         IsHacked.Value = true;
         Interactable.Value = false;
-        
         if (CompleteText != string.Empty && associatedTask != null)
             SubtitleManager.Instance.ShowNPCSubtitle("Contractor", CompleteText);
-            
         OnHackCompleteClientRpc();
     }
 
-    /// <summary>
-    /// Updates the objective system on all clients once the server confirms completion.
-    /// </summary>
+    [Rpc(SendTo.Server)]
+    public void ResetComputerRpc(int time)
+    {
+        IsHacked.Value = false;
+        IsHacking.Value = false;
+        Interactable.Value = true;
+        CompleteText = string.Empty;
+        if (time != -1)
+            TimeToHack.Value = time;
+    }
+
+    [Rpc(SendTo.NotServer)]
+    public void SyncAssociatedTaskClientRpc(int objectiveIndex, int taskIndex)
+    {
+        if (ObjectiveSystem.Instance == null) return;
+
+        var objective = ObjectiveSystem.Instance.ObjectiveList[objectiveIndex];
+        if (objective == null || taskIndex < 0 || taskIndex >= objective.tasks.Count) return;
+
+        if (objective.tasks[taskIndex] is MinigameTask miniTask)
+            associatedTask = miniTask;
+    }
+
     [ClientRpc]
     private void OnHackCompleteClientRpc()
     {
@@ -138,6 +146,4 @@ public class Computer : NetworkBehaviour, IInteractable
             ObjectiveSystem.Instance.GetCurObjective().tasks.IndexOf(associatedTask)
         );
     }
-
-    #endregion
 }
