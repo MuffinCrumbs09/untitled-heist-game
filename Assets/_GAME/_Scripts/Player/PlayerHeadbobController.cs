@@ -24,8 +24,10 @@ public class PlayerHeadbobController : NetworkBehaviour
 
     [SerializeField] private Transform _camera;
     #endregion
+    
+    // Getter
+    public Vector3 BobOffset => _bobOffset;
 
-    // ─────────────────────────────────────────────
     void Start()
     {
         if (_camera == null) _camera = Camera.main.transform;
@@ -40,8 +42,6 @@ public class PlayerHeadbobController : NetworkBehaviour
     {
         if (!Enabled) return;
 
-        // Remove last frame's bob before applying new one,
-        // so this system stays independent of camera base position.
         _camera.localPosition -= _previousBobOffset;
 
         float moveMag = InputReader.Instance.MovementValue.magnitude;
@@ -58,12 +58,12 @@ public class PlayerHeadbobController : NetworkBehaviour
         }
         else
         {
-            // Let the timer coast to the nearest zero-crossing to avoid a pop
+
             _timer += Time.deltaTime * _frequency;
-            float snapWindow = _frequency * Time.deltaTime * 1.5f; // ~1.5 frames of tolerance
+            float snapWindow = _frequency * Time.deltaTime * 1.5f;
 
             if (Mathf.Abs(Mathf.Sin(_timer)) < snapWindow)
-                _timer = 0f;   // Close enough to neutral — safe to reset
+                _timer = 0f;
 
             // Lerp bob offset back to zero
             _bobOffset = Vector3.Lerp(_bobOffset, Vector3.zero, _smoothSpeed * Time.deltaTime);

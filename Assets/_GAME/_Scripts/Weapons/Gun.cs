@@ -23,7 +23,26 @@ public abstract class Gun : NetworkBehaviour
     private bool _isReloading = false;
     #endregion
 
-    #region Unity Evets
+    // ── Sprint Lowered Pose ───────────────────────────────────────────────────
+    [Header("Sprint Lowered Pose")]
+    [Tooltip("Local position the arm model moves TO while sprinting.")]
+    public Vector3 SprintPosition = new Vector3(0.15f, -0.25f, 0.1f);
+
+    [Tooltip("Local euler angles the arm model rotates TO while sprinting.")]
+    public Vector3 SprintRotation = new Vector3(30f, 15f, -10f);
+
+    [Tooltip("How fast the arm model lerps into/out of the sprint pose.")]
+    public float SprintLerpSpeed = 10f;
+
+    /// <summary>True while the weapon is fully in (or animating into) the sprint lowered pose.</summary>
+    public bool IsSprintPoseActive { get; private set; }
+
+    // Internal blend weight 0 = rest/aim, 1 = sprint
+    private float _sprintBlend = 0f;
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #region Unity Events
     private void Awake()
     {
         _curAmmo = GunData.MagazineSize;
@@ -59,9 +78,12 @@ public abstract class Gun : NetworkBehaviour
             return false;
 
         if (_curAmmo <= 0f)
-        {
             return false;
-        }
+
+        // Block firing while the weapon is raised to the sprint pose.
+        // Allow a tiny threshold so a tap of fire cancels sprint instead of blocking completely.
+        if (_sprintBlend > 0.1f)
+            return false;
 
         return true;
     }
@@ -97,15 +119,10 @@ public abstract class Gun : NetworkBehaviour
         if (!_isAI)
             SubtitleManager.Instance.ShowPlayerSubtitle("Reloading!");
 
-        //Play Anim
-        // Debug.Log(GunData.GunName + " is reloading");
-
         yield return new WaitForSeconds(GunData.ReloadTime);
 
         _curAmmo = GunData.MagazineSize;
         _isReloading = false;
-
-        // Debug.Log("Gun Reloaded");
     }
 
     #endregion
@@ -128,7 +145,27 @@ public abstract class Gun : NetworkBehaviour
 
     private void AimControl()
     {
-        if (_weaponInput.IsAiming)
+        // ── Determine target pose ────────────────────────────────────────────
+        // Priority: sprint > aim > hip
+        bool wantSprint = !_isAI
+                          && InputReader.Instance.IsSprinting
+                          && InputReader.Instance.MovementValue.magnitude > 0.1f
+                          && !_weaponInput.IsAiming;
+
+        float sprintTarget = wantSprint ? 1f : 0f;
+        _sprintBlend = Mathf.Lerp(_sprintBlend, sprintTarget, SprintLerpSpeed * Time.deltaTime);
+        IsSprintPoseActive = _sprintBlend > 0.01f;
+
+        if (IsSprintPoseActive)
+        {
+            // Blend between rest (or aim) and sprint pose
+            Vector3 basePos = _weaponInput.IsAiming ? GunData.AimPosition : Vector3.zero;
+            Vector3 baseRot = _weaponInput.IsAiming ? GunData.AimRotation : Vector3.zero;
+
+            ArmModel.transform.localPosition = Vector3.Lerp(basePos, SprintPosition, _sprintBlend);
+            ArmModel.transform.localEulerAngles = Vector3.Lerp(baseRot, SprintRotation, _sprintBlend);
+        }
+        else if (_weaponInput.IsAiming)
         {
             ArmModel.transform.localPosition = GunData.AimPosition;
             ArmModel.transform.localEulerAngles = GunData.AimRotation;
@@ -140,7 +177,6 @@ public abstract class Gun : NetworkBehaviour
         }
     }
 
-
     // If client doesn't own this, disable me
     public override void OnNetworkSpawn()
     {
@@ -149,7 +185,6 @@ public abstract class Gun : NetworkBehaviour
 
     private IEnumerator DisableAfterSpawn()
     {
-        // Wait until the local player exists
         while (NetworkManager.Singleton == null || NetworkManager.Singleton.LocalClient == null || NetworkManager.Singleton.LocalClient.PlayerObject == null)
         {
             yield return null;

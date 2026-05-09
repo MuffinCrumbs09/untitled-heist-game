@@ -4302,6 +4302,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5474398761930121422}
   - component: {fileID: 3568205039461474465}
+  - component: {fileID: 3245405332326139667}
   m_Layer: 7
   m_Name: Arms_Male
   m_TagString: Untagged
@@ -4393,6 +4394,30 @@ MonoBehaviour:
   - {fileID: 1947856921413586068}
   - {fileID: 7785055457460904840}
   - {fileID: 2852263788752454036}
+--- !u!114 &3245405332326139667
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6856375064051289619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b57ce7ee5fafa04992a63298889cef6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SwayAndBob
+  ShowTopMostFoldoutHeaderGroup: 1
+  swayAmount: 1.5
+  strafeRollAmount: 5
+  aimSwayMultiplier: 0.25
+  swaySmoothing: 8
+  maxSwayAngle: 5
+  bobPositionMultiplier: 0
+  bobSmoothing: 0
+  idleBreathAmplitude: 0.0015
+  idleBreathFrequency: 1.2
+  _headbobController: {fileID: 4866283001870074251}
+  _gun: {fileID: 3788627817748559783}
 --- !u!1 &6877479073747843106
 GameObject:
   m_ObjectHideFlags: 0
@@ -5564,6 +5589,7 @@ GameObject:
   m_Component:
   - component: {fileID: 796972106028590648}
   - component: {fileID: 3212655255739179808}
+  - component: {fileID: 5461852933541967656}
   m_Layer: 7
   m_Name: Weapon Holder
   m_TagString: Untagged
@@ -5609,6 +5635,30 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5461852933541967656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8473065059387138894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b57ce7ee5fafa04992a63298889cef6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SwayAndBob
+  ShowTopMostFoldoutHeaderGroup: 1
+  swayAmount: 1.5
+  strafeRollAmount: 5
+  aimSwayMultiplier: 0.25
+  swaySmoothing: 8
+  maxSwayAngle: 5
+  bobPositionMultiplier: 0.4
+  bobSmoothing: 12
+  idleBreathAmplitude: 0.0015
+  idleBreathFrequency: 1.2
+  _headbobController: {fileID: 4866283001870074251}
+  _gun: {fileID: 3788627817748559783}
 --- !u!1 &8495739477502794367
 GameObject:
   m_ObjectHideFlags: 0
@@ -5949,6 +5999,9 @@ MonoBehaviour:
   Look: {fileID: 0}
   AimTransform: {fileID: 4850658273034301609}
   ArmModel: {fileID: 6937498243282224526}
+  SprintPosition: {x: 0.364, y: 0, z: -0.419}
+  SprintRotation: {x: -0.724, y: -48.529, z: -1.607}
+  SprintLerpSpeed: 10
 --- !u!1 &8654619910456400991
 GameObject:
   m_ObjectHideFlags: 0
